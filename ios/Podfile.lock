@@ -1946,6 +1946,75 @@ PODS:
     - FirebaseCoreExtension
     - React-Core
     - RNFBApp
+  - RNGestureHandler (2.31.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - RNScreens (4.24.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNScreens/common (= 4.24.0)
+    - Yoga
+  - RNScreens/common (4.24.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2027,6 +2096,8 @@ DEPENDENCIES:
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
+  - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - RNScreens (from `../node_modules/react-native-screens`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2198,6 +2269,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/app"
   RNFBMessaging:
     :path: "../node_modules/@react-native-firebase/messaging"
+  RNGestureHandler:
+    :path: "../node_modules/react-native-gesture-handler"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -2289,6 +2364,8 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: e85a99325df9eb0191a6ee2b2a842644c7eb29f4
   RNFBApp: 2c88b4fc4bcecf25ff9077abde08f4b1cbaff4c6
   RNFBMessaging: 67ede2b8c07a00902f24dd5819b2c75901a75669
+  RNGestureHandler: eb2f4f545ed5e6b597d60b6515e193cf63a2c1ba
+  RNScreens: 088d923c4327c63c9f8c942cae17a9d038f47d97
   Yoga: c0b3f2c7e8d3e327e450223a2414ca3fa296b9a2
 
 PODFILE CHECKSUM: 7e7a775f32af835473e1771d11f1df5ffa076ffa

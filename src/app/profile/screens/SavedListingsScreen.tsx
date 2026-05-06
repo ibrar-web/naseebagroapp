@@ -1,11 +1,19 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
 
+const CARD_SHADOW = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.07,
+  shadowRadius: 12,
+  elevation: 3,
+};
+
 const SAVED = [
-  { id: 'L001', name: 'Premium Wheat',  emoji: '🌾', price: '₨3,850/40kg', qty: '500 Tons',  location: 'Lahore'     },
-  { id: 'L002', name: 'IRRI-6 Rice',   emoji: '🍚', price: '₨4,200/40kg', qty: '200 Tons',  location: 'Sheikhupura'},
-  { id: 'L004', name: 'Yellow Maize',  emoji: '🌽', price: '₨2,600/40kg', qty: '800 Tons',  location: 'Faisalabad' },
+  { id: 'L001', name: 'Premium Wheat', emoji: '🌾', price: '₨3,850/40kg', qty: '500 Tons',  location: 'Lahore'      },
+  { id: 'L002', name: 'IRRI-6 Rice',  emoji: '🍚', price: '₨4,200/40kg', qty: '200 Tons',  location: 'Sheikhupura' },
+  { id: 'L004', name: 'Yellow Maize', emoji: '🌽', price: '₨2,600/40kg', qty: '800 Tons',  location: 'Faisalabad'  },
 ];
 
 const SavedListingsScreen = ({ navigation }: any) => (
@@ -24,13 +32,13 @@ const SavedListingsScreen = ({ navigation }: any) => (
       <FlatList
         data={SAVED}
         keyExtractor={i => i.id}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => navigation.navigate('ListingDetail', { listingId: item.id })}
-            className="bg-white rounded-2xl flex-row items-center p-4 gap-3"
-            style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }}
+            className="bg-white rounded-2xl flex-row items-center p-4 gap-3 mb-3"
+            style={CARD_SHADOW}
             activeOpacity={0.88}
           >
             <View className="w-14 h-14 rounded-xl bg-green-50 items-center justify-center">
@@ -42,7 +50,7 @@ const SavedListingsScreen = ({ navigation }: any) => (
             </View>
             <View className="items-end gap-2">
               <Text className="text-green-700 text-sm font-extrabold">{item.price}</Text>
-              <TouchableOpacity className="p-1">
+              <TouchableOpacity className="p-1" activeOpacity={0.7}>
                 <Text style={{ fontSize: 18 }}>❤️</Text>
               </TouchableOpacity>
             </View>

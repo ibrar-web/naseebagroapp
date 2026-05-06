@@ -1,47 +1,55 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StatusBar,
+  StyleSheet,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RootStackParamList, TabParamList } from './types';
 
 // Auth
-import SplashScreen  from '../app/auth/screens/SplashScreen';
+import SplashScreen from '../app/auth/screens/SplashScreen';
 import WelcomeScreen from '../app/auth/screens/WelcomeScreen';
-import PhoneScreen   from '../app/auth/screens/PhoneScreen';
-import OTPScreen     from '../app/auth/screens/OTPScreen';
+import PhoneScreen from '../app/auth/screens/PhoneScreen';
+import OTPScreen from '../app/auth/screens/OTPScreen';
 
 // Main tabs
-import HomeScreen        from '../app/buyer/screens/HomeScreen';
+import HomeScreen from '../app/buyer/screens/HomeScreen';
 import MarketplaceScreen from '../app/marketplace/screens/MarketplaceScreen';
-import DealsScreen       from '../app/deals/screens/DealsScreen';
-import PostScreen        from '../app/marketplace/screens/PostScreen';
-import ProfileScreen     from '../app/profile/screens/ProfileScreen';
+import DealsScreen from '../app/deals/screens/DealsScreen';
+import PostScreen from '../app/marketplace/screens/PostScreen';
+import ProfileScreen from '../app/profile/screens/ProfileScreen';
 
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
-import DealDetailScreen    from '../app/deals/screens/DealDetailScreen';
+import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 
 // Profile sub-screens (tab bar hidden)
-import PersonalInfoScreen          from '../app/profile/screens/PersonalInfoScreen';
-import BusinessProfileScreen       from '../app/profile/screens/BusinessProfileScreen';
-import PaymentMethodsScreen        from '../app/profile/screens/PaymentMethodsScreen';
-import VerificationStatusScreen    from '../app/profile/screens/VerificationStatusScreen';
-import SavedListingsScreen         from '../app/profile/screens/SavedListingsScreen';
+import PersonalInfoScreen from '../app/profile/screens/PersonalInfoScreen';
+import BusinessProfileScreen from '../app/profile/screens/BusinessProfileScreen';
+import PaymentMethodsScreen from '../app/profile/screens/PaymentMethodsScreen';
+import VerificationStatusScreen from '../app/profile/screens/VerificationStatusScreen';
+import SavedListingsScreen from '../app/profile/screens/SavedListingsScreen';
 import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSettingsScreen';
-import AppSettingsScreen           from '../app/profile/screens/AppSettingsScreen';
-import SupportScreen               from '../app/profile/screens/SupportScreen';
-import TermsScreen                 from '../app/profile/screens/TermsScreen';
+import AppSettingsScreen from '../app/profile/screens/AppSettingsScreen';
+import SupportScreen from '../app/profile/screens/SupportScreen';
+import TermsScreen from '../app/profile/screens/TermsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab   = createBottomTabNavigator<TabParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
+const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
 const TAB_CONFIG: Record<string, { icon: string; label: string }> = {
-  Home:    { icon: '🏠', label: 'Home'    },
-  Market:  { icon: '🌾', label: 'Market'  },
-  Deals:   { icon: '📦', label: 'Deals'   },
-  Post:    { icon: '✏️', label: 'Post'    },
+  Home: { icon: '🏠', label: 'Home' },
+  Market: { icon: '🌾', label: 'Market' },
+  Deals: { icon: '📦', label: 'Deals' },
+  Post: { icon: '✏️', label: 'Post' },
   Profile: { icon: '👤', label: 'Profile' },
 };
 
@@ -68,17 +76,25 @@ const CustomTabBar = ({ state, navigation }: any) => (
       return (
         <TouchableOpacity
           key={route.key}
-          onPress={() => { if (!isFocused) { navigation.navigate(route.name); } }}
+          onPress={() => {
+            if (!isFocused) {
+              navigation.navigate(route.name);
+            }
+          }}
           className="flex-1 items-center"
           style={{ gap: 2, paddingTop: 4 }}
           activeOpacity={0.7}
           accessibilityRole="button"
         >
           <View
-            className={`w-10 items-center justify-center rounded-xl ${isFocused ? 'bg-green-100' : ''}`}
+            className={`w-10 items-center justify-center rounded-xl ${
+              isFocused ? 'bg-green-100' : ''
+            }`}
             style={{ height: 26 }}
           >
-            <Text style={{ fontSize: 18, color: isFocused ? '#1A6B34' : '#9CA3AF' }}>
+            <Text
+              style={{ fontSize: 18, color: isFocused ? '#1A6B34' : '#9CA3AF' }}
+            >
               {cfg.icon}
             </Text>
           </View>
@@ -97,18 +113,36 @@ const CustomTabBar = ({ state, navigation }: any) => (
   </View>
 );
 
+const AppStatusBar = () => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={STATUS_BAR_BACKGROUND}
+        translucent={false}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.statusBarSurface, { paddingTop: insets.top }]}
+      />
+    </>
+  );
+};
+
 const MainTabs = () => (
   <>
-    <StatusBar barStyle="light-content" backgroundColor="#145228" translucent={false} />
+    <AppStatusBar />
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Home"    component={HomeScreen}        />
-      <Tab.Screen name="Market"  component={MarketplaceScreen} />
-      <Tab.Screen name="Deals"   component={DealsScreen}       />
-      <Tab.Screen name="Post"    component={PostScreen}        />
-      <Tab.Screen name="Profile" component={ProfileScreen}     />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Market" component={MarketplaceScreen} />
+      <Tab.Screen name="Deals" component={DealsScreen} />
+      <Tab.Screen name="Post" component={PostScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   </>
 );
@@ -120,30 +154,56 @@ export const AppNavigator = () => (
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
       {/* Auth */}
-      <Stack.Screen name="Splash"   component={SplashScreen}  options={{ animation: 'none' }} />
-      <Stack.Screen name="Welcome"  component={WelcomeScreen} />
-      <Stack.Screen name="Phone"    component={PhoneScreen}   />
-      <Stack.Screen name="OTP"      component={OTPScreen}     />
+      <Stack.Screen
+        name="Splash"
+        component={SplashScreen}
+        options={{ animation: 'none' }}
+      />
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Phone" component={PhoneScreen} />
+      <Stack.Screen name="OTP" component={OTPScreen} />
 
       {/* Main tabs */}
-      <Stack.Screen name="MainTabs" component={MainTabs} options={{ animation: 'fade' }} />
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{ animation: 'fade' }}
+      />
 
       {/* Listing & deal detail */}
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
-      <Stack.Screen name="DealDetail"    component={DealDetailScreen}    />
+      <Stack.Screen name="DealDetail" component={DealDetailScreen} />
 
       {/* Profile sub-screens */}
-      <Stack.Screen name="PersonalInfo"          component={PersonalInfoScreen}          />
-      <Stack.Screen name="BusinessProfile"       component={BusinessProfileScreen}       />
-      <Stack.Screen name="PaymentMethods"        component={PaymentMethodsScreen}        />
-      <Stack.Screen name="VerificationStatus"    component={VerificationStatusScreen}    />
-      <Stack.Screen name="SavedListings"         component={SavedListingsScreen}         />
-      <Stack.Screen name="NotificationsSettings" component={NotificationsSettingsScreen} />
-      <Stack.Screen name="AppSettings"           component={AppSettingsScreen}           />
-      <Stack.Screen name="Support"               component={SupportScreen}               />
-      <Stack.Screen name="Terms"                 component={TermsScreen}                 />
+      <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+      <Stack.Screen name="BusinessProfile" component={BusinessProfileScreen} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen
+        name="VerificationStatus"
+        component={VerificationStatusScreen}
+      />
+      <Stack.Screen name="SavedListings" component={SavedListingsScreen} />
+      <Stack.Screen
+        name="NotificationsSettings"
+        component={NotificationsSettingsScreen}
+      />
+      <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );
 
 export default AppNavigator;
+
+const styles = StyleSheet.create({
+  statusBarSurface: {
+    backgroundColor: STATUS_BAR_BACKGROUND,
+    paddingHorizontal: 24,
+    paddingBottom: 6,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+});

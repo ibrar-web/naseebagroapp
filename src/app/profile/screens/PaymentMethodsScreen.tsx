@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -47,7 +48,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                   className="w-10 h-10 rounded-xl items-center justify-center"
                   style={{ backgroundColor: BANK_COLORS[acc.bank] ?? '#1A6B34' }}
                 >
-                  <Text className="text-white text-xs font-extrabold">{acc.bank.slice(0, 3)}</Text>
+                  <AppIcon name="bank" size={19} color="#FFFFFF" />
                 </View>
                 <View>
                   <Text className="text-gray-900 text-sm font-bold">{acc.bank}</Text>
@@ -90,7 +91,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
           style={{ shadowColor: '#1A6B34', shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 }}
           activeOpacity={0.88}
         >
-          <Text className="text-white text-xl font-bold">+</Text>
+          <AppIcon name="add" size={20} color="#FFFFFF" />
           <Text className="text-white text-base font-bold">Add Bank Account</Text>
         </TouchableOpacity>
       </ScrollView>

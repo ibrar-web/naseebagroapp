@@ -127,7 +127,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
               className="h-24 w-24 items-center justify-center rounded-[28px] border-4 border-white bg-orange-500 shadow-2xl shadow-black/10"
               activeOpacity={0.85}
             >
-              <Text className="text-4xl">👤</Text>
+              <AppIcon name="profileAvatar" size={44} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity className="mt-5" activeOpacity={0.7}>
               <Text className="text-green-700 text-lg font-extrabold">

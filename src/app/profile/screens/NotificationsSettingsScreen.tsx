@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Switch } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -11,12 +13,12 @@ const CARD_SHADOW = {
 };
 
 const TOGGLES = [
-  { icon: '📦', label: 'Deal Alerts',     sub: 'New deals and status updates',  key: 'deals'    },
-  { icon: '💰', label: 'Payment Updates', sub: 'Payment received or sent',      key: 'payments' },
-  { icon: '📊', label: 'Market Rates',    sub: 'Daily commodity price updates', key: 'market'   },
-  { icon: '🤝', label: 'New Offers',      sub: 'Offers from buyers or sellers', key: 'offers'   },
-  { icon: '🔔', label: 'System Alerts',   sub: 'App updates and announcements', key: 'system'   },
-  { icon: '📧', label: 'Email Digest',    sub: 'Weekly summary via email',      key: 'email'    },
+  { icon: 'notificationDeals' as AppIconName, label: 'Deal Alerts',     sub: 'New deals and status updates',  key: 'deals'    },
+  { icon: 'notificationPayment' as AppIconName, label: 'Payment Updates', sub: 'Payment received or sent',      key: 'payments' },
+  { icon: 'notificationMarket' as AppIconName, label: 'Market Rates',    sub: 'Daily commodity price updates', key: 'market'   },
+  { icon: 'notificationOffers' as AppIconName, label: 'New Offers',      sub: 'Offers from buyers or sellers', key: 'offers'   },
+  { icon: 'notificationSystem' as AppIconName, label: 'System Alerts',   sub: 'App updates and announcements', key: 'system'   },
+  { icon: 'notificationEmail' as AppIconName, label: 'Email Digest',    sub: 'Weekly summary via email',      key: 'email'    },
 ];
 
 const NotificationsSettingsScreen = ({ navigation }: any) => {
@@ -46,7 +48,7 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
               className={`flex-row items-center px-4 py-4 ${idx < TOGGLES.length - 1 ? 'border-b border-gray-100' : ''}`}
             >
               <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center mr-3">
-                <Text style={{ fontSize: 18 }}>{t.icon}</Text>
+                <AppIcon name={t.icon} size={18} color="#1A6B34" />
               </View>
               <View className="flex-1">
                 <Text className="text-gray-900 text-sm font-semibold">{t.label}</Text>
@@ -63,7 +65,12 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
         </View>
 
         <View className="bg-green-50 border border-green-200 rounded-2xl p-4" style={CARD_SHADOW}>
-          <Text className="text-green-800 text-sm font-semibold">📱 Push notifications are enabled</Text>
+          <View className="flex-row items-center">
+            <View className="mr-2">
+              <AppIcon name="notificationPush" size={17} color="#145228" />
+            </View>
+            <Text className="text-green-800 text-sm font-semibold">Push notifications are enabled</Text>
+          </View>
           <Text className="text-green-700 text-xs mt-1">
             You'll receive alerts for all active toggles. Manage device permissions in Settings.
           </Text>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -11,7 +13,11 @@ const CARD_SHADOW = {
 };
 
 const LANGS  = ['English', 'اردو'];
-const THEMES = ['Light', 'Dark', 'System'];
+const THEMES: { label: string; icon: AppIconName }[] = [
+  { label: 'Light', icon: 'themeLight' },
+  { label: 'Dark', icon: 'themeDark' },
+  { label: 'System', icon: 'themeSystem' },
+];
 
 const AppSettingsScreen = ({ navigation }: any) => {
   const [lang,  setLang]  = useState('English');
@@ -49,13 +55,17 @@ const AppSettingsScreen = ({ navigation }: any) => {
           <View className="flex-row gap-3">
             {THEMES.map(t => (
               <TouchableOpacity
-                key={t}
-                onPress={() => setTheme(t)}
-                className={`flex-1 py-3 rounded-xl items-center border ${theme === t ? 'bg-green-700 border-green-700' : 'bg-gray-50 border-gray-200'}`}
+                key={t.label}
+                onPress={() => setTheme(t.label)}
+                className={`flex-1 py-3 rounded-xl items-center border ${theme === t.label ? 'bg-green-700 border-green-700' : 'bg-gray-50 border-gray-200'}`}
                 activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 18 }}>{t === 'Light' ? '☀️' : t === 'Dark' ? '🌙' : '⚙️'}</Text>
-                <Text className={`text-xs font-semibold mt-1 ${theme === t ? 'text-white' : 'text-gray-600'}`}>{t}</Text>
+                <AppIcon
+                  name={t.icon}
+                  size={18}
+                  color={theme === t.label ? '#FFFFFF' : '#4B5563'}
+                />
+                <Text className={`text-xs font-semibold mt-1 ${theme === t.label ? 'text-white' : 'text-gray-600'}`}>{t.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -65,9 +75,9 @@ const AppSettingsScreen = ({ navigation }: any) => {
         <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 mb-3">Data & Storage</Text>
         <View className="bg-white rounded-2xl overflow-hidden" style={CARD_SHADOW}>
           {[
-            { icon: '📶', label: 'Use Mobile Data', sub: 'Allow app to use cellular data'  },
-            { icon: '🗑️', label: 'Clear Cache',      sub: 'Free up storage space'           },
-            { icon: '📦', label: 'App Version',      sub: 'Naseeb Agri Market v1.0.0'       },
+            { icon: 'mobileData' as AppIconName, label: 'Use Mobile Data', sub: 'Allow app to use cellular data'  },
+            { icon: 'cache' as AppIconName, label: 'Clear Cache',      sub: 'Free up storage space'           },
+            { icon: 'version' as AppIconName, label: 'App Version',      sub: 'Naseeb Agri Market v1.0.0'       },
           ].map((item, idx, arr) => (
             <TouchableOpacity
               key={item.label}
@@ -75,13 +85,13 @@ const AppSettingsScreen = ({ navigation }: any) => {
               activeOpacity={0.7}
             >
               <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center mr-3">
-                <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+                <AppIcon name={item.icon} size={18} color="#1A6B34" />
               </View>
               <View className="flex-1">
                 <Text className="text-gray-900 text-sm font-semibold">{item.label}</Text>
                 <Text className="text-gray-400 text-xs mt-0.5">{item.sub}</Text>
               </View>
-              <Text className="text-gray-300 text-xl">›</Text>
+              <AppIcon name="chevronRight" size={18} color="#D1D5DB" />
             </TouchableOpacity>
           ))}
         </View>

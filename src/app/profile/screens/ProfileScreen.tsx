@@ -2,42 +2,43 @@ import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
 } from 'react-native';
-import { useAppDispatch, useAppSelector } from '../../../store';
+import { useAppDispatch } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
-type MenuItem = { icon: string; label: string; sub: string; screen: string };
+type MenuItem = { icon: AppIconName; label: string; sub: string; screen: string };
 type MenuGroup = { group: string; items: MenuItem[] };
 
 const MENU: MenuGroup[] = [
   {
     group: 'ACCOUNT',
     items: [
-      { icon: '👤', label: 'Personal Information', sub: 'Name, email, phone',        screen: 'PersonalInfo'     },
-      { icon: '💼', label: 'Business Profile',     sub: 'Company, type, location',   screen: 'BusinessProfile'  },
-      { icon: '💳', label: 'Payment Methods',      sub: 'Bank account, wallets',     screen: 'PaymentMethods'   },
-      { icon: '🛡️', label: 'Verification Status',  sub: 'KYC approved ✓',            screen: 'VerificationStatus'},
-      { icon: '⭐', label: 'Saved Listings',        sub: 'Your favorites',            screen: 'SavedListings'    },
+      { icon: 'menuPersonal', label: 'Personal Information', sub: 'Name, email, phone',        screen: 'PersonalInfo'     },
+      { icon: 'menuBusiness', label: 'Business Profile',     sub: 'Company, type, location',   screen: 'BusinessProfile'  },
+      { icon: 'menuPayment', label: 'Payment Methods',      sub: 'Bank account, wallets',     screen: 'PaymentMethods'   },
+      { icon: 'menuVerification', label: 'Verification Status',  sub: 'KYC approved',            screen: 'VerificationStatus'},
+      { icon: 'menuSaved', label: 'Saved Listings',        sub: 'Your favorites',            screen: 'SavedListings'    },
     ],
   },
   {
     group: 'PREFERENCES',
     items: [
-      { icon: '🔔', label: 'Notifications',  sub: 'Manage alerts',        screen: 'NotificationsSettings' },
-      { icon: '⚙️', label: 'App Settings',   sub: 'Language, theme',      screen: 'AppSettings'           },
+      { icon: 'menuNotifications', label: 'Notifications',  sub: 'Manage alerts',        screen: 'NotificationsSettings' },
+      { icon: 'menuAppSettings', label: 'App Settings',   sub: 'Language, theme',      screen: 'AppSettings'           },
     ],
   },
   {
     group: 'SUPPORT',
     items: [
-      { icon: '🆘', label: 'Help & Support',  sub: 'FAQs, contact us',    screen: 'Support' },
-      { icon: '📄', label: 'Terms & Privacy', sub: 'Legal documents',     screen: 'Terms'   },
+      { icon: 'menuSupport', label: 'Help & Support',  sub: 'FAQs, contact us',    screen: 'Support' },
+      { icon: 'menuTerms', label: 'Terms & Privacy', sub: 'Legal documents',     screen: 'Terms'   },
     ],
   },
 ];
 
 const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
-  const mode     = useAppSelector(s => s.app.mode);
 
   return (
     <View className="flex-1 bg-green-800">
@@ -55,15 +56,18 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Avatar */}
           <View className="w-20 h-20 rounded-2xl bg-orange-500 items-center justify-center"
                 style={{ borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }}>
-            <Text style={{ fontSize: 36 }}>👤</Text>
+            <AppIcon name="profileAvatar" size={38} color="#FFFFFF" />
           </View>
 
           {/* Name + email + badge */}
           <View className="flex-1 gap-1">
             <Text className="text-white text-2xl font-bold">Muhammad Asad</Text>
             <Text className="text-green-300 text-sm">asad@traders.com</Text>
-            <View className="self-start mt-1 px-3 py-1 rounded-full border border-green-400 bg-green-800">
-              <Text className="text-green-400 text-xs font-bold">● Approved</Text>
+            <View className="self-start mt-1 px-3 py-1 rounded-full border border-green-400 bg-green-800 flex-row items-center">
+              <View className="mr-1.5">
+                <AppIcon name="approved" size={12} color="#45B86A" />
+              </View>
+              <Text className="text-green-400 text-xs font-bold">Approved</Text>
             </View>
           </View>
         </View>
@@ -74,12 +78,19 @@ const ProfileScreen = ({ navigation }: any) => {
           {[
             { val: '12',   label: 'Deals'    },
             { val: '5',    label: 'Supplies' },
-            { val: '4.8★', label: 'Rating'   },
+            { val: '4.8', label: 'Rating', icon: 'menuSaved' as AppIconName },
           ].map((s, i) => (
             <View key={s.label}
                   className={`flex-1 items-start ${i > 0 ? 'pl-6' : ''}`}
                   style={i > 0 ? { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.15)' } : {}}>
-              <Text className="text-white text-2xl font-extrabold">{s.val}</Text>
+              <View className="flex-row items-center">
+                <Text className="text-white text-2xl font-extrabold">{s.val}</Text>
+                {s.icon ? (
+                  <View className="ml-1">
+                    <AppIcon name={s.icon} size={16} color="#FFFFFF" />
+                  </View>
+                ) : null}
+              </View>
               <Text className="text-green-300 text-xs mt-0.5">{s.label}</Text>
             </View>
           ))}
@@ -109,7 +120,7 @@ const ProfileScreen = ({ navigation }: any) => {
                 >
                   {/* Icon in green circle */}
                   <View className="w-10 h-10 rounded-xl bg-green-100 items-center justify-center mr-3">
-                    <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+                    <AppIcon name={item.icon} size={19} color="#1A6B34" />
                   </View>
 
                   {/* Text */}
@@ -119,7 +130,7 @@ const ProfileScreen = ({ navigation }: any) => {
                   </View>
 
                   {/* Chevron */}
-                  <Text className="text-gray-300 text-xl font-light">›</Text>
+                  <AppIcon name="chevronRight" size={18} color="#D1D5DB" />
                 </TouchableOpacity>
               ))}
             </View>
@@ -134,7 +145,12 @@ const ProfileScreen = ({ navigation }: any) => {
             className="bg-white rounded-2xl py-4 items-center"
             style={{ borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 }}
           >
-            <Text className="text-red-500 text-base font-bold">🚪 Log Out</Text>
+            <View className="flex-row items-center">
+              <View className="mr-2">
+                <AppIcon name="logout" size={18} color="#EF4444" />
+              </View>
+              <Text className="text-red-500 text-base font-bold">Log Out</Text>
+            </View>
           </TouchableOpacity>
         </View>
 

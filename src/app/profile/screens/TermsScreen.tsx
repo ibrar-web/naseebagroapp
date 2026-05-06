@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -34,7 +35,7 @@ const TermsScreen = ({ navigation }: any) => (
         className="bg-green-700 rounded-2xl p-5 mb-4"
         style={{ shadowColor: '#1A6B34', shadowOpacity: 0.2, shadowRadius: 10, elevation: 4 }}
       >
-        <Text style={{ fontSize: 32 }}>📄</Text>
+        <AppIcon name="legal" size={32} color="#FFFFFF" />
         <Text className="text-white text-lg font-extrabold mt-2">Legal Documents</Text>
         <Text className="text-green-200 text-sm mt-1">
           Please read these terms carefully before using Naseeb Agri Market.

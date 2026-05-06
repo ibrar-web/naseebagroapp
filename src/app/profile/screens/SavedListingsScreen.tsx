@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -11,9 +13,9 @@ const CARD_SHADOW = {
 };
 
 const SAVED = [
-  { id: 'L001', name: 'Premium Wheat', emoji: '🌾', price: '₨3,850/40kg', qty: '500 Tons',  location: 'Lahore'      },
-  { id: 'L002', name: 'IRRI-6 Rice',  emoji: '🍚', price: '₨4,200/40kg', qty: '200 Tons',  location: 'Sheikhupura' },
-  { id: 'L004', name: 'Yellow Maize', emoji: '🌽', price: '₨2,600/40kg', qty: '800 Tons',  location: 'Faisalabad'  },
+  { id: 'L001', name: 'Premium Wheat', icon: 'listing' as AppIconName, price: '₨3,850/40kg', qty: '500 Tons',  location: 'Lahore'      },
+  { id: 'L002', name: 'IRRI-6 Rice',  icon: 'listing' as AppIconName, price: '₨4,200/40kg', qty: '200 Tons',  location: 'Sheikhupura' },
+  { id: 'L004', name: 'Yellow Maize', icon: 'listing' as AppIconName, price: '₨2,600/40kg', qty: '800 Tons',  location: 'Faisalabad'  },
 ];
 
 const SavedListingsScreen = ({ navigation }: any) => (
@@ -22,7 +24,7 @@ const SavedListingsScreen = ({ navigation }: any) => (
 
     {SAVED.length === 0 ? (
       <View className="flex-1 items-center justify-center gap-4">
-        <Text style={{ fontSize: 56 }}>🔖</Text>
+        <AppIcon name="savedEmpty" size={56} color="#9CA3AF" />
         <Text className="text-gray-700 text-lg font-bold">No saved listings</Text>
         <Text className="text-gray-400 text-sm text-center px-10">
           Tap the heart icon on any listing to save it here
@@ -42,16 +44,21 @@ const SavedListingsScreen = ({ navigation }: any) => (
             activeOpacity={0.88}
           >
             <View className="w-14 h-14 rounded-xl bg-green-50 items-center justify-center">
-              <Text style={{ fontSize: 30 }}>{item.emoji}</Text>
+              <AppIcon name={item.icon} size={28} color="#1A6B34" />
             </View>
             <View className="flex-1">
               <Text className="text-gray-900 text-sm font-bold">{item.name}</Text>
-              <Text className="text-gray-500 text-xs mt-0.5">{item.qty} · 📍 {item.location}</Text>
+              <View className="flex-row items-center mt-0.5">
+                <Text className="text-gray-500 text-xs">{item.qty}</Text>
+                <Text className="text-gray-500 text-xs mx-1">·</Text>
+                <AppIcon name="profileCity" size={12} color="#6B7280" />
+                <Text className="text-gray-500 text-xs ml-1">{item.location}</Text>
+              </View>
             </View>
             <View className="items-end gap-2">
               <Text className="text-green-700 text-sm font-extrabold">{item.price}</Text>
               <TouchableOpacity className="p-1" activeOpacity={0.7}>
-                <Text style={{ fontSize: 18 }}>❤️</Text>
+                <AppIcon name="heart" size={18} color="#EF4444" />
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { AppIcon } from '../../../assets/icons';
 
 interface Props {
   title: string;
@@ -16,7 +17,7 @@ const SubHeader = ({ title, subtitle, navigation }: Props) => (
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 24 }}
         activeOpacity={0.5}
       >
-        <Text className="text-gray-900 text-4xl leading-10">←</Text>
+        <AppIcon name="back" size={30} color="#111827" />
       </TouchableOpacity>
       <Text className="text-center text-gray-900 text-2xl font-extrabold">
         {title}

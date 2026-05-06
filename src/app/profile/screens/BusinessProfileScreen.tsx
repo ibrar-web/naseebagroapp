@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 type BusinessField = {
   label: string;
@@ -18,7 +19,7 @@ type BusinessField = {
   setValue: React.Dispatch<React.SetStateAction<string>>;
   keyboardType?: KeyboardTypeOptions;
   placeholder: string;
-  icon: string;
+  icon: AppIconName;
 };
 
 const BusinessRow = ({
@@ -34,7 +35,7 @@ const BusinessRow = ({
     }`}
   >
     <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
-      <Text className="text-green-700 text-2xl">{field.icon}</Text>
+      <AppIcon name={field.icon} size={22} color="#1A6B34" />
     </View>
     <View className="ml-4 flex-1">
       <Text className="text-gray-400 text-base font-medium">{field.label}</Text>
@@ -70,7 +71,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setBizName,
       keyboardType: 'default',
       placeholder: 'Business name',
-      icon: '▥',
+      icon: 'business',
     },
     {
       label: 'Business Type',
@@ -78,7 +79,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setBizType,
       keyboardType: 'default',
       placeholder: 'Business type',
-      icon: '▣',
+      icon: 'businessType',
     },
     {
       label: 'Registration No',
@@ -86,7 +87,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setRegistration,
       keyboardType: 'default',
       placeholder: 'Registration number',
-      icon: '▤',
+      icon: 'registration',
     },
     {
       label: 'Primary Crop',
@@ -94,7 +95,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setCrop,
       keyboardType: 'default',
       placeholder: 'Primary crop',
-      icon: '⬡',
+      icon: 'crop',
     },
     {
       label: 'Farm Location',
@@ -102,7 +103,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setLocation,
       keyboardType: 'default',
       placeholder: 'Farm location',
-      icon: '⌖',
+      icon: 'profileCity',
     },
     {
       label: 'Farm Size',
@@ -110,7 +111,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setValue: setFarmSize,
       keyboardType: 'default',
       placeholder: 'Farm size',
-      icon: '⌁',
+      icon: 'farmSize',
     },
   ];
 
@@ -129,7 +130,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
         <View className="px-4 pt-8 pb-10">
           <View className="mb-8 flex-row items-center rounded-[28px] bg-green-900 px-5 py-5 shadow-2xl shadow-green-900/20">
             <View className="h-16 w-16 items-center justify-center rounded-3xl bg-green-700">
-              <Text className="text-white text-4xl">▥</Text>
+              <AppIcon name="business" size={34} color="#FFFFFF" />
             </View>
             <View className="ml-4 flex-1">
               <Text className="text-white text-xl font-extrabold">
@@ -140,7 +141,9 @@ const BusinessProfileScreen = ({ navigation }: any) => {
               </Text>
             </View>
             <View className="flex-row items-center rounded-full bg-green-50 px-3 py-1.5">
-              <Text className="mr-2 text-green-600 text-base">●</Text>
+              <View className="mr-2">
+                <AppIcon name="approved" size={14} color="#2E9E52" />
+              </View>
               <Text className="text-green-700 text-base font-extrabold">
                 Approved
               </Text>

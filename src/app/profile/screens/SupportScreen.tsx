@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -19,9 +21,9 @@ const FAQS = [
 ];
 
 const CONTACT = [
-  { icon: '💬', label: 'WhatsApp', sub: '+92 311 123 4567', color: '#25D366' },
-  { icon: '📧', label: 'Email',    sub: 'support@naseeb.pk', color: '#1A6B34' },
-  { icon: '📞', label: 'Helpline', sub: '0800-12345',        color: '#3B82F6' },
+  { icon: 'contactWhatsapp' as AppIconName, label: 'WhatsApp', sub: '+92 311 123 4567', color: '#25D366' },
+  { icon: 'contactEmail' as AppIconName,    label: 'Email',    sub: 'support@naseeb.pk', color: '#1A6B34' },
+  { icon: 'contactPhone' as AppIconName, label: 'Helpline', sub: '0800-12345',        color: '#3B82F6' },
 ];
 
 const SupportScreen = ({ navigation }: any) => {
@@ -46,7 +48,7 @@ const SupportScreen = ({ navigation }: any) => {
               style={CARD_SHADOW}
               activeOpacity={0.85}
             >
-              <Text style={{ fontSize: 26 }}>{c.icon}</Text>
+              <AppIcon name={c.icon} size={26} color={c.color} />
               <Text className="text-gray-900 text-xs font-bold">{c.label}</Text>
               <Text className="text-gray-400 text-xs text-center">{c.sub}</Text>
             </TouchableOpacity>
@@ -66,10 +68,14 @@ const SupportScreen = ({ navigation }: any) => {
                 activeOpacity={0.7}
               >
                 <View className="w-8 h-8 rounded-lg bg-green-50 items-center justify-center">
-                  <Text className="text-green-700 text-sm font-extrabold">Q</Text>
+                  <AppIcon name="faq" size={16} color="#1A6B34" />
                 </View>
                 <Text className="flex-1 text-gray-800 text-sm font-semibold">{faq.q}</Text>
-                <Text className="text-gray-400 text-base font-bold">{open === idx ? '∧' : '›'}</Text>
+                <AppIcon
+                  name={open === idx ? 'chevronDown' : 'chevronRight'}
+                  size={18}
+                  color="#9CA3AF"
+                />
               </TouchableOpacity>
               {open === idx && (
                 <View className="px-4 pb-4" style={{ paddingLeft: 60 }}>

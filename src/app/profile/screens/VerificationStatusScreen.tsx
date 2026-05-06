@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -11,11 +13,11 @@ const CARD_SHADOW = {
 };
 
 const DOCS = [
-  { icon: '🪪', label: 'CNIC / National ID',    status: 'Verified', date: 'Verified 12 Jan 2024' },
-  { icon: '🏢', label: 'Business Registration', status: 'Verified', date: 'Verified 15 Jan 2024' },
-  { icon: '🏦', label: 'Bank Statement',         status: 'Verified', date: 'Verified 18 Jan 2024' },
-  { icon: '📋', label: 'Trade License',          status: 'Pending',  date: 'Under review'         },
-  { icon: '📸', label: 'Live Photo',             status: 'Verified', date: 'Verified 12 Jan 2024' },
+  { icon: 'verificationId' as AppIconName, label: 'CNIC / National ID',    status: 'Verified', date: 'Verified 12 Jan 2024' },
+  { icon: 'verificationBusiness' as AppIconName, label: 'Business Registration', status: 'Verified', date: 'Verified 15 Jan 2024' },
+  { icon: 'verificationBank' as AppIconName, label: 'Bank Statement',         status: 'Verified', date: 'Verified 18 Jan 2024' },
+  { icon: 'verificationLicense' as AppIconName, label: 'Trade License',          status: 'Pending',  date: 'Under review'         },
+  { icon: 'verificationCamera' as AppIconName, label: 'Live Photo',             status: 'Verified', date: 'Verified 12 Jan 2024' },
 ];
 
 const STATUS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -38,7 +40,7 @@ const VerificationStatusScreen = ({ navigation }: any) => (
         className="bg-green-700 rounded-2xl p-5 flex-row items-center gap-4 mb-4"
         style={{ shadowColor: '#1A6B34', shadowOpacity: 0.2, shadowRadius: 10, elevation: 4 }}
       >
-        <Text style={{ fontSize: 40 }}>✅</Text>
+        <AppIcon name="approved" size={40} color="#FFFFFF" />
         <View>
           <Text className="text-white text-lg font-extrabold">KYC Approved</Text>
           <Text className="text-green-200 text-sm mt-0.5">Your account is fully verified</Text>
@@ -57,7 +59,7 @@ const VerificationStatusScreen = ({ navigation }: any) => (
               className={`flex-row items-center px-4 py-4 ${idx < DOCS.length - 1 ? 'border-b border-gray-100' : ''}`}
             >
               <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center mr-3">
-                <Text style={{ fontSize: 18 }}>{doc.icon}</Text>
+                <AppIcon name={doc.icon} size={18} color="#1A6B34" />
               </View>
               <View className="flex-1">
                 <Text className="text-gray-900 text-sm font-semibold">{doc.label}</Text>
@@ -76,7 +78,7 @@ const VerificationStatusScreen = ({ navigation }: any) => (
         className="border-2 border-dashed border-green-300 rounded-2xl py-5 items-center gap-2 bg-green-50"
         activeOpacity={0.7}
       >
-        <Text style={{ fontSize: 28 }}>📤</Text>
+        <AppIcon name="upload" size={28} color="#1A6B34" />
         <Text className="text-green-700 text-sm font-bold">Upload Missing Documents</Text>
         <Text className="text-gray-400 text-xs">Tap to add Trade License</Text>
       </TouchableOpacity>

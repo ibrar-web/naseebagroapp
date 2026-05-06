@@ -32,6 +32,10 @@ const iconRegistry = {
     Icon: Feather,
     name: 'trash-2' as FeatherIconName,
   },
+  biometric: {
+    Icon: Feather,
+    name: 'user-check' as FeatherIconName,
+  },
   chevronDown: {
     Icon: Feather,
     name: 'chevron-down' as FeatherIconName,
@@ -55,6 +59,10 @@ const iconRegistry = {
   crop: {
     Icon: Feather,
     name: 'box' as FeatherIconName,
+  },
+  currency: {
+    Icon: Feather,
+    name: 'tag' as FeatherIconName,
   },
   document: {
     Icon: Feather,
@@ -128,6 +136,10 @@ const iconRegistry = {
     Icon: Feather,
     name: 'wifi' as FeatherIconName,
   },
+  language: {
+    Icon: Feather,
+    name: 'globe' as FeatherIconName,
+  },
   notificationDeals: {
     Icon: Feather,
     name: 'package' as FeatherIconName,
@@ -184,13 +196,17 @@ const iconRegistry = {
     Icon: Feather,
     name: 'shield' as FeatherIconName,
   },
+  pin: {
+    Icon: Feather,
+    name: 'lock' as FeatherIconName,
+  },
   registration: {
     Icon: Feather,
     name: 'file-text' as FeatherIconName,
   },
   savedEmpty: {
     Icon: Feather,
-    name: 'bookmark' as FeatherIconName,
+    name: 'star' as FeatherIconName,
   },
   themeDark: {
     Icon: Feather,
@@ -203,6 +219,10 @@ const iconRegistry = {
   themeSystem: {
     Icon: Feather,
     name: 'settings' as FeatherIconName,
+  },
+  twoFactor: {
+    Icon: Feather,
+    name: 'check-circle' as FeatherIconName,
   },
   upload: {
     Icon: Feather,
@@ -231,6 +251,14 @@ const iconRegistry = {
   verificationLicense: {
     Icon: Feather,
     name: 'clipboard' as FeatherIconName,
+  },
+  wallet: {
+    Icon: Feather,
+    name: 'phone-call' as FeatherIconName,
+  },
+  address: {
+    Icon: Feather,
+    name: 'map-pin' as FeatherIconName,
   },
 } as const;
 

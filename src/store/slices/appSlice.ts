@@ -1,9 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { LanguageCode } from '../../localization';
 
 type AppMode = 'buyer' | 'seller';
 
 interface AppState {
   mode: AppMode;
+  language: LanguageCode;
   savedListings: string[];
   selectedDealId: string | null;
   selectedListingId: string | null;
@@ -11,6 +13,7 @@ interface AppState {
 
 const initialState: AppState = {
   mode: 'buyer',
+  language: 'en',
   savedListings: [],
   selectedDealId: null,
   selectedListingId: null,
@@ -22,6 +25,9 @@ const appSlice = createSlice({
   reducers: {
     switchMode: (state, action: PayloadAction<AppMode>) => {
       state.mode = action.payload;
+    },
+    setLanguage: (state, action: PayloadAction<LanguageCode>) => {
+      state.language = action.payload;
     },
     toggleSave: (state, action: PayloadAction<string>) => {
       const id = action.payload;
@@ -41,5 +47,11 @@ const appSlice = createSlice({
   },
 });
 
-export const { switchMode, toggleSave, setSelectedDeal, setSelectedListing } = appSlice.actions;
+export const {
+  switchMode,
+  setLanguage,
+  toggleSave,
+  setSelectedDeal,
+  setSelectedListing,
+} = appSlice.actions;
 export default appSlice.reducer;

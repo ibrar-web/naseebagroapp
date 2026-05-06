@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
+import { useTranslation } from '../../../localization';
+import type { TranslationKey } from '../../../localization';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -11,59 +13,90 @@ const CARD_SHADOW = {
   elevation: 3,
 };
 
-const SECTIONS = [
-  { title: '1. Acceptance of Terms',  body: 'By creating an account and using Naseeb Agri Market, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, please do not use the platform.' },
-  { title: '2. User Accounts',        body: 'You must be at least 18 years of age and provide accurate information during registration. You are responsible for maintaining the confidentiality of your account credentials.' },
-  { title: '3. Commodity Listings',   body: 'All listings must represent actual, available stock. Fraudulent or misleading listings will result in immediate account suspension. Naseeb reserves the right to remove any listing without notice.' },
-  { title: '4. Payment & Escrow',     body: 'All payments are processed through our escrow system. Funds are held securely and released only upon confirmed delivery and inspection. Naseeb charges a 1% commission on completed deals.' },
-  { title: '5. Dispute Resolution',   body: 'Disputes must be raised within 48 hours of delivery. Our resolution team will mediate and may request supporting evidence. Decisions by Naseeb in dispute cases are final.' },
-  { title: '6. Privacy Policy',       body: 'We collect personal and business information to facilitate trading. We do not sell your data to third parties. Data is used solely for platform operations, fraud prevention, and service improvement.' },
-  { title: '7. Limitation of Liability', body: 'Naseeb is a marketplace facilitator and is not liable for the quality, quantity, or delivery of commodities. Traders transact at their own risk after accepting these terms.' },
+const SECTIONS: { titleKey: TranslationKey; bodyKey: TranslationKey }[] = [
+  { titleKey: 'terms.acceptanceTitle', bodyKey: 'terms.acceptanceBody' },
+  { titleKey: 'terms.accountsTitle', bodyKey: 'terms.accountsBody' },
+  { titleKey: 'terms.listingsTitle', bodyKey: 'terms.listingsBody' },
+  { titleKey: 'terms.paymentTitle', bodyKey: 'terms.paymentBody' },
+  { titleKey: 'terms.disputeTitle', bodyKey: 'terms.disputeBody' },
+  { titleKey: 'terms.privacyTitle', bodyKey: 'terms.privacyBody' },
+  { titleKey: 'terms.liabilityTitle', bodyKey: 'terms.liabilityBody' },
 ];
 
-const TermsScreen = ({ navigation }: any) => (
-  <View className="flex-1 bg-gray-50">
-    <SubHeader title="Terms & Privacy" subtitle="Last updated January 2024" navigation={navigation} />
+const TermsScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
 
-    <ScrollView
-      className="flex-1"
-      contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Banner */}
-      <View
-        className="bg-green-700 rounded-2xl p-5 mb-4"
-        style={{ shadowColor: '#1A6B34', shadowOpacity: 0.2, shadowRadius: 10, elevation: 4 }}
+  return (
+    <View className="flex-1 bg-gray-50">
+      <SubHeader
+        title={t('terms.title')}
+        subtitle={t('terms.subtitle')}
+        navigation={navigation}
+      />
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
       >
-        <AppIcon name="legal" size={32} color="#FFFFFF" />
-        <Text className="text-white text-lg font-extrabold mt-2">Legal Documents</Text>
-        <Text className="text-green-200 text-sm mt-1">
-          Please read these terms carefully before using Naseeb Agri Market.
-        </Text>
-      </View>
+        {/* Banner */}
+        <View
+          className="bg-green-700 rounded-2xl p-5 mb-4"
+          style={{
+            shadowColor: '#1A6B34',
+            shadowOpacity: 0.2,
+            shadowRadius: 10,
+            elevation: 4,
+          }}
+        >
+          <AppIcon name="legal" size={32} color="#FFFFFF" />
+          <Text className="text-white text-lg font-extrabold mt-2">
+            {t('terms.legalDocuments')}
+          </Text>
+          <Text className="text-green-200 text-sm mt-1">
+            {t('terms.bannerBody')}
+          </Text>
+        </View>
 
-      {/* Sections */}
-      <View className="bg-white rounded-2xl overflow-hidden mb-4" style={CARD_SHADOW}>
-        {SECTIONS.map((s, idx) => (
-          <View
-            key={idx}
-            className={`px-4 py-5 ${idx < SECTIONS.length - 1 ? 'border-b border-gray-100' : ''}`}
-          >
-            <Text className="text-gray-900 text-sm font-bold mb-2">{s.title}</Text>
-            <Text className="text-gray-600 text-sm leading-5">{s.body}</Text>
-          </View>
-        ))}
-      </View>
+        {/* Sections */}
+        <View
+          className="bg-white rounded-2xl overflow-hidden mb-4"
+          style={CARD_SHADOW}
+        >
+          {SECTIONS.map((s, idx) => (
+            <View
+              key={s.titleKey}
+              className={`px-4 py-5 ${
+                idx < SECTIONS.length - 1 ? 'border-b border-gray-100' : ''
+              }`}
+            >
+              <Text className="text-gray-900 text-sm font-bold mb-2">
+                {t(s.titleKey)}
+              </Text>
+              <Text className="text-gray-600 text-sm leading-5">
+                {t(s.bodyKey)}
+              </Text>
+            </View>
+          ))}
+        </View>
 
-      <TouchableOpacity
-        className="bg-green-700 rounded-2xl py-4 items-center"
-        style={{ shadowColor: '#1A6B34', shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 }}
-        activeOpacity={0.88}
-      >
-        <Text className="text-white text-base font-bold">I Agree to Terms</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  </View>
-);
+        <TouchableOpacity
+          className="bg-green-700 rounded-2xl py-4 items-center"
+          style={{
+            shadowColor: '#1A6B34',
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            elevation: 4,
+          }}
+          activeOpacity={0.88}
+        >
+          <Text className="text-white text-base font-bold">
+            {t('terms.agree')}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+};
 
 export default TermsScreen;

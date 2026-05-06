@@ -12,44 +12,53 @@ import {
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
+import { useTranslation } from '../../../localization';
+import type { TranslationKey } from '../../../localization';
 
 type InfoField = {
-  label: string;
+  labelKey: TranslationKey;
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
   keyboardType?: KeyboardTypeOptions;
-  placeholder: string;
+  placeholderKey: TranslationKey;
   icon: AppIconName;
 };
 
-const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => (
-  <View
-    className={`flex-row items-center px-5 py-4 ${
-      isLast ? '' : 'border-b border-gray-100'
-    }`}
-  >
-    <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
-      <AppIcon name={field.icon} size={22} color="#1A6B34" />
+const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      className={`flex-row items-center px-5 py-4 ${
+        isLast ? '' : 'border-b border-gray-100'
+      }`}
+    >
+      <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
+        <AppIcon name={field.icon} size={22} color="#1A6B34" />
+      </View>
+      <View className="ml-4 flex-1">
+        <Text className="text-gray-400 text-base font-medium">
+          {t(field.labelKey)}
+        </Text>
+        <TextInput
+          className="p-0 text-gray-900 text-lg font-extrabold"
+          value={field.value}
+          onChangeText={field.setValue}
+          keyboardType={field.keyboardType}
+          placeholder={t(field.placeholderKey)}
+          placeholderTextColor="#9CA3AF"
+          returnKeyType="done"
+        />
+      </View>
+      <View className="ml-3">
+        <AppIcon name="edit" size={16} color="#D1D5DB" />
+      </View>
     </View>
-    <View className="ml-4 flex-1">
-      <Text className="text-gray-400 text-base font-medium">{field.label}</Text>
-      <TextInput
-        className="p-0 text-gray-900 text-lg font-extrabold"
-        value={field.value}
-        onChangeText={field.setValue}
-        keyboardType={field.keyboardType}
-        placeholder={field.placeholder}
-        placeholderTextColor="#9CA3AF"
-        returnKeyType="done"
-      />
-    </View>
-    <View className="ml-3">
-      <AppIcon name="edit" size={16} color="#D1D5DB" />
-    </View>
-  </View>
-);
+  );
+};
 
 const PersonalInfoScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('Muhammad Asad');
   const [email, setEmail] = useState('asad@traders.com');
   const [phone, setPhone] = useState('+92 300 1234567');
@@ -60,51 +69,51 @@ const PersonalInfoScreen = ({ navigation }: any) => {
 
   const fields: InfoField[] = [
     {
-      label: 'Full Name',
+      labelKey: 'personal.fullName',
       value: name,
       setValue: setName,
       keyboardType: 'default',
-      placeholder: 'Enter full name',
+      placeholderKey: 'personal.placeholderFullName',
       icon: 'profileName',
     },
     {
-      label: 'Email',
+      labelKey: 'personal.email',
       value: email,
       setValue: setEmail,
       keyboardType: 'email-address',
-      placeholder: 'Enter email',
+      placeholderKey: 'personal.placeholderEmail',
       icon: 'profileEmail',
     },
     {
-      label: 'Phone',
+      labelKey: 'personal.phone',
       value: phone,
       setValue: setPhone,
       keyboardType: 'phone-pad',
-      placeholder: 'Enter phone',
+      placeholderKey: 'personal.placeholderPhone',
       icon: 'profilePhone',
     },
     {
-      label: 'City',
+      labelKey: 'personal.city',
       value: city,
       setValue: setCity,
       keyboardType: 'default',
-      placeholder: 'Enter city',
+      placeholderKey: 'personal.placeholderCity',
       icon: 'profileCity',
     },
     {
-      label: 'Date of Birth',
+      labelKey: 'personal.dateOfBirth',
       value: dob,
       setValue: setDob,
       keyboardType: 'default',
-      placeholder: 'Enter date of birth',
+      placeholderKey: 'personal.placeholderDateOfBirth',
       icon: 'profileDateOfBirth',
     },
     {
-      label: 'CNIC',
+      labelKey: 'personal.cnic',
       value: cnic,
       setValue: setCnic,
       keyboardType: 'default',
-      placeholder: 'XXXXX-XXXXXXX-X',
+      placeholderKey: 'personal.placeholderCnic',
       icon: 'profileCnic',
     },
   ];
@@ -114,7 +123,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SubHeader title="Personal Information" navigation={navigation} />
+      <SubHeader title={t('personal.title')} navigation={navigation} />
 
       <ScrollView
         className="flex-1"
@@ -131,7 +140,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
             </TouchableOpacity>
             <TouchableOpacity className="mt-5" activeOpacity={0.7}>
               <Text className="text-green-700 text-lg font-extrabold">
-                Change Photo
+                {t('personal.changePhoto')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -139,7 +148,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
           <View className="overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-black/5">
             {fields.map((field, index) => (
               <InfoRow
-                key={field.label}
+                key={field.labelKey}
                 field={field}
                 isLast={index === fields.length - 1}
               />
@@ -152,7 +161,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
             activeOpacity={0.88}
           >
             <Text className="text-white text-xl font-extrabold">
-              {saved ? 'Saved' : 'Save Changes'}
+              {saved ? t('common.saved') : t('common.saveChanges')}
             </Text>
           </TouchableOpacity>
         </View>

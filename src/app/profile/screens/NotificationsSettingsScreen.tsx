@@ -1,79 +1,115 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Switch } from 'react-native';
 import SubHeader from '../components/SubHeader';
-import { AppIcon } from '../../../assets/icons';
-import type { AppIconName } from '../../../assets/icons';
+import { useTranslation } from '../../../localization';
+import type { TranslationKey } from '../../../localization';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.07,
-  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.05,
+  shadowRadius: 18,
   elevation: 3,
 };
 
-const TOGGLES = [
-  { icon: 'notificationDeals' as AppIconName, label: 'Deal Alerts',     sub: 'New deals and status updates',  key: 'deals'    },
-  { icon: 'notificationPayment' as AppIconName, label: 'Payment Updates', sub: 'Payment received or sent',      key: 'payments' },
-  { icon: 'notificationMarket' as AppIconName, label: 'Market Rates',    sub: 'Daily commodity price updates', key: 'market'   },
-  { icon: 'notificationOffers' as AppIconName, label: 'New Offers',      sub: 'Offers from buyers or sellers', key: 'offers'   },
-  { icon: 'notificationSystem' as AppIconName, label: 'System Alerts',   sub: 'App updates and announcements', key: 'system'   },
-  { icon: 'notificationEmail' as AppIconName, label: 'Email Digest',    sub: 'Weekly summary via email',      key: 'email'    },
+type ToggleKey =
+  | 'deals'
+  | 'offers'
+  | 'payments'
+  | 'delivery'
+  | 'promotions'
+  | 'sms';
+
+type ToggleRow = {
+  key: ToggleKey;
+  labelKey: TranslationKey;
+  subKey: TranslationKey;
+};
+
+const TOGGLES: ToggleRow[] = [
+  {
+    key: 'deals',
+    labelKey: 'notifications.newDealAlerts',
+    subKey: 'notifications.newDealAlertsSub',
+  },
+  {
+    key: 'offers',
+    labelKey: 'notifications.offerUpdates',
+    subKey: 'notifications.offerUpdatesSub',
+  },
+  {
+    key: 'payments',
+    labelKey: 'notifications.paymentAlerts',
+    subKey: 'notifications.paymentAlertsSub',
+  },
+  {
+    key: 'delivery',
+    labelKey: 'notifications.dispatchDelivery',
+    subKey: 'notifications.dispatchDeliverySub',
+  },
+  {
+    key: 'promotions',
+    labelKey: 'notifications.promotions',
+    subKey: 'notifications.promotionsSub',
+  },
+  {
+    key: 'sms',
+    labelKey: 'notifications.sms',
+    subKey: 'notifications.smsSub',
+  },
 ];
 
 const NotificationsSettingsScreen = ({ navigation }: any) => {
-  const [prefs, setPrefs] = useState<Record<string, boolean>>({
-    deals: true, payments: true, market: false, offers: true, system: true, email: false,
+  const { t } = useTranslation();
+  const [prefs, setPrefs] = useState<Record<ToggleKey, boolean>>({
+    deals: true,
+    offers: true,
+    payments: true,
+    delivery: true,
+    promotions: false,
+    sms: true,
   });
 
-  const toggle = (key: string) => setPrefs(p => ({ ...p, [key]: !p[key] }));
+  const toggle = (key: ToggleKey) =>
+    setPrefs(current => ({ ...current, [key]: !current[key] }));
 
   return (
     <View className="flex-1 bg-gray-50">
-      <SubHeader title="Notifications" subtitle="Manage your alert preferences" navigation={navigation} />
+      <SubHeader title={t('notifications.title')} navigation={navigation} />
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 mb-3">
-          Push Notifications
-        </Text>
-
-        <View className="bg-white rounded-2xl overflow-hidden mb-4" style={CARD_SHADOW}>
-          {TOGGLES.map((t, idx) => (
+        <View
+          className="overflow-hidden rounded-[28px] bg-white"
+          style={CARD_SHADOW}
+        >
+          {TOGGLES.map((item, index) => (
             <View
-              key={t.key}
-              className={`flex-row items-center px-4 py-4 ${idx < TOGGLES.length - 1 ? 'border-b border-gray-100' : ''}`}
+              key={item.key}
+              className={`flex-row items-center px-6 py-6 ${
+                index < TOGGLES.length - 1 ? 'border-b border-gray-100' : ''
+              }`}
             >
-              <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center mr-3">
-                <AppIcon name={t.icon} size={18} color="#1A6B34" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-gray-900 text-sm font-semibold">{t.label}</Text>
-                <Text className="text-gray-400 text-xs mt-0.5">{t.sub}</Text>
+              <View className="flex-1 pr-4">
+                <Text className="text-gray-900 text-xl font-extrabold">
+                  {t(item.labelKey)}
+                </Text>
+                <Text className="mt-2 text-gray-400 text-lg font-medium">
+                  {t(item.subKey)}
+                </Text>
               </View>
               <Switch
-                value={prefs[t.key]}
-                onValueChange={() => toggle(t.key)}
-                trackColor={{ false: '#E5E7EB', true: '#1A6B34' }}
+                value={prefs[item.key]}
+                onValueChange={() => toggle(item.key)}
+                trackColor={{ false: '#E5E7EB', true: '#2E9E52' }}
                 thumbColor="#FFFFFF"
+                ios_backgroundColor="#E5E7EB"
               />
             </View>
           ))}
-        </View>
-
-        <View className="bg-green-50 border border-green-200 rounded-2xl p-4" style={CARD_SHADOW}>
-          <View className="flex-row items-center">
-            <View className="mr-2">
-              <AppIcon name="notificationPush" size={17} color="#145228" />
-            </View>
-            <Text className="text-green-800 text-sm font-semibold">Push notifications are enabled</Text>
-          </View>
-          <Text className="text-green-700 text-xs mt-1">
-            You'll receive alerts for all active toggles. Manage device permissions in Settings.
-          </Text>
         </View>
       </ScrollView>
     </View>

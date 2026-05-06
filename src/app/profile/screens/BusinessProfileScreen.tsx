@@ -12,13 +12,15 @@ import {
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
+import { useTranslation } from '../../../localization';
+import type { TranslationKey } from '../../../localization';
 
 type BusinessField = {
-  label: string;
+  labelKey: TranslationKey;
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
   keyboardType?: KeyboardTypeOptions;
-  placeholder: string;
+  placeholderKey: TranslationKey;
   icon: AppIconName;
 };
 
@@ -28,34 +30,49 @@ const BusinessRow = ({
 }: {
   field: BusinessField;
   isLast: boolean;
-}) => (
-  <View
-    className={`flex-row items-center px-5 py-4 ${
-      isLast ? '' : 'border-b border-gray-100'
-    }`}
-  >
-    <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
-      <AppIcon name={field.icon} size={22} color="#1A6B34" />
+}) => <BusinessRowContent field={field} isLast={isLast} />;
+
+const BusinessRowContent = ({
+  field,
+  isLast,
+}: {
+  field: BusinessField;
+  isLast: boolean;
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      className={`flex-row items-center px-5 py-4 ${
+        isLast ? '' : 'border-b border-gray-100'
+      }`}
+    >
+      <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
+        <AppIcon name={field.icon} size={22} color="#1A6B34" />
+      </View>
+      <View className="ml-4 flex-1">
+        <Text className="text-gray-400 text-base font-medium">
+          {t(field.labelKey)}
+        </Text>
+        <TextInput
+          className="p-0 text-gray-900 text-lg font-extrabold"
+          value={field.value}
+          onChangeText={field.setValue}
+          keyboardType={field.keyboardType}
+          placeholder={t(field.placeholderKey)}
+          placeholderTextColor="#9CA3AF"
+          returnKeyType="done"
+        />
+      </View>
+      <View className="ml-3">
+        <AppIcon name="edit" size={24} color="#D1D5DB" />
+      </View>
     </View>
-    <View className="ml-4 flex-1">
-      <Text className="text-gray-400 text-base font-medium">{field.label}</Text>
-      <TextInput
-        className="p-0 text-gray-900 text-lg font-extrabold"
-        value={field.value}
-        onChangeText={field.setValue}
-        keyboardType={field.keyboardType}
-        placeholder={field.placeholder}
-        placeholderTextColor="#9CA3AF"
-        returnKeyType="done"
-      />
-    </View>
-    <View className="ml-3">
-      <AppIcon name="edit" size={24} color="#D1D5DB" />
-    </View>
-  </View>
-);
+  );
+};
 
 const BusinessProfileScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const [bizName, setBizName] = useState('Asad Agri Traders');
   const [bizType, setBizType] = useState('Seller / Supplier');
   const [registration, setRegistration] = useState('REG-2021-04521');
@@ -66,51 +83,51 @@ const BusinessProfileScreen = ({ navigation }: any) => {
 
   const fields: BusinessField[] = [
     {
-      label: 'Business Name',
+      labelKey: 'business.businessName',
       value: bizName,
       setValue: setBizName,
       keyboardType: 'default',
-      placeholder: 'Business name',
+      placeholderKey: 'business.placeholderBusinessName',
       icon: 'business',
     },
     {
-      label: 'Business Type',
+      labelKey: 'business.businessType',
       value: bizType,
       setValue: setBizType,
       keyboardType: 'default',
-      placeholder: 'Business type',
+      placeholderKey: 'business.placeholderBusinessType',
       icon: 'businessType',
     },
     {
-      label: 'Registration No',
+      labelKey: 'business.registrationNo',
       value: registration,
       setValue: setRegistration,
       keyboardType: 'default',
-      placeholder: 'Registration number',
+      placeholderKey: 'business.placeholderRegistrationNo',
       icon: 'registration',
     },
     {
-      label: 'Primary Crop',
+      labelKey: 'business.primaryCrop',
       value: crop,
       setValue: setCrop,
       keyboardType: 'default',
-      placeholder: 'Primary crop',
+      placeholderKey: 'business.placeholderPrimaryCrop',
       icon: 'crop',
     },
     {
-      label: 'Farm Location',
+      labelKey: 'business.farmLocation',
       value: location,
       setValue: setLocation,
       keyboardType: 'default',
-      placeholder: 'Farm location',
+      placeholderKey: 'business.placeholderFarmLocation',
       icon: 'profileCity',
     },
     {
-      label: 'Farm Size',
+      labelKey: 'business.farmSize',
       value: farmSize,
       setValue: setFarmSize,
       keyboardType: 'default',
-      placeholder: 'Farm size',
+      placeholderKey: 'business.placeholderFarmSize',
       icon: 'farmSize',
     },
   ];
@@ -120,7 +137,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SubHeader title="Business Profile" navigation={navigation} />
+      <SubHeader title={t('business.title')} navigation={navigation} />
 
       <ScrollView
         className="flex-1"
@@ -137,7 +154,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
                 Asad Agri Traders
               </Text>
               <Text className="mt-1 text-green-300 text-base font-medium">
-                Verified Seller • Since 2021
+                {t('business.verifiedSellerSince')}
               </Text>
             </View>
             <View className="flex-row items-center rounded-full bg-green-50 px-3 py-1.5">
@@ -145,7 +162,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
                 <AppIcon name="approved" size={14} color="#2E9E52" />
               </View>
               <Text className="text-green-700 text-base font-extrabold">
-                Approved
+                {t('common.approved')}
               </Text>
             </View>
           </View>
@@ -153,7 +170,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
           <View className="overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-black/5">
             {fields.map((field, index) => (
               <BusinessRow
-                key={field.label}
+                key={field.labelKey}
                 field={field}
                 isLast={index === fields.length - 1}
               />
@@ -166,7 +183,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
             activeOpacity={0.88}
           >
             <Text className="text-white text-xl font-extrabold">
-              {saved ? 'Profile Updated' : 'Update Profile'}
+              {saved ? t('common.profileUpdated') : t('common.updateProfile')}
             </Text>
           </TouchableOpacity>
         </View>

@@ -40,78 +40,88 @@ import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSet
 import AppSettingsScreen from '../app/profile/screens/AppSettingsScreen';
 import SupportScreen from '../app/profile/screens/SupportScreen';
 import TermsScreen from '../app/profile/screens/TermsScreen';
+import { useTranslation } from '../localization';
+import type { TranslationKey } from '../localization';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
-const TAB_CONFIG: Record<string, { icon: string; label: string }> = {
-  Home: { icon: '🏠', label: 'Home' },
-  Market: { icon: '🌾', label: 'Market' },
-  Deals: { icon: '📦', label: 'Deals' },
-  Post: { icon: '✏️', label: 'Post' },
-  Profile: { icon: '👤', label: 'Profile' },
+const TAB_CONFIG: Record<string, { icon: string; labelKey: TranslationKey }> = {
+  Home: { icon: '🏠', labelKey: 'tabs.home' },
+  Market: { icon: '🌾', labelKey: 'tabs.market' },
+  Deals: { icon: '📦', labelKey: 'tabs.deals' },
+  Post: { icon: '✏️', labelKey: 'tabs.post' },
+  Profile: { icon: '👤', labelKey: 'tabs.profile' },
 };
 
-const CustomTabBar = ({ state, navigation }: any) => (
-  <View
-    className="flex-row bg-white items-center"
-    style={{
-      height: 66,
-      borderTopWidth: 1,
-      borderTopColor: '#F3F4F6',
-      paddingBottom: 16,
-      paddingTop: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-      elevation: 16,
-    }}
-  >
-    {state.routes.map((route: any, index: number) => {
-      const isFocused = state.index === index;
-      const cfg = TAB_CONFIG[route.name] ?? { icon: '●', label: route.name };
+const CustomTabBar = ({ state, navigation }: any) => {
+  const { t } = useTranslation();
 
-      return (
-        <TouchableOpacity
-          key={route.key}
-          onPress={() => {
-            if (!isFocused) {
-              navigation.navigate(route.name);
-            }
-          }}
-          className="flex-1 items-center"
-          style={{ gap: 2, paddingTop: 4 }}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-        >
-          <View
-            className={`w-10 items-center justify-center rounded-xl ${
-              isFocused ? 'bg-green-100' : ''
-            }`}
-            style={{ height: 26 }}
-          >
-            <Text
-              style={{ fontSize: 18, color: isFocused ? '#1A6B34' : '#9CA3AF' }}
-            >
-              {cfg.icon}
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: isFocused ? '700' : '500',
-              color: isFocused ? '#1A6B34' : '#9CA3AF',
+  return (
+    <View
+      className="flex-row bg-white items-center"
+      style={{
+        height: 66,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingBottom: 16,
+        paddingTop: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 16,
+      }}
+    >
+      {state.routes.map((route: any, index: number) => {
+        const isFocused = state.index === index;
+        const cfg = TAB_CONFIG[route.name];
+        const label = cfg ? t(cfg.labelKey) : route.name;
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={() => {
+              if (!isFocused) {
+                navigation.navigate(route.name);
+              }
             }}
+            className="flex-1 items-center"
+            style={{ gap: 2, paddingTop: 4 }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
           >
-            {cfg.label}
-          </Text>
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-);
+            <View
+              className={`w-10 items-center justify-center rounded-xl ${
+                isFocused ? 'bg-green-100' : ''
+              }`}
+              style={{ height: 26 }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  color: isFocused ? '#1A6B34' : '#9CA3AF',
+                }}
+              >
+                {cfg?.icon ?? '●'}
+              </Text>
+            </View>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: isFocused ? '700' : '500',
+                color: isFocused ? '#1A6B34' : '#9CA3AF',
+              }}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
 
 const AppStatusBar = () => {
   const insets = useSafeAreaInsets();

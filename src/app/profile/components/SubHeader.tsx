@@ -8,17 +8,23 @@ interface Props {
 }
 
 const SubHeader = ({ title, subtitle, navigation }: Props) => (
-  <View className="bg-gray-50 pt-12 px-5 pb-4 border-b border-gray-200">
-    <TouchableOpacity
-      onPress={() => navigation.goBack()}
-      className="mb-3 self-start"
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 24 }}
-      activeOpacity={0.5}
-    >
-      <Text style={{ fontSize: 24, color: '#111827', lineHeight: 28 }}>←</Text>
-    </TouchableOpacity>
-    <Text className="text-gray-900 text-2xl font-extrabold">{title}</Text>
-    {subtitle ? <Text className="text-gray-500 text-sm mt-1">{subtitle}</Text> : null}
+  <View className="bg-white pt-12 px-6 pb-6 border-b border-gray-100">
+    <View className="flex-row items-center justify-center">
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        className="absolute left-0 h-12 w-12 items-start justify-center"
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 24 }}
+        activeOpacity={0.5}
+      >
+        <Text className="text-gray-900 text-4xl leading-10">←</Text>
+      </TouchableOpacity>
+      <Text className="text-center text-gray-900 text-2xl font-extrabold">
+        {title}
+      </Text>
+    </View>
+    {subtitle ? (
+      <Text className="text-center text-gray-500 text-sm mt-2">{subtitle}</Text>
+    ) : null}
   </View>
 );
 

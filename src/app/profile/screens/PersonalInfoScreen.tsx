@@ -1,31 +1,111 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  KeyboardTypeOptions,
 } from 'react-native';
 import SubHeader from '../components/SubHeader';
+import { AppIcon } from '../../../assets/icons';
 
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.07,
-  shadowRadius: 12,
-  elevation: 3,
+type InfoField = {
+  label: string;
+  value: string;
+  setValue: React.Dispatch<React.SetStateAction<string>>;
+  keyboardType?: KeyboardTypeOptions;
+  placeholder: string;
+  icon: string;
 };
 
+const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => (
+  <View
+    className={`flex-row items-center px-5 py-4 ${
+      isLast ? '' : 'border-b border-gray-100'
+    }`}
+  >
+    <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
+      <Text className="text-green-700 text-2xl">{field.icon}</Text>
+    </View>
+    <View className="ml-4 flex-1">
+      <Text className="text-gray-400 text-base font-medium">{field.label}</Text>
+      <TextInput
+        className="p-0 text-gray-900 text-lg font-extrabold"
+        value={field.value}
+        onChangeText={field.setValue}
+        keyboardType={field.keyboardType}
+        placeholder={field.placeholder}
+        placeholderTextColor="#9CA3AF"
+        returnKeyType="done"
+      />
+    </View>
+    <View className="ml-3">
+      <AppIcon name="edit" size={24} color="#D1D5DB" />
+    </View>
+  </View>
+);
+
 const PersonalInfoScreen = ({ navigation }: any) => {
-  const [name,  setName]  = useState('Muhammad Asad');
+  const [name, setName] = useState('Muhammad Asad');
   const [email, setEmail] = useState('asad@traders.com');
   const [phone, setPhone] = useState('+92 300 1234567');
-  const [city,  setCity]  = useState('Lahore');
-  const [cnic,  setCnic]  = useState('35201-1234567-1');
+  const [city, setCity] = useState('Lahore, Punjab');
+  const [dob, setDob] = useState('15 March 1990');
+  const [cnic, setCnic] = useState('35202-XXXXXXX-X');
   const [saved, setSaved] = useState(false);
 
-  const fields = [
-    { label: 'Full Name',  value: name,  setValue: setName,  kb: 'default',       placeholder: 'Enter full name'  },
-    { label: 'Email',      value: email, setValue: setEmail, kb: 'email-address',  placeholder: 'Enter email'       },
-    { label: 'City',       value: city,  setValue: setCity,  kb: 'default',        placeholder: 'Enter city'        },
-    { label: 'CNIC',       value: cnic,  setValue: setCnic,  kb: 'default',        placeholder: 'XXXXX-XXXXXXX-X'  },
+  const fields: InfoField[] = [
+    {
+      label: 'Full Name',
+      value: name,
+      setValue: setName,
+      keyboardType: 'default',
+      placeholder: 'Enter full name',
+      icon: '♙',
+    },
+    {
+      label: 'Email',
+      value: email,
+      setValue: setEmail,
+      keyboardType: 'email-address',
+      placeholder: 'Enter email',
+      icon: '✉',
+    },
+    {
+      label: 'Phone',
+      value: phone,
+      setValue: setPhone,
+      keyboardType: 'phone-pad',
+      placeholder: 'Enter phone',
+      icon: '☎',
+    },
+    {
+      label: 'City',
+      value: city,
+      setValue: setCity,
+      keyboardType: 'default',
+      placeholder: 'Enter city',
+      icon: '⌖',
+    },
+    {
+      label: 'Date of Birth',
+      value: dob,
+      setValue: setDob,
+      keyboardType: 'default',
+      placeholder: 'Enter date of birth',
+      icon: '◷',
+    },
+    {
+      label: 'CNIC',
+      value: cnic,
+      setValue: setCnic,
+      keyboardType: 'default',
+      placeholder: 'XXXXX-XXXXXXX-X',
+      icon: '⬡',
+    },
   ];
 
   return (
@@ -33,86 +113,48 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SubHeader title="Personal Information" subtitle="Update your personal details" navigation={navigation} />
+      <SubHeader title="Personal Information" navigation={navigation} />
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-
-        {/* Avatar / photo section */}
-        <View className="bg-white rounded-2xl overflow-hidden items-center py-7 mb-4" style={CARD_SHADOW}>
-          <View className="relative mb-4">
-            {/* Avatar circle */}
-            <View
-              className="w-24 h-24 rounded-full bg-green-700 items-center justify-center"
-              style={{ shadowColor: '#1A6B34', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }}
-            >
-              <Text className="text-white font-extrabold" style={{ fontSize: 34 }}>MA</Text>
-            </View>
-            {/* Camera badge */}
+        <View className="px-4 pt-6 pb-10">
+          <View className="items-center pb-10">
             <TouchableOpacity
-              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-orange-500 items-center justify-center border-2 border-white"
-              activeOpacity={0.8}
+              className="h-24 w-24 items-center justify-center rounded-[28px] border-4 border-white bg-orange-500 shadow-2xl shadow-black/10"
+              activeOpacity={0.85}
             >
-              <Text style={{ fontSize: 14 }}>📷</Text>
+              <Text className="text-4xl">👤</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="mt-5" activeOpacity={0.7}>
+              <Text className="text-green-700 text-lg font-extrabold">
+                Change Photo
+              </Text>
             </TouchableOpacity>
           </View>
-          <Text className="text-gray-900 text-base font-bold">Muhammad Asad</Text>
-          <Text className="text-gray-400 text-xs mt-1">Tap camera icon to change photo</Text>
-        </View>
 
-        {/* Phone — display only */}
-        <View className="bg-white rounded-2xl overflow-hidden mb-4" style={CARD_SHADOW}>
-          <View className="px-4 pt-3 pb-1">
-            <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mobile Number</Text>
+          <View className="overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-black/5">
+            {fields.map((field, index) => (
+              <InfoRow
+                key={field.label}
+                field={field}
+                isLast={index === fields.length - 1}
+              />
+            ))}
           </View>
-          <View className="flex-row items-center justify-between px-4 pb-4">
-            <View className="flex-row items-center gap-2">
-              <Text style={{ fontSize: 16 }}>📱</Text>
-              <Text className="text-gray-900 text-base font-semibold">{phone}</Text>
-            </View>
-            <TouchableOpacity className="px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
-              <Text className="text-green-700 text-xs font-bold">Change</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Editable fields */}
-        {fields.map((f, idx) => (
-          <View
-            key={f.label}
-            className="bg-white rounded-2xl overflow-hidden mb-3"
-            style={CARD_SHADOW}
+          <TouchableOpacity
+            onPress={() => setSaved(true)}
+            className="mt-8 h-16 items-center justify-center rounded-3xl bg-green-700 shadow-2xl shadow-green-900/20"
+            activeOpacity={0.88}
           >
-            <View className="px-4 pt-3 pb-1">
-              <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">{f.label}</Text>
-            </View>
-            <TextInput
-              className="text-gray-900 text-base font-semibold px-4 pb-4"
-              value={f.value}
-              onChangeText={f.setValue}
-              keyboardType={f.kb as any}
-              placeholder={f.placeholder}
-              placeholderTextColor="#9CA3AF"
-              autoFocus={idx === 0 ? false : undefined}
-            />
-          </View>
-        ))}
-
-        {/* Save button */}
-        <TouchableOpacity
-          onPress={() => setSaved(true)}
-          className="bg-green-700 rounded-2xl py-4 items-center mt-2"
-          style={{ shadowColor: '#1A6B34', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}
-          activeOpacity={0.88}
-        >
-          <Text className="text-white text-base font-bold">
-            {saved ? '✓ Saved' : 'Save Changes'}
-          </Text>
-        </TouchableOpacity>
+            <Text className="text-white text-xl font-extrabold">
+              {saved ? 'Saved' : 'Save Changes'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

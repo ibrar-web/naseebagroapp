@@ -1,0 +1,121 @@
+import { Platform } from 'react-native';
+
+export const Colors = {
+  green900: '#0D3B1F',
+  green800: '#145228',
+  green700: '#1A6B34',
+  green600: '#217A3C',
+  green500: '#2E9E52',
+  green400: '#45B86A',
+  green300: '#7FD4A0',
+  green200: '#A7D7B5',
+  green100: '#E8F7EE',
+  green50: '#F2FBF5',
+  orange600: '#D4AE02',
+  orange500: '#F3CD03',
+  orange400: '#F7DB4A',
+  orange100: '#FFFDE6',
+  gold: '#E8A838',
+  white: '#FFFFFF',
+  gray900: '#111827',
+  gray800: '#1F2937',
+  gray700: '#374151',
+  gray600: '#4B5563',
+  gray500: '#6B7280',
+  gray400: '#9CA3AF',
+  gray300: '#D1D5DB',
+  gray200: '#E5E7EB',
+  gray100: '#F3F4F6',
+  gray50: '#F9FAFB',
+  red500: '#EF4444',
+  blue500: '#3B82F6',
+  purple: '#7C3AED',
+  purpleLight: '#EDE9FE',
+  gradientStart: '#0D3B1F',
+  gradientEnd: '#1A6B34',
+};
+
+export const Typography = {
+  sans: Platform.OS === 'ios' ? 'IBMPlexSans' : 'IBMPlexSans-Regular',
+  mono: Platform.OS === 'ios' ? 'IBMPlexMono' : 'IBMPlexMono-Regular',
+  sansBold: 'IBMPlexSans-Bold',
+  xs: 10,
+  sm: 11,
+  base: 13,
+  md: 14,
+  lg: 16,
+  xl: 18,
+  '2xl': 20,
+  '3xl': 24,
+  '4xl': 28,
+  '5xl': 32,
+  tight: 1.2,
+  normal: 1.5,
+  relaxed: 1.7,
+};
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+  '2xl': 32,
+  '3xl': 40,
+  '4xl': 48,
+};
+
+export const Radius = {
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
+  '2xl': 24,
+  full: 999,
+};
+
+export const Shadow = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+};
+
+export const T = {
+  ...Colors,
+  colors: {
+    primary: Colors.green700,
+    primaryLight: Colors.green100,
+    secondary: Colors.orange500,
+    success: Colors.green500,
+    warning: Colors.orange600,
+    danger: Colors.red500,
+    text: Colors.gray900,
+    textSecondary: Colors.gray600,
+    textMuted: Colors.gray400,
+    background: Colors.gray50,
+    surface: Colors.white,
+    border: Colors.gray200,
+    divider: Colors.gray100,
+  },
+  spacing: Spacing,
+  radius: Radius,
+};

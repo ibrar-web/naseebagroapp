@@ -1,51 +1,58 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Role } from '../../common/constants/roles';
-import { clearSession } from '../../auth/services/sessionService';
+
+export interface User {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+  role: 'buyer' | 'seller';
+  verified: boolean;
+}
 
 interface AuthState {
+  user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  isSessionHydrated: boolean;
-  role: Role | null;
-  user: { id: string; name: string; role: Role } | null;
-  tokens: { accessToken: string; refreshToken: string } | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const initialState: AuthState = {
-  isAuthenticated: false,
-  isSessionHydrated: false,
-  role: null,
   user: null,
-  tokens: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginSuccess: (
-      state,
-      action: PayloadAction<{
-        user: { id: string; name: string; role: Role };
-        tokens: { accessToken: string; refreshToken: string };
-      }>,
-    ) => {
-      state.isAuthenticated = true;
+    loginStart: state => {
+      state.isLoading = true;
+      state.error = null;
+    },
+    loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user;
-      state.role = action.payload.user.role;
-      state.tokens = action.payload.tokens;
+      state.token = action.payload.token;
+      state.isAuthenticated = true;
+      state.isLoading = false;
     },
-    logout: (state) => {
-      void clearSession();
-      state.isAuthenticated = false;
+    loginFailure: (state, action: PayloadAction<string>) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    },
+    logout: state => {
       state.user = null;
-      state.role = null;
-      state.tokens = null;
+      state.token = null;
+      state.isAuthenticated = false;
     },
-    restoreSessionComplete: (state) => {
-      state.isSessionHydrated = true;
+    clearError: state => {
+      state.error = null;
     },
   },
 });
 
-export const { loginSuccess, logout, restoreSessionComplete } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

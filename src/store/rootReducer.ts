@@ -1,14 +1,11 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import userReducer from './slices/userSlice';
-import marketplaceReducer from './slices/marketplaceSlice';
-import notificationReducer from './slices/notificationSlice';
+import appReducer from './slices/appSlice';
 
-export const rootReducer = combineReducers({
+const rootReducer = combineReducers({
   auth: authReducer,
-  user: userReducer,
-  marketplace: marketplaceReducer,
-  notification: notificationReducer,
+  app: appReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
+export default rootReducer;

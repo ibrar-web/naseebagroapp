@@ -1,5 +1,2 @@
-export * from './AppNavigator';
-export * from './AuthNavigator';
-export * from './BuyerNavigator';
-export * from './SellerNavigator';
-export * from './GuestNavigator';
+export { AppNavigator, default } from './AppNavigator';
+export * from './types';

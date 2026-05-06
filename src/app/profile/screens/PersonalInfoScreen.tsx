@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 
 type InfoField = {
   label: string;
@@ -18,7 +19,7 @@ type InfoField = {
   setValue: React.Dispatch<React.SetStateAction<string>>;
   keyboardType?: KeyboardTypeOptions;
   placeholder: string;
-  icon: string;
+  icon: AppIconName;
 };
 
 const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => (
@@ -28,7 +29,7 @@ const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => (
     }`}
   >
     <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
-      <Text className="text-green-700 text-2xl">{field.icon}</Text>
+      <AppIcon name={field.icon} size={22} color="#1A6B34" />
     </View>
     <View className="ml-4 flex-1">
       <Text className="text-gray-400 text-base font-medium">{field.label}</Text>
@@ -43,7 +44,7 @@ const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => (
       />
     </View>
     <View className="ml-3">
-      <AppIcon name="edit" size={24} color="#D1D5DB" />
+      <AppIcon name="edit" size={16} color="#D1D5DB" />
     </View>
   </View>
 );
@@ -64,7 +65,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setName,
       keyboardType: 'default',
       placeholder: 'Enter full name',
-      icon: '♙',
+      icon: 'profileName',
     },
     {
       label: 'Email',
@@ -72,7 +73,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setEmail,
       keyboardType: 'email-address',
       placeholder: 'Enter email',
-      icon: '✉',
+      icon: 'profileEmail',
     },
     {
       label: 'Phone',
@@ -80,7 +81,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setPhone,
       keyboardType: 'phone-pad',
       placeholder: 'Enter phone',
-      icon: '☎',
+      icon: 'profilePhone',
     },
     {
       label: 'City',
@@ -88,7 +89,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setCity,
       keyboardType: 'default',
       placeholder: 'Enter city',
-      icon: '⌖',
+      icon: 'profileCity',
     },
     {
       label: 'Date of Birth',
@@ -96,7 +97,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setDob,
       keyboardType: 'default',
       placeholder: 'Enter date of birth',
-      icon: '◷',
+      icon: 'profileDateOfBirth',
     },
     {
       label: 'CNIC',
@@ -104,7 +105,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setValue: setCnic,
       keyboardType: 'default',
       placeholder: 'XXXXX-XXXXXXX-X',
-      icon: '⬡',
+      icon: 'profileCnic',
     },
   ];
 

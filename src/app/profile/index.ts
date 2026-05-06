@@ -1,1 +1,10 @@
-export { default as ProfileScreen } from './screens/ProfileScreen';
+export { default as ProfileScreen }               from './screens/ProfileScreen';
+export { default as PersonalInfoScreen }          from './screens/PersonalInfoScreen';
+export { default as BusinessProfileScreen }       from './screens/BusinessProfileScreen';
+export { default as PaymentMethodsScreen }        from './screens/PaymentMethodsScreen';
+export { default as VerificationStatusScreen }    from './screens/VerificationStatusScreen';
+export { default as SavedListingsScreen }         from './screens/SavedListingsScreen';
+export { default as NotificationsSettingsScreen } from './screens/NotificationsSettingsScreen';
+export { default as AppSettingsScreen }           from './screens/AppSettingsScreen';
+export { default as SupportScreen }               from './screens/SupportScreen';
+export { default as TermsScreen }                 from './screens/TermsScreen';

@@ -1,75 +1,57 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar,
-} from 'react-native';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useAppSelector } from '../../../store';
 
 const FILTERS = ['All', 'Active', 'Payment', 'Transit', 'Completed'];
 
 const DEALS = [
-  {
-    id: 'DEL-001', commodity: 'Premium Wheat', emoji: '🌾',
-    qty: '200 Tons', rate: '₨3,850/40kg', amount: '₨19.25L',
-    counterparty: 'Asad Traders', location: 'Lahore → Karachi',
-    stage: 8, status: 'Active', date: '2 days ago',
-  },
-  {
-    id: 'DEL-002', commodity: 'IRRI-6 Rice', emoji: '🍚',
-    qty: '80 Tons', rate: '₨4,200/40kg', amount: '₨8.4L',
-    counterparty: 'Punjab Agri Co', location: 'Sheikhupura → Lahore',
-    stage: 6, status: 'Payment', date: '5 days ago',
-  },
-  {
-    id: 'DEL-003', commodity: 'Desi Cotton', emoji: '☁️',
-    qty: '50 Tons', rate: '₨8,500/40kg', amount: '₨10.6L',
-    counterparty: 'Cotton King', location: 'Multan → Faisalabad',
-    stage: 10, status: 'Transit', date: '1 week ago',
-  },
-  {
-    id: 'DEL-004', commodity: 'Yellow Maize', emoji: '🌽',
-    qty: '300 Tons', rate: '₨2,600/40kg', amount: '₨19.5L',
-    counterparty: 'Farm Fresh Ltd', location: 'Faisalabad → Karachi',
-    stage: 12, status: 'Completed', date: '2 weeks ago',
-  },
+  { id: 'DEL-001', commodity: 'Premium Wheat', emoji: '🌾', qty: '200 Tons', rate: '₨3,850/40kg', amount: '₨19.25L', counterparty: 'Asad Traders',   location: 'Lahore → Karachi',     stage: 8,  status: 'Active'    },
+  { id: 'DEL-002', commodity: 'IRRI-6 Rice',   emoji: '🍚', qty: '80 Tons',  rate: '₨4,200/40kg', amount: '₨8.4L',   counterparty: 'Punjab Agri Co', location: 'Sheikhupura → Lahore', stage: 6,  status: 'Payment'   },
+  { id: 'DEL-003', commodity: 'Desi Cotton',   emoji: '☁️', qty: '50 Tons',  rate: '₨8,500/40kg', amount: '₨10.6L',  counterparty: 'Cotton King',    location: 'Multan → Faisalabad',  stage: 10, status: 'Transit'   },
+  { id: 'DEL-004', commodity: 'Yellow Maize',  emoji: '🌽', qty: '300 Tons', rate: '₨2,600/40kg', amount: '₨19.5L',  counterparty: 'Farm Fresh Ltd', location: 'Faisalabad → Karachi', stage: 12, status: 'Completed' },
 ];
 
-const STAGE_COLORS = ['#F59E0B', '#3B82F6', '#8B5CF6', '#10B981'];
+const stageColor = (s: number) =>
+  s < 5 ? '#F59E0B' : s < 8 ? '#3B82F6' : s < 11 ? '#8B5CF6' : '#10B981';
 
 const DealCard = ({ item, onPress }: any) => {
-  const pct = Math.round((item.stage / 12) * 100);
-  const stageColor = item.stage < 5 ? STAGE_COLORS[0] : item.stage < 8 ? STAGE_COLORS[1] : item.stage < 11 ? STAGE_COLORS[2] : STAGE_COLORS[3];
-
+  const pct   = Math.round((item.stage / 12) * 100);
+  const color = stageColor(item.stage);
   return (
-    <TouchableOpacity style={styles.dealCard} onPress={onPress} activeOpacity={0.88}>
-      <View style={styles.dealRow}>
-        <View style={styles.dealEmoji}>
+    <TouchableOpacity
+      onPress={onPress}
+      className="bg-white rounded-2xl p-3.5 mb-3"
+      style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }}
+      activeOpacity={0.88}
+    >
+      <View className="flex-row gap-3">
+        <View className="w-14 h-14 rounded-xl bg-green-50 items-center justify-center">
           <Text style={{ fontSize: 28 }}>{item.emoji}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={styles.dealId}>{item.id}</Text>
-            <View style={[styles.statusPill, { backgroundColor: stageColor + '20' }]}>
-              <Text style={[styles.statusPillText, { color: stageColor }]}>{item.status}</Text>
+        <View className="flex-1">
+          <View className="flex-row justify-between">
+            <Text className="text-gray-400 text-xs font-mono">{item.id}</Text>
+            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: color + '20' }}>
+              <Text className="text-xs font-bold" style={{ color }}>{item.status}</Text>
             </View>
           </View>
-          <Text style={styles.dealName}>{item.commodity}</Text>
-          <Text style={styles.dealMeta}>{item.qty} · {item.counterparty}</Text>
+          <Text className="text-gray-900 text-sm font-bold mt-0.5">{item.commodity}</Text>
+          <Text className="text-gray-500 text-xs mt-0.5">{item.qty} · {item.counterparty}</Text>
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-        <Text style={styles.dealLocation}>📍 {item.location}</Text>
-        <Text style={styles.dealAmount}>{item.amount}</Text>
+      <View className="flex-row justify-between mt-2.5">
+        <Text className="text-gray-500 text-xs">📍 {item.location}</Text>
+        <Text className="text-green-700 text-sm font-extrabold">{item.amount}</Text>
       </View>
 
-      {/* Pipeline bar */}
-      <View style={styles.pipelineWrap}>
-        <View style={[styles.pipelineFill, { width: `${pct}%` as any, backgroundColor: stageColor }]} />
+      {/* Pipeline */}
+      <View className="h-1.5 bg-gray-100 rounded-full mt-2.5 overflow-hidden">
+        <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={styles.pipelineLabel}>Stage {item.stage}/12</Text>
-        <Text style={[styles.pipelineLabel, { color: stageColor, fontWeight: '700' }]}>{pct}% complete</Text>
+      <View className="flex-row justify-between mt-1">
+        <Text className="text-gray-400 text-xs">Stage {item.stage}/12</Text>
+        <Text className="text-xs font-bold" style={{ color }}>{pct}% complete</Text>
       </View>
     </TouchableOpacity>
   );
@@ -78,73 +60,67 @@ const DealCard = ({ item, onPress }: any) => {
 const DealsScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const [activeFilter, setActiveFilter] = useState('All');
-
   const filtered = activeFilter === 'All' ? DEALS : DEALS.filter(d => d.status === activeFilter);
 
-  const summary = {
-    active:    DEALS.filter(d => d.status === 'Active').length,
-    completed: DEALS.filter(d => d.status === 'Completed').length,
-    transit:   DEALS.filter(d => d.status === 'Transit').length,
-  };
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+    <View className="flex-1 bg-gray-50">
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.orb} />
-        <Text style={styles.headerTitle}>{mode === 'buyer' ? 'My Deals' : 'My Orders'}</Text>
-        <Text style={styles.headerSub}>{DEALS.length} total deals</Text>
+      <View className="bg-green-800 pt-12 pb-4 px-4 overflow-hidden">
+        <View className="absolute rounded-full bg-green-700 opacity-25"
+              style={{ width: 160, height: 160, top: -40, right: -40 }} />
+        <Text className="text-white text-2xl font-extrabold">{mode === 'buyer' ? 'My Deals' : 'My Orders'}</Text>
+        <Text className="text-green-300 text-xs mt-1 mb-3">{DEALS.length} total deals</Text>
 
-        {/* Summary strip */}
-        <View style={styles.summaryRow}>
+        {/* Summary */}
+        <View className="flex-row gap-2">
           {[
-            { label: 'Active',    val: summary.active,    color: C.green600,  bg: 'rgba(46,158,82,0.2)'  },
-            { label: 'In Transit',val: summary.transit,   color: C.blue500,   bg: 'rgba(59,130,246,0.2)' },
-            { label: 'Completed', val: summary.completed, color: C.orange400, bg: 'rgba(247,219,74,0.2)' },
+            { l: 'Active',     v: 1, bg: 'rgba(46,158,82,0.2)',  c: '#45B86A' },
+            { l: 'In Transit', v: 1, bg: 'rgba(59,130,246,0.2)', c: '#60A5FA' },
+            { l: 'Completed',  v: 1, bg: 'rgba(247,219,74,0.2)', c: '#F7DB4A' },
           ].map(s => (
-            <View key={s.label} style={[styles.summaryCard, { backgroundColor: s.bg }]}>
-              <Text style={[styles.summaryVal, { color: s.color }]}>{s.val}</Text>
-              <Text style={styles.summaryLabel}>{s.label}</Text>
+            <View key={s.l} className="flex-1 rounded-xl p-2.5 items-center"
+                  style={{ backgroundColor: s.bg }}>
+              <Text className="text-xl font-extrabold" style={{ color: s.c }}>{s.v}</Text>
+              <Text className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>{s.l}</Text>
             </View>
           ))}
         </View>
       </View>
 
       {/* Filter tabs */}
-      <View style={styles.filterRow}>
+      <View className="bg-white border-b border-gray-100">
         <FlatList
           horizontal
           data={FILTERS}
           keyExtractor={f => f}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => setActiveFilter(item)}
-              style={[styles.filterTab, activeFilter === item && styles.filterTabActive]}
+              className={`px-4 py-1.5 rounded-full ${activeFilter === item ? 'bg-green-700' : 'bg-gray-100'}`}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.filterTabText, activeFilter === item && styles.filterTabTextActive]}>{item}</Text>
+              <Text className={`text-xs font-semibold ${activeFilter === item ? 'text-white' : 'text-gray-600'}`}>{item}</Text>
             </TouchableOpacity>
           )}
         />
       </View>
 
-      {/* Deal list */}
       <FlatList
         data={filtered}
         keyExtractor={d => d.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <DealCard item={item} onPress={() => navigation.navigate('DealDetail', { dealId: item.id })} />
         )}
         ListEmptyComponent={
-          <View style={styles.empty}>
+          <View className="items-center pt-16 gap-3">
             <Text style={{ fontSize: 40 }}>📭</Text>
-            <Text style={styles.emptyTitle}>No deals found</Text>
-            <Text style={styles.emptySub}>Try a different filter</Text>
+            <Text className="text-gray-700 text-base font-bold">No deals found</Text>
+            <Text className="text-gray-400 text-sm">Try a different filter</Text>
           </View>
         }
       />
@@ -153,57 +129,3 @@ const DealsScreen = ({ navigation }: any) => {
 };
 
 export default DealsScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.gray50 },
-
-  header: {
-    backgroundColor: C.green900,
-    paddingTop: 48, paddingBottom: 16,
-    paddingHorizontal: Spacing.base,
-    overflow: 'hidden',
-  },
-  orb: {
-    position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: C.green700, opacity: 0.25,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: C.white },
-  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2, marginBottom: 14 },
-
-  summaryRow: { flexDirection: 'row', gap: 10 },
-  summaryCard:  { flex: 1, borderRadius: Radius.lg, padding: 10, alignItems: 'center' },
-  summaryVal:   { fontSize: 20, fontWeight: '800' },
-  summaryLabel: { fontSize: 10, color: 'rgba(255,255,255,0.65)', marginTop: 2, fontWeight: '500' },
-
-  filterRow:  { backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.gray100 },
-  filterList: { paddingHorizontal: Spacing.base, paddingVertical: 10, gap: 8 },
-  filterTab:  { paddingHorizontal: 16, paddingVertical: 7, borderRadius: Radius.full, backgroundColor: C.gray100 },
-  filterTabActive:     { backgroundColor: C.green700 },
-  filterTabText:       { fontSize: 12, fontWeight: '600', color: C.gray600 },
-  filterTabTextActive: { color: C.white, fontWeight: '700' },
-
-  list: { padding: Spacing.base, paddingBottom: 100 },
-
-  dealCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: 14, marginBottom: 12, ...Shadow.sm },
-  dealRow:  { flexDirection: 'row', gap: 12 },
-  dealEmoji: {
-    width: 56, height: 56, borderRadius: Radius.lg,
-    backgroundColor: C.green50, alignItems: 'center', justifyContent: 'center',
-  },
-  dealId:    { fontSize: 10, color: C.gray400, fontFamily: 'monospace' },
-  dealName:  { fontSize: 14, fontWeight: '700', color: C.gray900, marginTop: 2 },
-  dealMeta:  { fontSize: 11, color: C.gray500, marginTop: 2 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
-  dealLocation: { fontSize: 11, color: C.gray500 },
-  dealAmount:   { fontSize: 14, fontWeight: '800', color: C.green700 },
-
-  pipelineWrap: { height: 6, backgroundColor: C.gray100, borderRadius: 3, marginTop: 10, overflow: 'hidden' },
-  pipelineFill: { height: '100%', borderRadius: 3 },
-  pipelineLabel: { fontSize: 10, color: C.gray400 },
-
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.gray800 },
-  emptySub:   { fontSize: 13, color: C.gray400 },
-});

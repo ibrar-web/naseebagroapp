@@ -1,119 +1,126 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, StatusBar, KeyboardAvoidingView, Platform,
+  View, Text, ScrollView, TouchableOpacity,
+  TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { useAppSelector } from '../../../store';
 
 const COMMODITIES = ['Wheat', 'Rice', 'Cotton', 'Maize', 'Mustard', 'Sugarcane', 'Other'];
 const UNITS       = ['Tons', 'Maunds', 'Quintals', 'KGs'];
 
 const PostScreen = () => {
-  const mode = useAppSelector(s => s.app.mode);
+  const mode    = useAppSelector(s => s.app.mode);
   const isBuyer = mode === 'buyer';
 
   const [commodity, setCommodity] = useState('');
-  const [qty, setQty]         = useState('');
-  const [unit, setUnit]       = useState('Tons');
-  const [price, setPrice]     = useState('');
-  const [location, setLocation] = useState('');
-  const [notes, setNotes]     = useState('');
+  const [qty,       setQty]       = useState('');
+  const [unit,      setUnit]      = useState('Tons');
+  const [price,     setPrice]     = useState('');
+  const [location,  setLocation]  = useState('');
+  const [notes,     setNotes]     = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = () => { setSubmitted(true); };
 
   if (submitted) {
     return (
-      <View style={styles.successContainer}>
+      <View className="flex-1 bg-gray-50 items-center justify-center px-6 gap-4">
         <Text style={{ fontSize: 64 }}>✅</Text>
-        <Text style={styles.successTitle}>
+        <Text className="text-gray-900 text-2xl font-extrabold text-center">
           {isBuyer ? 'Demand Posted!' : 'Listing Created!'}
         </Text>
-        <Text style={styles.successSub}>
+        <Text className="text-gray-500 text-sm text-center leading-5">
           {isBuyer
             ? 'Sellers will be notified and can submit offers.'
             : "Your listing is under review. You'll be notified once approved."}
         </Text>
-        <TouchableOpacity style={styles.doneBtn} onPress={() => setSubmitted(false)} activeOpacity={0.88}>
-          <Text style={styles.doneBtnText}>Post Another</Text>
+        <TouchableOpacity
+          onPress={() => setSubmitted(false)}
+          className="bg-green-700 rounded-2xl py-4 px-12 mt-2"
+          style={{ shadowColor: '#1A6B34', shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 }}
+          activeOpacity={0.88}
+        >
+          <Text className="text-white text-base font-bold">Post Another</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+  const isValid = commodity && qty && price && location;
 
-      <View style={styles.header}>
-        <View style={styles.orb} />
-        <Text style={styles.headerTitle}>
+  return (
+    <KeyboardAvoidingView className="flex-1 bg-gray-50"
+                          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
+      {/* Header */}
+      <View className="bg-green-800 pt-12 pb-6 px-4 overflow-hidden">
+        <View className="absolute rounded-full bg-green-700 opacity-20"
+              style={{ width: 160, height: 160, top: -40, right: -40 }} />
+        <Text className="text-white text-2xl font-extrabold">
           {isBuyer ? '📋 Post a Demand' : '📦 Create Listing'}
         </Text>
-        <Text style={styles.headerSub}>
-          {isBuyer
-            ? 'Let sellers know what you need'
-            : 'List your commodity for buyers to discover'}
+        <Text className="text-green-300 text-sm mt-1">
+          {isBuyer ? "Let sellers know what you need" : "List your commodity for buyers"}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {/* Commodity */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Commodity Details</Text>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 60 }}
+                  keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          <Text style={styles.fieldLabel}>Select Commodity</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {/* Commodity */}
+        <View className="bg-white rounded-2xl p-4"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold mb-3">Commodity</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
             {COMMODITIES.map(c => (
               <TouchableOpacity
-                key={c}
-                onPress={() => setCommodity(c)}
-                style={[styles.chip, commodity === c && styles.chipActive]}
+                key={c} onPress={() => setCommodity(c)}
+                className={`px-4 py-2 rounded-full border ${commodity === c ? 'bg-green-700 border-green-700' : 'bg-gray-50 border-gray-200'}`}
               >
-                <Text style={[styles.chipText, commodity === c && styles.chipTextActive]}>{c}</Text>
+                <Text className={`text-sm font-semibold ${commodity === c ? 'text-white' : 'text-gray-600'}`}>{c}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
 
-          <View style={styles.row}>
-            <View style={styles.halfField}>
-              <Text style={styles.fieldLabel}>Quantity</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 200"
-                placeholderTextColor={C.gray400}
-                value={qty}
-                onChangeText={setQty}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.halfField}>
-              <Text style={styles.fieldLabel}>Unit</Text>
-              <View style={styles.unitRow}>
-                {UNITS.map(u => (
-                  <TouchableOpacity
-                    key={u}
-                    onPress={() => setUnit(u)}
-                    style={[styles.unitChip, unit === u && styles.unitChipActive]}
-                  >
-                    <Text style={[styles.unitChipText, unit === u && styles.unitChipTextActive]}>{u}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+        {/* Quantity + Unit */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold">Quantity & Unit</Text>
+          <TextInput
+            className="border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-base bg-gray-50"
+            placeholder="e.g. 200"
+            placeholderTextColor="#9CA3AF"
+            value={qty}
+            onChangeText={setQty}
+            keyboardType="numeric"
+          />
+          <View className="flex-row flex-wrap gap-2">
+            {UNITS.map(u => (
+              <TouchableOpacity
+                key={u} onPress={() => setUnit(u)}
+                className={`px-4 py-2 rounded-xl border ${unit === u ? 'bg-green-700 border-green-700' : 'bg-gray-50 border-gray-200'}`}
+              >
+                <Text className={`text-sm font-semibold ${unit === u ? 'text-white' : 'text-gray-600'}`}>{u}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          <Text style={styles.fieldLabel}>{isBuyer ? 'Budget (per 40kg)' : 'Asking Price (per 40kg)'}</Text>
-          <View style={styles.priceInput}>
-            <Text style={styles.currencySymbol}>₨</Text>
+        {/* Price */}
+        <View className="bg-white rounded-2xl overflow-hidden"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold px-4 pt-4 pb-2">
+            {isBuyer ? 'Budget (per 40kg)' : 'Asking Price (per 40kg)'}
+          </Text>
+          <View className="flex-row items-center border-t border-gray-100">
+            <View className="px-4 py-3 bg-green-50 border-r border-gray-200">
+              <Text className="text-green-700 text-lg font-extrabold">₨</Text>
+            </View>
             <TextInput
-              style={styles.priceField}
+              className="flex-1 px-4 text-gray-900 text-lg font-bold"
+              style={{ paddingVertical: 12 }}
               placeholder="e.g. 3850"
-              placeholderTextColor={C.gray400}
+              placeholderTextColor="#9CA3AF"
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
@@ -122,122 +129,49 @@ const PostScreen = () => {
         </View>
 
         {/* Location */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Location</Text>
-          <Text style={styles.fieldLabel}>City / Area</Text>
+        <View className="bg-white rounded-2xl p-4 gap-2"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold">Location</Text>
           <TextInput
-            style={styles.input}
+            className="border border-gray-200 rounded-xl px-4 py-3 text-gray-900 bg-gray-50"
             placeholder="e.g. Lahore, Punjab"
-            placeholderTextColor={C.gray400}
+            placeholderTextColor="#9CA3AF"
             value={location}
             onChangeText={setLocation}
           />
         </View>
 
         {/* Notes */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Notes</Text>
+        <View className="bg-white rounded-2xl p-4 gap-2"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold">Additional Notes</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder={isBuyer ? 'Specify quality grade, delivery preference...' : 'Describe quality, packaging, availability...'}
-            placeholderTextColor={C.gray400}
+            className="border border-gray-200 rounded-xl px-4 py-3 text-gray-900 bg-gray-50"
+            placeholder={isBuyer ? 'Quality grade, delivery preference...' : 'Quality, packaging, availability...'}
+            placeholderTextColor="#9CA3AF"
             value={notes}
             onChangeText={setNotes}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+            style={{ minHeight: 96 }}
           />
         </View>
 
         <TouchableOpacity
-          onPress={handleSubmit}
-          style={[styles.submitBtn, (!commodity || !qty || !price || !location) && styles.submitBtnDisabled]}
+          onPress={() => setSubmitted(true)}
+          className={`bg-green-700 rounded-2xl py-4 items-center ${!isValid ? 'opacity-40' : ''}`}
           activeOpacity={0.88}
-          disabled={!commodity || !qty || !price || !location}
+          disabled={!isValid}
+          style={{ shadowColor: '#1A6B34', shadowOpacity: isValid ? 0.25 : 0, shadowRadius: 8, elevation: isValid ? 4 : 0 }}
         >
-          <Text style={styles.submitBtnText}>
+          <Text className="text-white text-base font-bold">
             {isBuyer ? '📋 Post Demand' : '📦 Submit Listing'}
           </Text>
         </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 export default PostScreen;
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: C.gray50 },
-
-  header: {
-    backgroundColor: C.green900,
-    paddingTop: 54,
-    paddingBottom: 24,
-    paddingHorizontal: Spacing.base,
-    overflow: 'hidden',
-  },
-  orb: {
-    position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: C.green700, opacity: 0.2,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: C.white },
-  headerSub:   { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 6 },
-
-  body: { padding: Spacing.base, gap: 14 },
-
-  card: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: C.gray900, marginBottom: 14 },
-
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: C.gray600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  chips: { gap: 8, paddingBottom: 12 },
-  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: C.gray200, backgroundColor: C.gray50 },
-  chipActive: { backgroundColor: C.green700, borderColor: C.green700 },
-  chipText: { fontSize: 12, color: C.gray600, fontWeight: '600' },
-  chipTextActive: { color: C.white, fontWeight: '700' },
-
-  row: { flexDirection: 'row', gap: 12 },
-  halfField: { flex: 1 },
-
-  input: {
-    borderWidth: 1, borderColor: C.gray200,
-    borderRadius: Radius.md, padding: 12,
-    fontSize: 14, color: C.gray900, backgroundColor: C.gray50,
-  },
-  textArea: { minHeight: 100, marginTop: 0 },
-
-  unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  unitChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: Radius.md, borderWidth: 1, borderColor: C.gray200, backgroundColor: C.gray50 },
-  unitChipActive: { backgroundColor: C.green700, borderColor: C.green700 },
-  unitChipText: { fontSize: 11, color: C.gray600, fontWeight: '600' },
-  unitChipTextActive: { color: C.white },
-
-  priceInput: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: C.gray200,
-    borderRadius: Radius.md, backgroundColor: C.gray50, overflow: 'hidden',
-  },
-  currencySymbol: {
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 16, fontWeight: '800', color: C.green700,
-    backgroundColor: C.green50, borderRightWidth: 1, borderRightColor: C.gray200,
-  },
-  priceField: { flex: 1, padding: 12, fontSize: 16, fontWeight: '700', color: C.gray900 },
-
-  submitBtn: {
-    backgroundColor: C.green700, borderRadius: Radius.lg,
-    paddingVertical: 16, alignItems: 'center',
-    ...Shadow.md,
-  },
-  submitBtnDisabled: { opacity: 0.45 },
-  submitBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
-
-  successContainer: { flex: 1, backgroundColor: C.gray50, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: 16 },
-  successTitle:     { fontSize: 24, fontWeight: '800', color: C.gray900 },
-  successSub:       { fontSize: 14, color: C.gray500, textAlign: 'center', lineHeight: 22 },
-  doneBtn: { marginTop: 8, backgroundColor: C.green700, borderRadius: Radius.lg, paddingVertical: 14, paddingHorizontal: 40 },
-  doneBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
-});

@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
 
 const SellerHomeScreen = ({ navigation }: any) => (
   <View style={styles.container}>
-    <StatusBar barStyle="light-content" backgroundColor={C.green900} />
     <View style={styles.header}>
       <Text style={styles.title}>Seller Dashboard</Text>
       <Text style={styles.sub}>Manage your listings and orders</Text>

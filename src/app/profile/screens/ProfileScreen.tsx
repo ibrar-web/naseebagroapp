@@ -1,162 +1,149 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar,
+  View, Text, ScrollView, TouchableOpacity,
 } from 'react-native';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
-import { useAppSelector, useAppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
 
-const MENU_ITEMS = [
-  { group: 'Account',  items: [
-    { icon: '👤', label: 'Personal Info',     sub: 'Name, phone, email'    },
-    { icon: '🏢', label: 'Business Profile',  sub: 'NTN, trade name'       },
-    { icon: '✅', label: 'Verification',      sub: 'Documents & KYC status'},
-  ]},
-  { group: 'Finance',  items: [
-    { icon: '💳', label: 'Payment Methods',   sub: 'Bank accounts'         },
-    { icon: '📜', label: 'Transaction History',sub: 'All payments'         },
-  ]},
-  { group: 'Settings', items: [
-    { icon: '🔔', label: 'Notifications',     sub: 'Alerts & preferences'  },
-    { icon: '⚙️', label: 'App Settings',      sub: 'Language, theme'       },
-  ]},
-  { group: 'Support',  items: [
-    { icon: '🆘', label: 'Help & Support',    sub: 'FAQs, contact us'      },
-    { icon: '📄', label: 'Terms & Privacy',   sub: 'Legal documents'       },
-  ]},
+type MenuItem = { icon: string; label: string; sub: string; screen: string };
+type MenuGroup = { group: string; items: MenuItem[] };
+
+const MENU: MenuGroup[] = [
+  {
+    group: 'ACCOUNT',
+    items: [
+      { icon: '👤', label: 'Personal Information', sub: 'Name, email, phone',        screen: 'PersonalInfo'     },
+      { icon: '💼', label: 'Business Profile',     sub: 'Company, type, location',   screen: 'BusinessProfile'  },
+      { icon: '💳', label: 'Payment Methods',      sub: 'Bank account, wallets',     screen: 'PaymentMethods'   },
+      { icon: '🛡️', label: 'Verification Status',  sub: 'KYC approved ✓',            screen: 'VerificationStatus'},
+      { icon: '⭐', label: 'Saved Listings',        sub: 'Your favorites',            screen: 'SavedListings'    },
+    ],
+  },
+  {
+    group: 'PREFERENCES',
+    items: [
+      { icon: '🔔', label: 'Notifications',  sub: 'Manage alerts',        screen: 'NotificationsSettings' },
+      { icon: '⚙️', label: 'App Settings',   sub: 'Language, theme',      screen: 'AppSettings'           },
+    ],
+  },
+  {
+    group: 'SUPPORT',
+    items: [
+      { icon: '🆘', label: 'Help & Support',  sub: 'FAQs, contact us',    screen: 'Support' },
+      { icon: '📄', label: 'Terms & Privacy', sub: 'Legal documents',     screen: 'Terms'   },
+    ],
+  },
 ];
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
   const mode     = useAppSelector(s => s.app.mode);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+    <View className="flex-1 bg-green-800">
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.orb} />
-          <View style={styles.avatarWrap}>
+      {/* ── FIXED HEADER ──────────────────────────────────────── */}
+      <View className="bg-green-800 px-5 pt-12 pb-6">
+        {/* Decorative orb */}
+        <View
+          className="absolute rounded-full bg-green-700 opacity-20"
+          style={{ width: 200, height: 200, top: -60, right: -60 }}
+        />
+
+        {/* User card row */}
+        <View className="flex-row items-center gap-4">
+          {/* Avatar */}
+          <View className="w-20 h-20 rounded-2xl bg-orange-500 items-center justify-center"
+                style={{ borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }}>
             <Text style={{ fontSize: 36 }}>👤</Text>
           </View>
-          <Text style={styles.userName}>Muhammad Asad</Text>
-          <Text style={styles.userPhone}>+92 300 1234567</Text>
-          <View style={styles.modeBadge}>
-            <Text style={styles.modeBadgeText}>{mode === 'buyer' ? '🛒 Buyer' : '📦 Seller'}</Text>
+
+          {/* Name + email + badge */}
+          <View className="flex-1 gap-1">
+            <Text className="text-white text-2xl font-bold">Muhammad Asad</Text>
+            <Text className="text-green-300 text-sm">asad@traders.com</Text>
+            <View className="self-start mt-1 px-3 py-1 rounded-full border border-green-400 bg-green-800">
+              <Text className="text-green-400 text-xs font-bold">● Approved</Text>
+            </View>
           </View>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
+        {/* Stats row */}
+        <View className="flex-row mt-6 pt-5"
+              style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)' }}>
           {[
-            { label: 'Deals',    val: '12' },
-            { label: 'Rating',   val: '4.8 ⭐' },
-            { label: 'Verified', val: '✅ Yes' },
-          ].map(s => (
-            <View key={s.label} style={styles.statBox}>
-              <Text style={styles.statVal}>{s.val}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+            { val: '12',   label: 'Deals'    },
+            { val: '5',    label: 'Supplies' },
+            { val: '4.8★', label: 'Rating'   },
+          ].map((s, i) => (
+            <View key={s.label}
+                  className={`flex-1 items-start ${i > 0 ? 'pl-6' : ''}`}
+                  style={i > 0 ? { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.15)' } : {}}>
+              <Text className="text-white text-2xl font-extrabold">{s.val}</Text>
+              <Text className="text-green-300 text-xs mt-0.5">{s.label}</Text>
             </View>
           ))}
         </View>
+      </View>
 
-        {/* Menu groups */}
-        {MENU_ITEMS.map(group => (
-          <View key={group.group} style={styles.menuGroup}>
-            <Text style={styles.menuGroupTitle}>{group.group}</Text>
-            <View style={styles.menuCard}>
+      {/* ── SCROLLABLE BODY ───────────────────────────────────── */}
+      <ScrollView className="flex-1 bg-gray-100" showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {MENU.map(group => (
+          <View key={group.group} className="mt-6 px-4">
+            {/* Section title */}
+            <Text className="text-xs font-bold text-gray-400 tracking-widest mb-2 px-1">
+              {group.group}
+            </Text>
+
+            {/* Card */}
+            <View className="bg-white rounded-2xl overflow-hidden"
+                  style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
               {group.items.map((item, idx) => (
                 <TouchableOpacity
                   key={item.label}
-                  style={[styles.menuRow, idx < group.items.length - 1 && styles.menuRowBorder]}
+                  onPress={() => navigation.navigate(item.screen)}
                   activeOpacity={0.7}
+                  className={`flex-row items-center px-4 py-4 ${idx < group.items.length - 1 ? 'border-b border-gray-100' : ''}`}
                 >
-                  <View style={styles.menuIcon}>
+                  {/* Icon in green circle */}
+                  <View className="w-10 h-10 rounded-xl bg-green-100 items-center justify-center mr-3">
                     <Text style={{ fontSize: 18 }}>{item.icon}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuSub}>{item.sub}</Text>
+
+                  {/* Text */}
+                  <View className="flex-1">
+                    <Text className="text-gray-900 text-sm font-semibold">{item.label}</Text>
+                    <Text className="text-gray-400 text-xs mt-0.5">{item.sub}</Text>
                   </View>
-                  <Text style={styles.menuChevron}>›</Text>
+
+                  {/* Chevron */}
+                  <Text className="text-gray-300 text-xl font-light">›</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-        {/* Logout */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={() => dispatch(logout())}
-          activeOpacity={0.88}
-        >
-          <Text style={styles.logoutText}>🚪 Log Out</Text>
-        </TouchableOpacity>
+        {/* Log out */}
+        <View className="px-4 mt-6">
+          <TouchableOpacity
+            onPress={() => dispatch(logout())}
+            activeOpacity={0.85}
+            className="bg-white rounded-2xl py-4 items-center"
+            style={{ borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 }}
+          >
+            <Text className="text-red-500 text-base font-bold">🚪 Log Out</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.version}>Naseeb Agri Market v1.0.0</Text>
-        <View style={{ height: 40 }} />
+        <Text className="text-center text-gray-300 text-xs mt-5">
+          Naseeb Agri Market v1.0.0
+        </Text>
       </ScrollView>
     </View>
   );
 };
 
 export default ProfileScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.gray50 },
-
-  header: {
-    backgroundColor: C.green900, paddingTop: 54, paddingBottom: 28,
-    alignItems: 'center', overflow: 'hidden',
-  },
-  orb: {
-    position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: C.green700, opacity: 0.25,
-  },
-  avatarWrap: {
-    width: 76, height: 76, borderRadius: 38,
-    backgroundColor: C.orange500, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.25)', marginBottom: 10,
-  },
-  userName:  { fontSize: 20, fontWeight: '800', color: C.white },
-  userPhone: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
-  modeBadge: {
-    marginTop: 10, paddingHorizontal: 14, paddingVertical: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: Radius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  modeBadgeText: { fontSize: 13, fontWeight: '600', color: C.white },
-
-  statsRow: {
-    flexDirection: 'row', backgroundColor: C.white,
-    borderBottomWidth: 1, borderBottomColor: C.gray100, ...Shadow.sm,
-  },
-  statBox:   { flex: 1, paddingVertical: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: C.gray100 },
-  statVal:   { fontSize: 16, fontWeight: '800', color: C.gray900 },
-  statLabel: { fontSize: 11, color: C.gray500, marginTop: 2 },
-
-  menuGroup: { paddingHorizontal: Spacing.base, paddingTop: 20 },
-  menuGroupTitle: { fontSize: 11, fontWeight: '700', color: C.gray400, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  menuCard: { backgroundColor: C.white, borderRadius: Radius.xl, overflow: 'hidden', ...Shadow.sm },
-  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  menuRowBorder: { borderBottomWidth: 1, borderBottomColor: C.gray100 },
-  menuIcon: { width: 38, height: 38, borderRadius: Radius.md, backgroundColor: C.green50, alignItems: 'center', justifyContent: 'center' },
-  menuLabel:   { fontSize: 14, fontWeight: '600', color: C.gray900 },
-  menuSub:     { fontSize: 11, color: C.gray400, marginTop: 1 },
-  menuChevron: { fontSize: 20, color: C.gray300 },
-
-  logoutBtn: {
-    marginHorizontal: Spacing.base, marginTop: 20,
-    backgroundColor: C.white, borderRadius: Radius.xl,
-    paddingVertical: 16, alignItems: 'center',
-    borderWidth: 1, borderColor: C.red500 + '40',
-    ...Shadow.sm,
-  },
-  logoutText: { fontSize: 15, fontWeight: '700', color: C.red500 },
-
-  version: { textAlign: 'center', fontSize: 11, color: C.gray300, marginTop: 16 },
-});

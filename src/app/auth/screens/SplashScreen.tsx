@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import { View, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { Colors as C } from '../../../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
@@ -13,50 +12,26 @@ const SplashScreen = ({ navigation }: Props) => {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
-      <View style={styles.orb1} />
-      <View style={styles.orb2} />
-      <Text style={styles.emoji}>🌾</Text>
-      <Text style={styles.title}>naseeb</Text>
-      <Text style={styles.subtitle}>AGRI MARKET</Text>
-      <Text style={styles.tagline}>Pakistan's Trusted Commodity Marketplace</Text>
+    <View className="flex-1 bg-green-800 items-center justify-center overflow-hidden">
+
+      {/* Decorative orbs */}
+      <View className="absolute rounded-full bg-green-700 opacity-25"
+            style={{ width: 240, height: 240, top: -60, right: -60 }} />
+      <View className="absolute rounded-full bg-orange-500 opacity-10"
+            style={{ width: 160, height: 160, bottom: -40, left: -40 }} />
+
+      <Text style={{ fontSize: 72, marginBottom: 20 }}>🌾</Text>
+      <Text className="text-white text-4xl font-extrabold" style={{ letterSpacing: -0.5 }}>
+        naseeb
+      </Text>
+      <Text className="text-gold font-bold tracking-widest mt-1" style={{ fontSize: 12, letterSpacing: 4 }}>
+        AGRI MARKET
+      </Text>
+      <Text className="text-green-300 text-sm mt-4 text-center px-10">
+        Pakistan's Trusted Commodity Marketplace
+      </Text>
     </View>
   );
 };
 
 export default SplashScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.green900,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  orb1: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: C.green700,
-    opacity: 0.25,
-  },
-  orb2: {
-    position: 'absolute',
-    bottom: -40,
-    left: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: C.orange500,
-    opacity: 0.12,
-  },
-  emoji:    { fontSize: 72, marginBottom: 20 },
-  title:    { fontSize: 40, fontWeight: '800', color: C.white, letterSpacing: -0.5 },
-  subtitle: { fontSize: 12, fontWeight: '700', color: C.gold, letterSpacing: 4, marginTop: 4 },
-  tagline:  { fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 16 },
-});

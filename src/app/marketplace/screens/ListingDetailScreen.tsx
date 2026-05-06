@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, SafeAreaView,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ListingDetail'>;
 
@@ -22,94 +18,121 @@ const ListingDetailScreen = ({ navigation, route }: Props) => {
   const [saved, setSaved] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+    <View className="flex-1 bg-gray-50">
 
       {/* Hero header */}
-      <View style={styles.hero}>
-        <View style={styles.orb} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={{ fontSize: 18, color: C.white }}>←</Text>
+      <View className="bg-green-800 items-center justify-end pb-5 overflow-hidden"
+            style={{ height: 200 }}>
+        <View className="absolute rounded-full bg-green-700 opacity-30"
+              style={{ width: 200, height: 200, top: -40, right: -40 }} />
+
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="absolute items-center justify-center"
+          style={{ top: 48, left: 16, width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+        >
+          <Text className="text-white text-lg">←</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.saveBtn} onPress={() => setSaved(s => !s)}>
+
+        <TouchableOpacity
+          onPress={() => setSaved(s => !s)}
+          className="absolute items-center justify-center"
+          style={{ top: 48, right: 16, width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+        >
           <Text style={{ fontSize: 20 }}>{saved ? '❤️' : '🤍'}</Text>
         </TouchableOpacity>
-        <View style={styles.heroEmoji}>
+
+        <View className="items-center justify-center"
+              style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }}>
           <Text style={{ fontSize: 56 }}>{item.emoji}</Text>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Title row */}
-        <View style={styles.titleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+        <View className="flex-row justify-between items-start mb-4">
+          <View className="flex-1">
+            <Text className="text-gray-900 text-xl font-extrabold">{item.name}</Text>
+            <View className="flex-row items-center gap-2 mt-1">
               {item.verified && (
-                <View style={styles.verifiedBadge}>
-                  <Text style={styles.verifiedText}>✓ Verified</Text>
+                <View className="bg-green-100 px-2 py-0.5 rounded-full">
+                  <Text className="text-green-700 text-xs font-bold">✓ Verified</Text>
                 </View>
               )}
-              <Text style={styles.ratingText}>⭐ {item.rating} ({item.deals} deals)</Text>
+              <Text className="text-gray-500 text-xs">⭐ {item.rating} ({item.deals} deals)</Text>
             </View>
           </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.price}>{item.price}</Text>
-            <Text style={styles.qty}>{item.qty} available</Text>
+          <View className="items-end">
+            <Text className="text-green-700 text-lg font-extrabold">{item.price}</Text>
+            <Text className="text-gray-400 text-xs mt-0.5">{item.qty} available</Text>
           </View>
         </View>
 
-        {/* Info cards */}
-        <View style={styles.infoGrid}>
+        {/* Info grid */}
+        <View className="flex-row flex-wrap gap-2.5 mb-4">
           {[
-            { icon: '📍', label: 'Location',  val: item.location  },
-            { icon: '🏢', label: 'Seller',    val: item.seller    },
-            { icon: '📦', label: 'Quantity',  val: item.qty        },
-            { icon: '💰', label: 'Price',     val: item.price      },
+            { icon: '📍', label: 'Location', val: item.location },
+            { icon: '🏢', label: 'Seller',   val: item.seller   },
+            { icon: '📦', label: 'Quantity', val: item.qty       },
+            { icon: '💰', label: 'Price',    val: item.price     },
           ].map(info => (
-            <View key={info.label} style={styles.infoCard}>
+            <View
+              key={info.label}
+              className="bg-white rounded-2xl p-3.5 gap-1"
+              style={{ flex: 1, minWidth: '45%', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}
+            >
               <Text style={{ fontSize: 20 }}>{info.icon}</Text>
-              <Text style={styles.infoLabel}>{info.label}</Text>
-              <Text style={styles.infoVal}>{info.val}</Text>
+              <Text className="text-gray-400 text-xs font-semibold uppercase" style={{ letterSpacing: 0.5 }}>{info.label}</Text>
+              <Text className="text-gray-800 text-sm font-bold">{info.val}</Text>
             </View>
           ))}
         </View>
 
         {/* Description */}
-        <View style={styles.descCard}>
-          <Text style={styles.descTitle}>About this Listing</Text>
-          <Text style={styles.descText}>{item.desc}</Text>
+        <View className="bg-white rounded-2xl p-4 mb-3.5"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold mb-2.5">About this Listing</Text>
+          <Text className="text-gray-600 text-sm leading-5">{item.desc}</Text>
         </View>
 
         {/* Price breakdown */}
-        <View style={styles.priceCard}>
-          <Text style={styles.descTitle}>Price Breakdown</Text>
+        <View className="bg-white rounded-2xl p-4 mb-3.5"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold mb-2.5">Price Breakdown</Text>
           {[
-            { label: 'Unit Price',   val: item.price },
-            { label: 'Commission',   val: '₨38/40kg' },
-            { label: 'Est. Delivery',val: '₨85/40kg' },
+            { label: 'Unit Price',    val: item.price  },
+            { label: 'Commission',    val: '₨38/40kg'  },
+            { label: 'Est. Delivery', val: '₨85/40kg'  },
           ].map(row => (
-            <View key={row.label} style={styles.priceRow}>
-              <Text style={styles.priceLabel}>{row.label}</Text>
-              <Text style={styles.priceVal}>{row.val}</Text>
+            <View key={row.label} className="flex-row justify-between py-2 border-b border-gray-100">
+              <Text className="text-gray-600 text-sm">{row.label}</Text>
+              <Text className="text-gray-800 text-sm font-bold">{row.val}</Text>
             </View>
           ))}
-          <View style={[styles.priceRow, styles.priceTotalRow]}>
-            <Text style={styles.priceTotalLabel}>Total (per 40kg)</Text>
-            <Text style={styles.priceTotalVal}>₨3,973</Text>
+          <View className="flex-row justify-between pt-3">
+            <Text className="text-gray-900 text-sm font-extrabold">Total (per 40kg)</Text>
+            <Text className="text-green-700 text-base font-extrabold">₨3,973</Text>
           </View>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Action buttons — sticky bottom */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.chatBtn} activeOpacity={0.85}>
-          <Text style={styles.chatBtnText}>💬 Chat</Text>
+      {/* Sticky action bar */}
+      <View className="absolute bottom-0 left-0 right-0 flex-row gap-2.5 bg-white px-4 pt-3 pb-7 border-t border-gray-100"
+            style={{ shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 }}>
+        <TouchableOpacity
+          className="flex-1 py-3.5 rounded-xl items-center border-2 border-green-700"
+          activeOpacity={0.85}
+        >
+          <Text className="text-green-700 text-sm font-bold">💬 Chat</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.interestBtn} activeOpacity={0.88}>
-          <Text style={styles.interestBtnText}>Send Interest →</Text>
+        <TouchableOpacity
+          className="bg-green-700 py-3.5 rounded-xl items-center"
+          style={{ flex: 2 }}
+          activeOpacity={0.88}
+        >
+          <Text className="text-white text-sm font-bold">Send Interest →</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -117,86 +140,3 @@ const ListingDetailScreen = ({ navigation, route }: Props) => {
 };
 
 export default ListingDetailScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.gray50 },
-
-  hero: {
-    backgroundColor: C.green900, height: 200,
-    alignItems: 'center', justifyContent: 'flex-end',
-    paddingBottom: 20, overflow: 'hidden',
-  },
-  orb: {
-    position: 'absolute', top: -40, right: -40,
-    width: 200, height: 200, borderRadius: 100,
-    backgroundColor: C.green700, opacity: 0.3,
-  },
-  backBtn: {
-    position: 'absolute', top: 48, left: Spacing.base,
-    width: 38, height: 38, borderRadius: Radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  saveBtn: {
-    position: 'absolute', top: 48, right: Spacing.base,
-    width: 38, height: 38, borderRadius: Radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  heroEmoji: {
-    width: 88, height: 88, borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
-  },
-
-  body: { padding: Spacing.base },
-
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  itemName: { fontSize: 20, fontWeight: '800', color: C.gray900 },
-  verifiedBadge: { backgroundColor: C.green100, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
-  verifiedText:  { fontSize: 11, fontWeight: '700', color: C.green700 },
-  ratingText:    { fontSize: 12, color: C.gray500 },
-  price: { fontSize: 18, fontWeight: '800', color: C.green700 },
-  qty:   { fontSize: 11, color: C.gray400, marginTop: 2 },
-
-  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  infoCard: {
-    flex: 1, minWidth: '45%', backgroundColor: C.white,
-    borderRadius: Radius.xl, padding: 14, gap: 4, ...Shadow.sm,
-  },
-  infoLabel: { fontSize: 11, color: C.gray400, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  infoVal:   { fontSize: 13, fontWeight: '700', color: C.gray800 },
-
-  descCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, marginBottom: 14, ...Shadow.sm },
-  descTitle: { fontSize: 14, fontWeight: '800', color: C.gray900, marginBottom: 10 },
-  descText:  { fontSize: 13, color: C.gray600, lineHeight: 20 },
-
-  priceCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, marginBottom: 14, ...Shadow.sm },
-  priceRow:  { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.gray100 },
-  priceLabel:{ fontSize: 13, color: C.gray600 },
-  priceVal:  { fontSize: 13, fontWeight: '700', color: C.gray800 },
-  priceTotalRow:  { borderBottomWidth: 0, marginTop: 4 },
-  priceTotalLabel:{ fontSize: 14, fontWeight: '800', color: C.gray900 },
-  priceTotalVal:  { fontSize: 16, fontWeight: '800', color: C.green700 },
-
-  actionBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row', gap: 10,
-    backgroundColor: C.white, padding: Spacing.base, paddingBottom: 28,
-    borderTopWidth: 1, borderTopColor: C.gray100,
-    ...Shadow.lg,
-  },
-  chatBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: Radius.lg,
-    borderWidth: 1.5, borderColor: C.green700, alignItems: 'center',
-  },
-  chatBtnText: { fontSize: 14, fontWeight: '700', color: C.green700 },
-  interestBtn: {
-    flex: 2, paddingVertical: 14, borderRadius: Radius.lg,
-    backgroundColor: C.green700, alignItems: 'center',
-  },
-  interestBtnText: { fontSize: 14, fontWeight: '700', color: C.white },
-});

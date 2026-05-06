@@ -1,10 +1,7 @@
 import React from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DealDetail'>;
 
@@ -15,9 +12,9 @@ const DEALS: Record<string, any> = {
     buyer: 'Rafiq Traders', seller: 'Asad Traders',
     location: 'Lahore → Karachi', stage: 8,
     payments: [
-      { label: 'Advance (30%)',   val: '₨5.77L', status: 'Paid'    },
-      { label: 'On Dispatch',     val: '₨7.7L',  status: 'Pending' },
-      { label: 'On Delivery',     val: '₨5.78L', status: 'Pending' },
+      { label: 'Advance (30%)', val: '₨5.77L', status: 'Paid'    },
+      { label: 'On Dispatch',   val: '₨7.7L',  status: 'Pending' },
+      { label: 'On Delivery',   val: '₨5.78L', status: 'Pending' },
     ],
   },
   'DEL-002': {
@@ -40,100 +37,123 @@ const STAGE_LABELS = [
   'Payment Released', 'Completed',
 ];
 
+const stageColor = (stage: number) =>
+  stage < 5 ? '#F59E0B' : stage < 8 ? '#3B82F6' : stage < 11 ? '#8B5CF6' : '#10B981';
+
 const DealDetailScreen = ({ navigation, route }: Props) => {
   const { dealId } = route.params;
   const deal = DEALS[dealId] ?? DEALS['DEL-001'];
-  const pct  = Math.round((deal.stage / 12) * 100);
-  const stageColor = deal.stage < 5 ? '#F59E0B' : deal.stage < 8 ? '#3B82F6' : deal.stage < 11 ? '#8B5CF6' : '#10B981';
+  const pct   = Math.round((deal.stage / 12) * 100);
+  const color = stageColor(deal.stage);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+    <View className="flex-1 bg-gray-50">
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.orb} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={{ fontSize: 18, color: C.white }}>←</Text>
+      <View className="bg-green-800 pt-12 pb-6 px-4 overflow-hidden">
+        <View className="absolute rounded-full bg-green-700 opacity-25"
+              style={{ width: 160, height: 160, top: -40, right: -40 }} />
+
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="items-center justify-center mb-4"
+          style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+        >
+          <Text className="text-white text-lg">←</Text>
         </TouchableOpacity>
-        <Text style={styles.dealId}>{deal.id}</Text>
-        <Text style={styles.dealName}>{deal.commodity}</Text>
-        <Text style={styles.dealAmount}>{deal.amount}</Text>
+
+        <Text className="text-xs font-bold" style={{ color: '#E8A838', letterSpacing: 1 }}>{deal.id}</Text>
+        <Text className="text-white text-2xl font-extrabold mt-1">{deal.commodity}</Text>
+        <Text className="text-orange-400 text-base font-bold mt-1">{deal.amount}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Summary */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryEmojiWrap}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+                  showsVerticalScrollIndicator={false}>
+
+        {/* Summary card */}
+        <View className="bg-white rounded-2xl p-4"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <View className="flex-row gap-3.5 mb-3.5">
+            <View className="bg-green-50 rounded-xl items-center justify-center"
+                  style={{ width: 64, height: 64 }}>
               <Text style={{ fontSize: 32 }}>{deal.emoji}</Text>
             </View>
-            <View style={{ flex: 1 }}>
+            <View className="flex-1">
               {[
-                { label: 'Quantity',   val: deal.qty      },
-                { label: 'Rate',       val: deal.rate     },
-                { label: 'Location',   val: deal.location },
+                { label: 'Quantity', val: deal.qty      },
+                { label: 'Rate',     val: deal.rate     },
+                { label: 'Location', val: deal.location },
               ].map(r => (
-                <View key={r.label} style={styles.summaryFieldRow}>
-                  <Text style={styles.summaryFieldLabel}>{r.label}</Text>
-                  <Text style={styles.summaryFieldVal}>{r.val}</Text>
+                <View key={r.label} className="flex-row justify-between py-1">
+                  <Text className="text-gray-400 text-xs">{r.label}</Text>
+                  <Text className="text-gray-800 text-xs font-bold">{r.val}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          <View style={styles.partiesRow}>
-            <View style={styles.partyBox}>
-              <Text style={styles.partyRole}>🛒 Buyer</Text>
-              <Text style={styles.partyName}>{deal.buyer}</Text>
+          <View className="flex-row justify-between items-center pt-3 border-t border-gray-100">
+            <View className="gap-0.5">
+              <Text className="text-gray-400 text-xs">🛒 Buyer</Text>
+              <Text className="text-gray-900 text-sm font-bold">{deal.buyer}</Text>
             </View>
-            <Text style={{ fontSize: 20, color: C.gray300 }}>⇄</Text>
-            <View style={[styles.partyBox, { alignItems: 'flex-end' }]}>
-              <Text style={styles.partyRole}>📦 Seller</Text>
-              <Text style={styles.partyName}>{deal.seller}</Text>
+            <Text className="text-gray-300 text-xl">⇄</Text>
+            <View className="items-end gap-0.5">
+              <Text className="text-gray-400 text-xs">📦 Seller</Text>
+              <Text className="text-gray-900 text-sm font-bold">{deal.seller}</Text>
             </View>
           </View>
         </View>
 
-        {/* Pipeline */}
-        <View style={styles.pipelineCard}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={styles.cardTitle}>Deal Progress</Text>
-            <Text style={[styles.stageLabel, { color: stageColor }]}>Stage {deal.stage}/12</Text>
+        {/* Pipeline card */}
+        <View className="bg-white rounded-2xl p-4"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <View className="flex-row justify-between mb-3">
+            <Text className="text-gray-900 text-sm font-extrabold">Deal Progress</Text>
+            <Text className="text-xs font-bold" style={{ color }}>Stage {deal.stage}/12</Text>
           </View>
 
-          <View style={styles.pipelineBar}>
-            <View style={[styles.pipelineFill, { width: `${pct}%` as any, backgroundColor: stageColor }]} />
+          <View className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+            <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
           </View>
-          <Text style={[styles.pipelinePct, { color: stageColor }]}>{pct}% complete</Text>
+          <Text className="text-xs font-bold mb-3.5" style={{ color }}>{pct}% complete</Text>
 
-          <View style={styles.stageList}>
-            {STAGE_LABELS.map((s, idx) => (
-              <View key={s} style={styles.stageItem}>
-                <View style={[styles.stageDot, { backgroundColor: idx < deal.stage ? stageColor : idx === deal.stage ? stageColor : C.gray200 }]}>
-                  {idx < deal.stage && <Text style={{ fontSize: 10, color: C.white }}>✓</Text>}
-                  {idx === deal.stage && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.white }} />}
+          <View className="gap-2">
+            {STAGE_LABELS.map((s, idx) => {
+              const dotColor = idx < deal.stage ? color : idx === deal.stage ? color : '#E5E7EB';
+              return (
+                <View key={s} className="flex-row items-center gap-2.5">
+                  <View className="w-5 h-5 rounded-full items-center justify-center"
+                        style={{ backgroundColor: dotColor }}>
+                    {idx < deal.stage && <Text className="text-white" style={{ fontSize: 10 }}>✓</Text>}
+                    {idx === deal.stage && <View className="w-2 h-2 rounded-full bg-white" />}
+                  </View>
+                  <Text
+                    className="text-xs"
+                    style={{
+                      color: idx === deal.stage ? color : idx < deal.stage ? '#9CA3AF' : '#374151',
+                      fontWeight: idx === deal.stage ? '700' : '400',
+                    }}
+                  >
+                    {s}
+                  </Text>
                 </View>
-                <Text style={[styles.stageName, idx === deal.stage && { color: stageColor, fontWeight: '700' }, idx < deal.stage && { color: C.gray400 }]}>
-                  {s}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
-        {/* Payments */}
-        <View style={styles.paymentCard}>
-          <Text style={styles.cardTitle}>Payment Schedule</Text>
+        {/* Payments card */}
+        <View className="bg-white rounded-2xl p-4"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold mb-1">Payment Schedule</Text>
           {deal.payments.map((p: any) => (
-            <View key={p.label} style={styles.paymentRow}>
-              <View>
-                <Text style={styles.paymentLabel}>{p.label}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.paymentVal}>{p.val}</Text>
-                <View style={[styles.paymentStatus, p.status === 'Paid' ? styles.paidBadge : styles.pendingBadge]}>
-                  <Text style={[styles.paymentStatusText, p.status === 'Paid' ? { color: C.green700 } : { color: '#D97706' }]}>
+            <View key={p.label} className="flex-row justify-between items-start py-2.5 border-b border-gray-100">
+              <Text className="text-gray-700 text-sm font-semibold">{p.label}</Text>
+              <View className="items-end">
+                <Text className="text-gray-900 text-sm font-extrabold">{p.val}</Text>
+                <View className={`mt-1 px-2 py-0.5 rounded-full ${p.status === 'Paid' ? 'bg-green-50' : 'bg-amber-50'}`}>
+                  <Text className={`text-xs font-bold ${p.status === 'Paid' ? 'text-green-700' : 'text-amber-600'}`}>
                     {p.status}
                   </Text>
                 </View>
@@ -142,98 +162,30 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
           ))}
         </View>
 
-        {/* Actions */}
-        <View style={styles.actionsCard}>
-          <Text style={styles.cardTitle}>Actions</Text>
-          <View style={styles.actionsRow}>
-            {[
-              { label: '💬 Negotiate', color: C.green700, border: true },
-              { label: '📋 Dispute',   color: C.red500,   border: true },
-            ].map(a => (
-              <TouchableOpacity
-                key={a.label}
-                style={[styles.actionBtn, { borderColor: a.color + '60' }]}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.actionBtnText, { color: a.color }]}>{a.label}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* Actions card */}
+        <View className="bg-white rounded-2xl p-4"
+              style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}>
+          <Text className="text-gray-900 text-sm font-extrabold mb-3">Actions</Text>
+          <View className="flex-row gap-2.5">
+            <TouchableOpacity
+              className="flex-1 py-3 rounded-xl items-center border"
+              style={{ borderColor: '#1A6B3499' }}
+              activeOpacity={0.85}
+            >
+              <Text className="text-green-700 text-sm font-bold">💬 Negotiate</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-3 rounded-xl items-center border"
+              style={{ borderColor: '#EF444499' }}
+              activeOpacity={0.85}
+            >
+              <Text className="text-red-500 text-sm font-bold">📋 Dispute</Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 };
 
 export default DealDetailScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.gray50 },
-
-  header: {
-    backgroundColor: C.green900,
-    paddingTop: 54, paddingBottom: 24,
-    paddingHorizontal: Spacing.base,
-    overflow: 'hidden',
-  },
-  orb: {
-    position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: C.green700, opacity: 0.25,
-  },
-  backBtn: {
-    width: 38, height: 38, borderRadius: Radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  dealId:     { fontSize: 11, fontWeight: '700', color: C.gold, letterSpacing: 1 },
-  dealName:   { fontSize: 22, fontWeight: '800', color: C.white, marginTop: 4 },
-  dealAmount: { fontSize: 16, fontWeight: '700', color: C.orange400, marginTop: 4 },
-
-  body: { padding: Spacing.base, gap: 14 },
-
-  summaryCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm },
-  summaryRow:  { flexDirection: 'row', gap: 14, marginBottom: 14 },
-  summaryEmojiWrap: {
-    width: 64, height: 64, borderRadius: Radius.lg,
-    backgroundColor: C.green50, alignItems: 'center', justifyContent: 'center',
-  },
-  summaryFieldRow:  { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  summaryFieldLabel:{ fontSize: 11, color: C.gray400 },
-  summaryFieldVal:  { fontSize: 12, fontWeight: '700', color: C.gray800 },
-  partiesRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: C.gray100 },
-  partyBox:   { gap: 2 },
-  partyRole:  { fontSize: 11, color: C.gray400 },
-  partyName:  { fontSize: 13, fontWeight: '700', color: C.gray900 },
-
-  pipelineCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm },
-  cardTitle:    { fontSize: 14, fontWeight: '800', color: C.gray900 },
-  stageLabel:   { fontSize: 12, fontWeight: '700' },
-  pipelineBar:  { height: 8, backgroundColor: C.gray100, borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
-  pipelineFill: { height: '100%', borderRadius: 4 },
-  pipelinePct:  { fontSize: 11, fontWeight: '700', marginBottom: 14 },
-  stageList:    { gap: 8 },
-  stageItem:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  stageDot:     { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  stageName:    { fontSize: 12, color: C.gray700 },
-
-  paymentCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm },
-  paymentRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.gray100 },
-  paymentLabel:{ fontSize: 13, color: C.gray700, fontWeight: '600' },
-  paymentVal:  { fontSize: 14, fontWeight: '800', color: C.gray900 },
-  paymentStatus:      { marginTop: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full },
-  paidBadge:          { backgroundColor: C.green50 },
-  pendingBadge:       { backgroundColor: '#FEF3C7' },
-  paymentStatusText:  { fontSize: 10, fontWeight: '700' },
-
-  actionsCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm },
-  actionsRow:  { flexDirection: 'row', gap: 10, marginTop: 12 },
-  actionBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: Radius.lg,
-    alignItems: 'center', borderWidth: 1.5,
-  },
-  actionBtnText: { fontSize: 13, fontWeight: '700' },
-});

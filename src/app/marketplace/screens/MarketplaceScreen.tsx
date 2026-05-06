@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, StatusBar,
-} from 'react-native';
-import { Colors as C, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { View, Text, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useAppSelector } from '../../../store';
 
 const CATEGORIES = ['All', 'Grains', 'Cotton', 'Vegetables', 'Oilseeds', 'Fruits', 'Spices'];
@@ -18,54 +14,72 @@ const COMMODITIES = [
 ];
 
 const DEMANDS = [
-  { id: 'D001', commodity: 'Wheat',  qty: '200 Tons', budget: '₨3,900/40kg', location: 'Lahore',     date: '2 days ago', status: 'Active'   },
-  { id: 'D002', commodity: 'Rice',   qty: '50 Tons',  budget: '₨4,100/40kg', location: 'Karachi',    date: '4 days ago', status: 'Pending'  },
-  { id: 'D003', commodity: 'Cotton', qty: '80 Tons',  budget: '₨8,200/40kg', location: 'Faisalabad', date: '1 week ago', status: 'Active'   },
+  { id: 'D001', commodity: 'Wheat',  qty: '200 Tons', budget: '₨3,900/40kg', location: 'Lahore',     date: '2 days ago', status: 'Active'  },
+  { id: 'D002', commodity: 'Rice',   qty: '50 Tons',  budget: '₨4,100/40kg', location: 'Karachi',    date: '4 days ago', status: 'Pending' },
+  { id: 'D003', commodity: 'Cotton', qty: '80 Tons',  budget: '₨8,200/40kg', location: 'Faisalabad', date: '1 week ago', status: 'Active'  },
 ];
 
 const CommodityCard = ({ item, onPress }: any) => (
-  <TouchableOpacity style={styles.commodityCard} onPress={onPress} activeOpacity={0.88}>
-    <View style={styles.commodityEmoji}>
+  <TouchableOpacity
+    onPress={onPress}
+    className="flex-row items-center gap-3 bg-white rounded-2xl p-3.5 mb-2.5"
+    style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}
+    activeOpacity={0.88}
+  >
+    <View className="w-15 h-15 rounded-xl bg-green-50 items-center justify-center"
+          style={{ width: 60, height: 60 }}>
       <Text style={{ fontSize: 36 }}>{item.emoji}</Text>
     </View>
-    <View style={styles.commodityInfo}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={styles.commodityName}>{item.name}</Text>
-        {item.verified && <Text style={styles.verifiedBadge}>✓</Text>}
+    <View className="flex-1">
+      <View className="flex-row items-center gap-1.5">
+        <Text className="text-gray-900 text-sm font-bold">{item.name}</Text>
+        {item.verified && (
+          <Text className="text-green-700 text-xs bg-green-100 px-1.5 rounded-md">✓</Text>
+        )}
       </View>
-      <Text style={styles.commodityMeta}>{item.qty} · 📍 {item.location}</Text>
-      <Text style={styles.commoditySeller}>by {item.seller}</Text>
+      <Text className="text-gray-500 text-xs mt-0.5">{item.qty} · 📍 {item.location}</Text>
+      <Text className="text-gray-400 text-xs mt-0.5">by {item.seller}</Text>
     </View>
-    <View style={{ alignItems: 'flex-end' }}>
-      <Text style={styles.commodityPrice}>{item.price}</Text>
-      <TouchableOpacity style={styles.interestBtn} activeOpacity={0.85}>
-        <Text style={styles.interestBtnText}>Interest</Text>
+    <View className="items-end">
+      <Text className="text-green-700 text-sm font-extrabold">{item.price}</Text>
+      <TouchableOpacity
+        className="mt-2 px-2.5 py-1.5 bg-green-700 rounded-lg"
+        activeOpacity={0.85}
+      >
+        <Text className="text-white text-xs font-bold">Interest</Text>
       </TouchableOpacity>
     </View>
   </TouchableOpacity>
 );
 
 const DemandCard = ({ item }: any) => (
-  <TouchableOpacity style={styles.demandCard} activeOpacity={0.88}>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-      <Text style={styles.demandId}>{item.id}</Text>
-      <View style={[styles.statusBadge, item.status === 'Active' ? styles.statusActive : styles.statusPending]}>
-        <Text style={[styles.statusText, item.status === 'Active' ? { color: C.green700 } : { color: '#D97706' }]}>
+  <TouchableOpacity
+    className="bg-white rounded-2xl p-3.5 mb-2.5"
+    style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}
+    activeOpacity={0.88}
+  >
+    <View className="flex-row justify-between mb-2">
+      <Text className="text-gray-400 text-xs font-mono">{item.id}</Text>
+      <View className={`px-2 py-0.5 rounded-full ${item.status === 'Active' ? 'bg-green-50' : 'bg-amber-50'}`}>
+        <Text className={`text-xs font-bold ${item.status === 'Active' ? 'text-green-700' : 'text-amber-600'}`}>
           {item.status}
         </Text>
       </View>
     </View>
-    <Text style={styles.demandCommodity}>{item.commodity}</Text>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-      <Text style={styles.demandMeta}>{item.qty}</Text>
-      <Text style={styles.demandBudget}>{item.budget}</Text>
+    <Text className="text-gray-900 text-base font-extrabold">{item.commodity}</Text>
+    <View className="flex-row justify-between mt-1.5">
+      <Text className="text-gray-600 text-xs">{item.qty}</Text>
+      <Text className="text-green-700 text-sm font-extrabold">{item.budget}</Text>
     </View>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-      <Text style={styles.demandLocation}>📍 {item.location}</Text>
-      <Text style={styles.demandDate}>{item.date}</Text>
+    <View className="flex-row justify-between mt-2">
+      <Text className="text-gray-500 text-xs">📍 {item.location}</Text>
+      <Text className="text-gray-400 text-xs">{item.date}</Text>
     </View>
-    <TouchableOpacity style={styles.offerBtn} activeOpacity={0.85}>
-      <Text style={styles.offerBtnText}>Submit Offer →</Text>
+    <TouchableOpacity
+      className="mt-3 bg-green-700 rounded-xl py-2.5 items-center"
+      activeOpacity={0.85}
+    >
+      <Text className="text-white text-sm font-bold">Submit Offer →</Text>
     </TouchableOpacity>
   </TouchableOpacity>
 );
@@ -82,33 +96,41 @@ const MarketplaceScreen = ({ navigation }: any) => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.green900} />
+    <View className="flex-1 bg-gray-50">
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
+      <View className="bg-green-800 pt-12 pb-1 px-4 overflow-hidden">
+        <View className="absolute rounded-full bg-green-700 opacity-25"
+              style={{ width: 160, height: 160, top: -40, right: -40 }} />
+
+        <View className="flex-row justify-between items-center mb-3">
           <View>
-            <Text style={styles.headerTitle}>{isBuyer ? 'Buy Commodities' : 'Buyer Demands'}</Text>
-            <Text style={styles.headerCount}>
+            <Text className="text-white text-xl font-extrabold">
+              {isBuyer ? 'Buy Commodities' : 'Buyer Demands'}
+            </Text>
+            <Text className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
               {isBuyer ? `${filtered.length} listings available` : `${DEMANDS.length} active requests`}
             </Text>
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
+          <TouchableOpacity
+            className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl"
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
+          >
             <Text style={{ fontSize: 14 }}>⚙️</Text>
-            <Text style={styles.filterText}>Filter</Text>
+            <Text className="text-white text-xs font-semibold">Filter</Text>
           </TouchableOpacity>
         </View>
 
         {/* Search */}
-        <View style={styles.searchBox}>
+        <View className="flex-row items-center px-3 py-2.5 rounded-xl mb-2.5"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
           <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
           <TextInput
             placeholder={isBuyer ? 'Search commodities, locations...' : 'Search buyer requests...'}
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={search}
             onChangeText={setSearch}
-            style={styles.searchInput}
+            className="flex-1 text-white text-sm"
           />
         </View>
 
@@ -119,13 +141,27 @@ const MarketplaceScreen = ({ navigation }: any) => {
             data={CATEGORIES}
             keyExtractor={c => c}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chips}
+            contentContainerStyle={{ paddingBottom: 12, gap: 8 }}
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() => setActiveCategory(item)}
-                style={[styles.chip, activeCategory === item && styles.chipActive]}
+                className="px-3.5 py-1.5 rounded-full"
+                style={
+                  activeCategory === item
+                    ? { backgroundColor: '#F3CD03', borderWidth: 1.5, borderColor: '#F3CD03' }
+                    : { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)' }
+                }
               >
-                <Text style={[styles.chipText, activeCategory === item && styles.chipTextActive]}>{item}</Text>
+                <Text
+                  className="text-xs"
+                  style={
+                    activeCategory === item
+                      ? { color: '#111827', fontWeight: '800' }
+                      : { color: 'rgba(255,255,255,0.8)', fontWeight: '500' }
+                  }
+                >
+                  {item}
+                </Text>
               </TouchableOpacity>
             )}
           />
@@ -136,7 +172,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
       <FlatList
         data={(isBuyer ? filtered : DEMANDS) as any[]}
         keyExtractor={(item: any) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) =>
           isBuyer
@@ -144,17 +180,22 @@ const MarketplaceScreen = ({ navigation }: any) => {
             : <DemandCard item={item} />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
+          <View className="items-center pt-16 gap-2">
             <Text style={{ fontSize: 40 }}>🔍</Text>
-            <Text style={styles.emptyTitle}>No results found</Text>
-            <Text style={styles.emptySub}>Try adjusting your search or filters</Text>
+            <Text className="text-gray-800 text-base font-bold">No results found</Text>
+            <Text className="text-gray-400 text-sm">Try adjusting your search or filters</Text>
           </View>
         }
       />
 
       {!isBuyer && (
-        <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('Post')} activeOpacity={0.88}>
-          <Text style={{ fontSize: 24, color: C.white }}>+</Text>
+        <TouchableOpacity
+          className="absolute bg-green-600 items-center justify-center"
+          style={{ bottom: 90, right: 20, width: 52, height: 52, borderRadius: 26, shadowColor: '#1A6B34', shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 }}
+          onPress={() => navigation.navigate('Post')}
+          activeOpacity={0.88}
+        >
+          <Text className="text-white text-2xl">+</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -162,90 +203,3 @@ const MarketplaceScreen = ({ navigation }: any) => {
 };
 
 export default MarketplaceScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.gray50 },
-
-  header: {
-    backgroundColor: C.green900,
-    paddingTop: 48,
-    paddingBottom: 4,
-    paddingHorizontal: Spacing.base,
-  },
-  headerRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: C.white },
-  headerCount: { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
-
-  filterBtn: {
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: Radius.lg, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  filterText: { fontSize: 12, fontWeight: '600', color: C.white },
-
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: Radius.lg, paddingHorizontal: 12, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-    marginBottom: 10,
-  },
-  searchInput: { flex: 1, fontSize: 13, color: C.white },
-
-  chips:        { paddingBottom: 12, gap: 8 },
-  chip:         { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)' },
-  chipActive:   { backgroundColor: C.orange500, borderColor: C.orange500 },
-  chipText:     { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  chipTextActive: { color: C.gray900, fontWeight: '800' },
-
-  list: { padding: Spacing.base, paddingBottom: 100 },
-
-  commodityCard: {
-    flexDirection: 'row', gap: 12, alignItems: 'center',
-    backgroundColor: C.white, borderRadius: Radius.xl,
-    padding: 14, marginBottom: 10, ...Shadow.sm,
-  },
-  commodityEmoji: {
-    width: 60, height: 60, borderRadius: Radius.lg,
-    backgroundColor: C.green50, alignItems: 'center', justifyContent: 'center',
-  },
-  commodityInfo: { flex: 1 },
-  commodityName: { fontSize: 14, fontWeight: '700', color: C.gray900 },
-  verifiedBadge: { fontSize: 12, color: C.green600, backgroundColor: C.green100, paddingHorizontal: 5, borderRadius: 6 },
-  commodityMeta: { fontSize: 11, color: C.gray500, marginTop: 2 },
-  commoditySeller: { fontSize: 11, color: C.gray400, marginTop: 1 },
-  commodityPrice: { fontSize: 13, fontWeight: '800', color: C.green700 },
-  interestBtn: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: C.green700, borderRadius: Radius.md },
-  interestBtnText: { fontSize: 11, fontWeight: '700', color: C.white },
-
-  demandCard: { backgroundColor: C.white, borderRadius: Radius.xl, padding: 14, marginBottom: 10, ...Shadow.sm },
-  demandId:   { fontSize: 10, color: C.gray400, fontFamily: 'monospace' },
-  demandCommodity: { fontSize: 16, fontWeight: '800', color: C.gray900 },
-  demandMeta:     { fontSize: 12, color: C.gray600 },
-  demandBudget:   { fontSize: 14, fontWeight: '800', color: C.green700 },
-  demandLocation: { fontSize: 11, color: C.gray500 },
-  demandDate:     { fontSize: 11, color: C.gray400 },
-  offerBtn: {
-    marginTop: 12, backgroundColor: C.green700,
-    borderRadius: Radius.md, paddingVertical: 10, alignItems: 'center',
-  },
-  offerBtnText: { fontSize: 13, fontWeight: '700', color: C.white },
-
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
-  statusActive: { backgroundColor: C.green50 },
-  statusPending: { backgroundColor: '#FEF3C7' },
-  statusText:   { fontSize: 11, fontWeight: '700' },
-
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.gray800 },
-  emptySub:   { fontSize: 13, color: C.gray400 },
-
-  fab: {
-    position: 'absolute', bottom: 90, right: 20,
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: C.green600, alignItems: 'center', justifyContent: 'center',
-    ...Shadow.lg,
-  },
-});

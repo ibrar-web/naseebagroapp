@@ -122,6 +122,7 @@ const CustomTabBar = ({ state, navigation }: any) => {
 
 const AppStatusBar = () => {
   const insets = useSafeAreaInsets();
+  const { language, setLanguage } = useTranslation();
 
   return (
     <>
@@ -130,10 +131,21 @@ const AppStatusBar = () => {
         backgroundColor={STATUS_BAR_BACKGROUND}
         translucent={false}
       />
-      <View
-        pointerEvents="none"
-        style={[styles.statusBarSurface, { paddingTop: insets.top }]}
-      />
+      <View style={[styles.statusBarSurface, { paddingTop: insets.top }]}>
+        {/* Logo text */}
+        <Text style={styles.barLogoText}>نصیب</Text>
+
+        {/* Language toggle */}
+        <TouchableOpacity
+          onPress={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+          style={styles.langBtn}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.langBtnText}>
+            {language === 'en' ? 'اردو' : 'EN'}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 };
@@ -217,9 +229,26 @@ const styles = StyleSheet.create({
     backgroundColor: STATUS_BAR_BACKGROUND,
     paddingHorizontal: 24,
     paddingBottom: 6,
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  barLogoText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  langBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  langBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

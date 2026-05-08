@@ -15,12 +15,12 @@ export const authTranslations = {
     'auth.privacy': 'Privacy Policy',
     'auth.phoneStep': 'STEP 1 OF 2',
     'auth.otpStep': 'STEP 2 OF 2',
-    'auth.phoneTitle': 'Enter Your\nPhone Number',
+    'auth.phoneTitle': 'Enter Phone Number',
     'auth.phoneSubtitle': "We'll send you a verification code",
     'auth.mobileNumber': 'Mobile Number',
     'auth.phoneHelp': 'Enter your 10-11 digit mobile number',
     'auth.sendOtp': 'Send OTP →',
-    'auth.otpTitle': 'Verify Your\nNumber',
+    'auth.otpTitle': 'Verify Number',
     'auth.codeSentTo': 'Code sent to',
     'auth.enterCode': 'Enter 6-Digit Code',
     'auth.didntReceive': "Didn't receive? ",
@@ -29,7 +29,7 @@ export const authTranslations = {
 
     // Location
     'auth.locationStep': 'LOCATION',
-    'auth.locationTitle': 'Select Your\nCity',
+    'auth.locationTitle': 'Your Location',
     'auth.locationSubtitle': 'We use this to show you relevant local market rates and buyers near you',
     'auth.locationInfo': 'Your location helps us connect you with the right buyers and show accurate commodity prices in your area.',
     'auth.locationSkip': 'Skip for Now',
@@ -38,7 +38,7 @@ export const authTranslations = {
 
     // Basic Info
     'auth.basicInfoStep': 'STEP 1 OF 5',
-    'auth.basicInfoTitle': 'Personal\nInformation',
+    'auth.basicInfoTitle': 'Personal Information',
     'auth.basicInfoSubtitle': 'Tell us about yourself to get started',
     'auth.fullName': 'Full Name',
     'auth.fullNamePlaceholder': 'Muhammad Ali',
@@ -52,7 +52,7 @@ export const authTranslations = {
 
     // Biz Info
     'auth.bizInfoStep': 'STEP 2 OF 5',
-    'auth.bizInfoTitle': 'Business\nInformation',
+    'auth.bizInfoTitle': 'Business Information',
     'auth.bizInfoSubtitle': 'Help buyers and sellers know your business',
     'auth.businessName': 'Business / Farm Name',
     'auth.businessNamePlaceholder': 'Ali Traders',
@@ -66,7 +66,7 @@ export const authTranslations = {
 
     // ID Verify
     'auth.idVerifyStep': 'STEP 3 OF 5',
-    'auth.idVerifyTitle': 'Identity\nVerification',
+    'auth.idVerifyTitle': 'Identity Verification',
     'auth.idVerifySubtitle': 'Upload your CNIC to verify your identity',
     'auth.cnicNumber': 'CNIC Number',
     'auth.cnicPlaceholder': '35201-1234567-1',
@@ -119,12 +119,12 @@ export const authTranslations = {
     'auth.privacy': 'رازداری پالیسی',
     'auth.phoneStep': 'مرحلہ 1 از 2',
     'auth.otpStep': 'مرحلہ 2 از 2',
-    'auth.phoneTitle': 'اپنا\nفون نمبر درج کریں',
+    'auth.phoneTitle': 'فون نمبر درج کریں',
     'auth.phoneSubtitle': 'ہم آپ کو تصدیقی کوڈ بھیجیں گے',
     'auth.mobileNumber': 'موبائل نمبر',
     'auth.phoneHelp': 'اپنا 10-11 ہندسوں کا موبائل نمبر درج کریں',
     'auth.sendOtp': 'OTP بھیجیں →',
-    'auth.otpTitle': 'اپنا\nنمبر تصدیق کریں',
+    'auth.otpTitle': 'نمبر تصدیق کریں',
     'auth.codeSentTo': 'کوڈ بھیجا گیا',
     'auth.enterCode': '6 ہندسوں کا کوڈ درج کریں',
     'auth.didntReceive': 'موصول نہیں ہوا؟ ',
@@ -132,7 +132,7 @@ export const authTranslations = {
     'auth.verifyContinue': 'تصدیق کریں اور جاری رکھیں →',
 
     'auth.locationStep': 'مقام',
-    'auth.locationTitle': 'اپنا\nشہر منتخب کریں',
+    'auth.locationTitle': 'آپ کا مقام',
     'auth.locationSubtitle': 'ہم اسے مقامی مارکیٹ ریٹس اور قریبی خریداروں کو دکھانے کے لیے استعمال کرتے ہیں',
     'auth.locationInfo': 'آپ کا مقام ہمیں آپ کو صحیح خریداروں سے ملانے اور آپ کے علاقے میں درست اجناس کی قیمتیں دکھانے میں مدد کرتا ہے۔',
     'auth.locationSkip': 'ابھی چھوڑیں',
@@ -140,7 +140,7 @@ export const authTranslations = {
     'auth.selectedCity': 'منتخب:',
 
     'auth.basicInfoStep': 'مرحلہ 1 از 5',
-    'auth.basicInfoTitle': 'ذاتی\nمعلومات',
+    'auth.basicInfoTitle': 'ذاتی معلومات',
     'auth.basicInfoSubtitle': 'شروع کرنے کے لیے اپنے بارے میں بتائیں',
     'auth.fullName': 'پورا نام',
     'auth.fullNamePlaceholder': 'محمد علی',
@@ -153,7 +153,7 @@ export const authTranslations = {
     'auth.continueNext': 'جاری رکھیں →',
 
     'auth.bizInfoStep': 'مرحلہ 2 از 5',
-    'auth.bizInfoTitle': 'کاروباری\nمعلومات',
+    'auth.bizInfoTitle': 'کاروباری معلومات',
     'auth.bizInfoSubtitle': 'خریداروں اور فروخت کنندگان کو اپنا کاروبار بتائیں',
     'auth.businessName': 'کاروبار / فارم کا نام',
     'auth.businessNamePlaceholder': 'علی ٹریڈرز',
@@ -166,7 +166,7 @@ export const authTranslations = {
     'auth.addressPlaceholder': 'گلی، علاقہ، شہر',
 
     'auth.idVerifyStep': 'مرحلہ 3 از 5',
-    'auth.idVerifyTitle': 'شناخت\nکی تصدیق',
+    'auth.idVerifyTitle': 'شناخت کی تصدیق',
     'auth.idVerifySubtitle': 'اپنی شناخت کی تصدیق کے لیے شناختی کارڈ اپ لوڈ کریں',
     'auth.cnicNumber': 'شناختی کارڈ نمبر',
     'auth.cnicPlaceholder': '35201-1234567-1',

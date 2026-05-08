@@ -9,9 +9,13 @@ import {
   ScrollView,
   StyleSheet,
   StatusBar,
+  Dimensions,
 } from 'react-native';
+
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+
+const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -25,21 +29,25 @@ const LoginScreen = ({ navigation }: Props) => {
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ backgroundColor: 'rgb(13, 59, 31)', flex: 1,justifyContent:'space-between' }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#145228" />
+      <StatusBar barStyle="light-content" backgroundColor="white" />
 
       {/* Green hero */}
-      <View className="bg-green-800 overflow-hidden" style={styles.hero}>
-        <View className="absolute rounded-full bg-green-700 opacity-20" style={styles.orb1} />
-        <View className="absolute rounded-full bg-green-600 opacity-15" style={styles.orb2} />
-
+      <View className="overflow-hidden" style={styles.hero}>
         {/* Naseeb logo badge */}
-        <View className="items-center justify-center rounded-full bg-white" style={styles.logoCircle}>
+        <View
+          className="items-center justify-center rounded-full bg-white"
+          style={styles.logoCircle}
+        >
           <Text style={styles.logoUrdu}>نصیب</Text>
           <Text style={styles.logoAgri}>AGRI</Text>
         </View>
 
-        <Text className="text-white font-extrabold text-center mt-5" style={styles.heroTitle}>
+        <Text
+          className="text-white font-extrabold text-center mt-5"
+          style={styles.heroTitle}
+        >
           Welcome Back
         </Text>
         <Text className="text-green-300 text-center text-sm mt-2">
@@ -48,7 +56,7 @@ const LoginScreen = ({ navigation }: Props) => {
       </View>
 
       {/* White card */}
-      <View className="flex-1 bg-white" style={styles.card}>
+      <View className="bg-white" style={styles.card}>
         <ScrollView
           contentContainerStyle={styles.cardScroll}
           keyboardShouldPersistTaps="handled"
@@ -66,9 +74,7 @@ const LoginScreen = ({ navigation }: Props) => {
             className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
             style={styles.inputRow}
           >
-            <Text className="text-gray-900 font-bold text-base px-4">
-              +92
-            </Text>
+            <Text className="text-gray-900 font-bold text-base px-4">+92</Text>
             <View className="w-px bg-gray-200" style={styles.divider} />
             <TextInput
               className="flex-1 text-gray-900 text-base px-4"
@@ -110,13 +116,17 @@ const LoginScreen = ({ navigation }: Props) => {
 
           {/* Forgot PIN */}
           <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
-            <Text className="text-green-700 text-sm font-bold">Forgot PIN?</Text>
+            <Text className="text-green-700 text-sm font-bold">
+              Forgot PIN?
+            </Text>
           </TouchableOpacity>
 
           {/* Sign In button */}
           <TouchableOpacity
             onPress={() => navigation.replace('MainTabs')}
-            className={`rounded-2xl py-4 items-center bg-green-700 mb-5 ${!canSignIn ? 'opacity-50' : ''}`}
+            className={`rounded-2xl py-4 items-center bg-green-700 mb-5 ${
+              !canSignIn ? 'opacity-50' : ''
+            }`}
             disabled={!canSignIn}
             style={canSignIn ? styles.btnShadow : undefined}
             activeOpacity={0.88}
@@ -131,7 +141,9 @@ const LoginScreen = ({ navigation }: Props) => {
               onPress={() => navigation.navigate('Phone')}
               activeOpacity={0.7}
             >
-              <Text className="text-green-700 text-sm font-bold">Create Account</Text>
+              <Text className="text-green-700 text-sm font-bold">
+                Create Account
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -145,9 +157,8 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 48,
     alignItems: 'center',
+    backgroundColor: 'rgb(13, 59, 31)',
   },
-  orb1: { width: 200, height: 200, top: -60, right: -60, position: 'absolute' },
-  orb2: { width: 140, height: 140, bottom: -30, left: -30, position: 'absolute' },
   logoCircle: {
     width: 72,
     height: 72,
@@ -156,10 +167,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  logoUrdu: { fontSize: 20, fontWeight: '800', color: '#145228', lineHeight: 26 },
-  logoAgri: { fontSize: 8, fontWeight: '700', color: '#1A6B34', letterSpacing: 2 },
+  logoUrdu: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#145228',
+    lineHeight: 26,
+  },
+  logoAgri: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#1A6B34',
+    letterSpacing: 2,
+  },
   heroTitle: { fontSize: 30 },
   card: {
+    height: WINDOW_HEIGHT * 0.6,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     shadowColor: '#000',

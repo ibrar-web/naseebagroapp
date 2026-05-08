@@ -6,6 +6,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -38,15 +39,12 @@ const OTPScreen = ({ navigation, route }: Props) => {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-white"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar barStyle="light-content" backgroundColor="white" />
       {/* Header */}
       <View className="bg-green-800 pt-12 pb-8 px-5 overflow-hidden">
-        <View
-          className="absolute rounded-full bg-green-700 opacity-25"
-          style={{ width: 160, height: 160, top: -40, right: -40 }}
-        />
 
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -73,7 +71,7 @@ const OTPScreen = ({ navigation, route }: Props) => {
         </Text>
       </View>
 
-      <View className="p-4 pt-8">
+      <View className="p-4 pt-8 bg-white flex-1">
         {/* OTP card */}
         <View
           className="bg-white rounded-2xl px-5 py-6 items-center mb-5"

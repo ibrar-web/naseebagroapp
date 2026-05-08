@@ -16,6 +16,7 @@ import { RootStackParamList, TabParamList } from './types';
 // Auth
 import SplashScreen from '../app/auth/screens/SplashScreen';
 import WelcomeScreen from '../app/auth/screens/WelcomeScreen';
+import LoginScreen from '../app/auth/screens/LoginScreen';
 import PhoneScreen from '../app/auth/screens/PhoneScreen';
 import OTPScreen from '../app/auth/screens/OTPScreen';
 
@@ -179,6 +180,7 @@ export const AppNavigator = () => (
         options={{ animation: 'none' }}
       />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Phone" component={PhoneScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
 

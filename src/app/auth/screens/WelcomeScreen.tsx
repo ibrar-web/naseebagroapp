@@ -84,7 +84,7 @@ const WelcomeScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('Phone')}
+          onPress={() => navigation.navigate('Login')}
           className="py-4 rounded-2xl items-center border-2 border-green-700"
           activeOpacity={0.88}
         >

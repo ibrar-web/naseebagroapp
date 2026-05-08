@@ -124,7 +124,7 @@ const OTPScreen = ({ navigation, route }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.replace('MainTabs')}
+          onPress={() => navigation.replace('Location')}
           className={`py-4 rounded-2xl items-center bg-green-700 ${
             !isComplete ? 'opacity-40' : ''
           }`}

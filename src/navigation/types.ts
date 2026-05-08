@@ -15,6 +15,15 @@ export type RootStackParamList = {
   ListingDetail: { listingId: string };
   DealDetail:    { dealId: string };
 
+  // Onboarding
+  Location:      undefined;
+  BasicInfo:     undefined;
+  BizInfo:       undefined;
+  IdVerify:      undefined;
+  PaymentSetup:  undefined;
+  VerifyPending: undefined;
+  VerifyApproved: undefined;
+
   // Profile sub-screens
   PersonalInfo:          undefined;
   BusinessProfile:       undefined;

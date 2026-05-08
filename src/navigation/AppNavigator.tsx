@@ -26,6 +26,15 @@ import DealsScreen from '../app/deals/screens/DealsScreen';
 import PostScreen from '../app/marketplace/screens/PostScreen';
 import ProfileScreen from '../app/profile/screens/ProfileScreen';
 
+// Onboarding
+import LocationScreen from '../app/auth/screens/LocationScreen';
+import BasicInfoScreen from '../app/auth/screens/BasicInfoScreen';
+import BizInfoScreen from '../app/auth/screens/BizInfoScreen';
+import IdVerifyScreen from '../app/auth/screens/IdVerifyScreen';
+import PaymentSetupScreen from '../app/auth/screens/PaymentSetupScreen';
+import VerifyPendingScreen from '../app/auth/screens/VerifyPendingScreen';
+import VerifyApprovedScreen from '../app/auth/screens/VerifyApprovedScreen';
+
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
@@ -160,6 +169,15 @@ export const AppNavigator = () => (
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Phone" component={PhoneScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
+
+      {/* Onboarding */}
+      <Stack.Screen name="Location" component={LocationScreen} />
+      <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
+      <Stack.Screen name="BizInfo" component={BizInfoScreen} />
+      <Stack.Screen name="IdVerify" component={IdVerifyScreen} />
+      <Stack.Screen name="PaymentSetup" component={PaymentSetupScreen} />
+      <Stack.Screen name="VerifyPending" component={VerifyPendingScreen} />
+      <Stack.Screen name="VerifyApproved" component={VerifyApprovedScreen} />
 
       {/* Main tabs */}
       <Stack.Screen

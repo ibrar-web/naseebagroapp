@@ -42,17 +42,19 @@ import SupportScreen from '../app/profile/screens/SupportScreen';
 import TermsScreen from '../app/profile/screens/TermsScreen';
 import { useTranslation } from '../localization';
 import type { TranslationKey } from '../localization';
+import { AppIcon } from '../assets/icons';
+import type { AppIconName } from '../assets/icons';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<TabParamList>();
+const Tab   = createBottomTabNavigator<TabParamList>();
 const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
-const TAB_CONFIG: Record<string, { icon: string; labelKey: TranslationKey }> = {
-  Home: { icon: '🏠', labelKey: 'tabs.home' },
-  Market: { icon: '🌾', labelKey: 'tabs.market' },
-  Deals: { icon: '📦', labelKey: 'tabs.deals' },
-  Post: { icon: '✏️', labelKey: 'tabs.post' },
-  Profile: { icon: '👤', labelKey: 'tabs.profile' },
+const TAB_CONFIG: Record<string, { icon: AppIconName; labelKey: TranslationKey }> = {
+  Home:    { icon: 'tabHome',    labelKey: 'tabs.home'    },
+  Market:  { icon: 'tabMarket',  labelKey: 'tabs.market'  },
+  Deals:   { icon: 'tabDeals',   labelKey: 'tabs.deals'   },
+  Post:    { icon: 'tabPost',    labelKey: 'tabs.post'    },
+  Profile: { icon: 'tabProfile', labelKey: 'tabs.profile' },
 };
 
 const CustomTabBar = ({ state, navigation }: any) => {
@@ -78,42 +80,28 @@ const CustomTabBar = ({ state, navigation }: any) => {
         const isFocused = state.index === index;
         const cfg = TAB_CONFIG[route.name];
         const label = cfg ? t(cfg.labelKey) : route.name;
+        const iconColor = isFocused ? '#1A6B34' : '#9CA3AF';
 
         return (
           <TouchableOpacity
             key={route.key}
-            onPress={() => {
-              if (!isFocused) {
-                navigation.navigate(route.name);
-              }
-            }}
+            onPress={() => { if (!isFocused) { navigation.navigate(route.name); } }}
             className="flex-1 items-center"
             style={{ gap: 2, paddingTop: 4 }}
             activeOpacity={0.7}
             accessibilityRole="button"
           >
             <View
-              className={`w-10 items-center justify-center rounded-xl ${
-                isFocused ? 'bg-green-100' : ''
-              }`}
-              style={{ height: 26 }}
+              className={`w-10 items-center justify-center rounded-xl ${isFocused ? 'bg-green-100' : ''}`}
+              style={{ height: 28 }}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  color: isFocused ? '#1A6B34' : '#9CA3AF',
-                }}
-              >
-                {cfg?.icon ?? '●'}
-              </Text>
+              {cfg ? (
+                <AppIcon name={cfg.icon} size={20} color={iconColor} />
+              ) : (
+                <Text style={{ fontSize: 18, color: iconColor }}>●</Text>
+              )}
             </View>
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: isFocused ? '700' : '500',
-                color: isFocused ? '#1A6B34' : '#9CA3AF',
-              }}
-            >
+            <Text style={{ fontSize: 10, fontWeight: isFocused ? '700' : '500', color: iconColor }}>
               {label}
             </Text>
           </TouchableOpacity>

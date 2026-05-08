@@ -260,6 +260,34 @@ const iconRegistry = {
     Icon: Feather,
     name: 'map-pin' as FeatherIconName,
   },
+  tabHome: {
+    Icon: Feather,
+    name: 'home' as FeatherIconName,
+  },
+  tabMarket: {
+    Icon: Feather,
+    name: 'trending-up' as FeatherIconName,
+  },
+  tabDeals: {
+    Icon: Feather,
+    name: 'briefcase' as FeatherIconName,
+  },
+  tabPost: {
+    Icon: Feather,
+    name: 'plus-square' as FeatherIconName,
+  },
+  tabProfile: {
+    Icon: Feather,
+    name: 'user' as FeatherIconName,
+  },
+  phone: {
+    Icon: Feather,
+    name: 'phone' as FeatherIconName,
+  },
+  shield: {
+    Icon: Feather,
+    name: 'shield' as FeatherIconName,
+  },
 } as const;
 
 export type AppIconName = keyof typeof iconRegistry;

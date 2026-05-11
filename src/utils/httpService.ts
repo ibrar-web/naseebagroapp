@@ -95,7 +95,11 @@ class HttpService {
   }
 
   patch(...args: any) {
-    return this.service.patch(...args);
+    const [path, data] = args;
+    if (data instanceof FormData) {
+      this.service.defaults.headers['Content-Type'] = 'multipart/form-data';
+    }
+    return this.service.patch(path, data);
   }
 
   delete(...args: any) {

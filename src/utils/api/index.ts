@@ -1,82 +1,58 @@
-import axiosInstance from '../index';
-import http, { QueryParams, RequestBody } from '../http';
+import { Get, Post, Patch, Delete } from '../http';
 
 const byId = (basePath: string, id: string | number) => `${basePath}/${id}`;
 
 const createCrudApi = (basePath: string) => ({
-  list: <T = unknown>(params?: QueryParams) =>
-    http.getRequest<T>(basePath, params),
-  getById: <T = unknown>(id: string | number) =>
-    http.getRequest<T>(byId(basePath, id)),
-  create: <T = unknown>(data?: RequestBody) =>
-    http.createRequest<T>(basePath, data),
-  update: <T = unknown>(id: string | number, data?: RequestBody) =>
-    http.updateRequest<T>(byId(basePath, id), data),
-  remove: <T = unknown>(id: string | number) =>
-    http.deleteRequest<T>(byId(basePath, id)),
+  list: (params?: Record<string, any>) => Get(basePath, params),
+  getById: (id: string | number) => Get(byId(basePath, id)),
+  create: (data?: any) => Post(basePath, data),
+  update: (id: string | number, data?: any) => Patch(byId(basePath, id), data),
+  remove: (id: string | number) => Delete(byId(basePath, id)),
 });
 
 export const api = {
   auth: {
-    register: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/register', data),
-    login: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/login', data),
-    logout: <T = unknown>() => http.createRequest<T>('auth/logout'),
-    getCurrentUser: <T = unknown>() => http.getRequest<T>('auth/me'),
-    updateCurrentUser: <T = unknown>(data: RequestBody) =>
-      http.updateRequest<T>('auth/me', data),
-    forgotPassword: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/forgot-password', data),
-    resetPassword: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/reset-password', data),
-    changePassword: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/change-password', data),
+    register: (data: any) => Post('auth/register', data),
+    login: (data: any) => Post('auth/login', data),
+    logout: () => Post('auth/logout', undefined),
+    getCurrentUser: () => Get('auth/me'),
+    updateCurrentUser: (data: any) => Patch('auth/me', data),
+    forgotPassword: (data: any) => Post('auth/forgot-password', data),
+    resetPassword: (data: any) => Post('auth/reset-password', data),
+    changePassword: (data: any) => Post('auth/change-password', data),
   },
 
   profile: {
     personal: {
-      get: <T = unknown>() => http.getRequest<T>('profile/personal'),
-      update: <T = unknown>(data: RequestBody) =>
-        http.updateRequest<T>('profile/personal', data),
-      updateForm: <T = unknown>(data: RequestBody) =>
-        http.updateFormRequest<T>('profile/personal', data),
+      get: () => Get('profile/personal'),
+      update: (data: any) => Patch('profile/personal', data),
+      updateForm: (data: any) => Patch('profile/personal', data),
     },
     business: {
-      get: <T = unknown>() => http.getRequest<T>('profile/business'),
-      update: <T = unknown>(data: RequestBody) =>
-        http.updateRequest<T>('profile/business', data),
+      get: () => Get('profile/business'),
+      update: (data: any) => Patch('profile/business', data),
     },
     appSettings: {
-      get: <T = unknown>() => http.getRequest<T>('profile/app-settings'),
-      update: <T = unknown>(data: RequestBody) =>
-        http.updateRequest<T>('profile/app-settings', data),
+      get: () => Get('profile/app-settings'),
+      update: (data: any) => Patch('profile/app-settings', data),
     },
     notifications: {
-      get: <T = unknown>() => http.getRequest<T>('profile/notifications'),
-      update: <T = unknown>(data: RequestBody) =>
-        http.updateRequest<T>('profile/notifications', data),
+      get: () => Get('profile/notifications'),
+      update: (data: any) => Patch('profile/notifications', data),
     },
   },
 
   marketplace: {
-    listPublicListings: <T = unknown>(params?: QueryParams) =>
-      http.getRequest<T>('public/listings', params),
-    createSellerListing: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('seller/listings', data),
-    createSellerListingForm: <T = unknown>(data: RequestBody) =>
-      http.createFormRequest<T>('seller/listings', data),
-    getMyListings: <T = unknown>() => http.getRequest<T>('seller/listings/my'),
-    getSellerListing: <T = unknown>(id: string | number) =>
-      http.getRequest<T>(byId('seller/listings', id)),
-    updateSellerListing: <T = unknown>(
-      id: string | number,
-      data: RequestBody,
-    ) => http.updateRequest<T>(byId('seller/listings', id), data),
-    updateSellerListingForm: <T = unknown>(
-      id: string | number,
-      data: RequestBody,
-    ) => http.updateFormRequest<T>(byId('seller/listings', id), data),
+    listPublicListings: (params?: Record<string, any>) =>
+      Get('public/listings', params),
+    createSellerListing: (data: any) => Post('seller/listings', data),
+    createSellerListingForm: (data: any) => Post('seller/listings', data),
+    getMyListings: () => Get('seller/listings/my'),
+    getSellerListing: (id: string | number) => Get(byId('seller/listings', id)),
+    updateSellerListing: (id: string | number, data: any) =>
+      Patch(byId('seller/listings', id), data),
+    updateSellerListingForm: (id: string | number, data: any) =>
+      Patch(byId('seller/listings', id), data),
   },
 
   buyer: {
@@ -92,79 +68,64 @@ export const api = {
 
   admin: {
     users: {
-      list: <T = unknown>(params?: QueryParams) =>
-        http.getRequest<T>('admin/users', params),
-      getById: <T = unknown>(id: string | number) =>
-        http.getRequest<T>(byId('admin/users', id)),
-      verify: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/users/${id}/verify`, data),
-      updateStatus: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/users/${id}/status`, data),
+      list: (params?: Record<string, any>) => Get('admin/users', params),
+      getById: (id: string | number) => Get(byId('admin/users', id)),
+      verify: (id: string | number, data: any) =>
+        Patch(`admin/users/${id}/verify`, data),
+      updateStatus: (id: string | number, data: any) =>
+        Patch(`admin/users/${id}/status`, data),
     },
     listings: {
-      list: <T = unknown>(params?: QueryParams) =>
-        http.getRequest<T>('admin/listings', params),
-      getById: <T = unknown>(id: string | number) =>
-        http.getRequest<T>(byId('admin/listings', id)),
-      review: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/listings/${id}/review`, data),
+      list: (params?: Record<string, any>) => Get('admin/listings', params),
+      getById: (id: string | number) => Get(byId('admin/listings', id)),
+      review: (id: string | number, data: any) =>
+        Patch(`admin/listings/${id}/review`, data),
     },
     categories: {
-      create: <T = unknown>(data: RequestBody) =>
-        http.createFormRequest<T>('admin/categories', data),
-      list: <T = unknown>() => http.getRequest<T>('admin/categories'),
-      update: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateFormRequest<T>(`admin/categories/${id}`, data),
-      remove: <T = unknown>(id: string | number) =>
-        http.deleteRequest<T>(`admin/categories/${id}`),
+      create: (data: any) => Post('admin/categories', data),
+      list: () => Get('admin/categories'),
+      update: (id: string | number, data: any) =>
+        Patch(`admin/categories/${id}`, data),
+      remove: (id: string | number) => Delete(`admin/categories/${id}`),
     },
     commodities: {
-      create: <T = unknown>(data: RequestBody) =>
-        http.createFormRequest<T>('admin/commodities', data),
-      listByCategory: <T = unknown>(categoryId: string | number) =>
-        http.getRequest<T>(`admin/categories/${categoryId}/commodities`),
-      getById: <T = unknown>(id: string | number) =>
-        http.getRequest<T>(byId('admin/commodities', id)),
-      update: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateFormRequest<T>(byId('admin/commodities', id), data),
-      remove: <T = unknown>(id: string | number) =>
-        http.deleteRequest<T>(byId('admin/commodities', id)),
-      createRate: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.createRequest<T>(`admin/${id}/rates`, data),
-      listRates: <T = unknown>(id: string | number) =>
-        http.getRequest<T>(`admin/${id}/rates`),
-      updateRate: <T = unknown>(rateId: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/rates/${rateId}`, data),
+      create: (data: any) => Post('admin/commodities', data),
+      listByCategory: (categoryId: string | number) =>
+        Get(`admin/categories/${categoryId}/commodities`),
+      getById: (id: string | number) => Get(byId('admin/commodities', id)),
+      update: (id: string | number, data: any) =>
+        Patch(byId('admin/commodities', id), data),
+      remove: (id: string | number) => Delete(byId('admin/commodities', id)),
+      createRate: (id: string | number, data: any) =>
+        Post(`admin/${id}/rates`, data),
+      listRates: (id: string | number) => Get(`admin/${id}/rates`),
+      updateRate: (rateId: string | number, data: any) =>
+        Patch(`admin/rates/${rateId}`, data),
     },
     units: {
-      create: <T = unknown>(data: RequestBody) =>
-        http.createRequest<T>('admin/units', data),
-      list: <T = unknown>() => http.getRequest<T>('admin/units'),
-      update: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/units/${id}`, data),
-      remove: <T = unknown>(id: string | number) =>
-        http.deleteRequest<T>(`admin/units/${id}`),
+      create: (data: any) => Post('admin/units', data),
+      list: () => Get('admin/units'),
+      update: (id: string | number, data: any) =>
+        Patch(`admin/units/${id}`, data),
+      remove: (id: string | number) => Delete(`admin/units/${id}`),
     },
     paymentTerms: {
-      create: <T = unknown>(data: RequestBody) =>
-        http.createRequest<T>('admin/payment-terms', data),
-      list: <T = unknown>() => http.getRequest<T>('admin/payment-terms'),
-      update: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/payment-terms/${id}`, data),
+      create: (data: any) => Post('admin/payment-terms', data),
+      list: () => Get('admin/payment-terms'),
+      update: (id: string | number, data: any) =>
+        Patch(`admin/payment-terms/${id}`, data),
     },
     paymentOptions: {
-      create: <T = unknown>(data: RequestBody) =>
-        http.createRequest<T>('admin/payment-options', data),
-      list: <T = unknown>() => http.getRequest<T>('admin/payment-options'),
-      update: <T = unknown>(id: string | number, data: RequestBody) =>
-        http.updateRequest<T>(`admin/payment-options/${id}`, data),
+      create: (data: any) => Post('admin/payment-options', data),
+      list: () => Get('admin/payment-options'),
+      update: (id: string | number, data: any) =>
+        Patch(`admin/payment-options/${id}`, data),
     },
     buyRequests: createCrudApi('admin/buyrequests'),
     sellRequests: createCrudApi('admin/sellrequests'),
     deals: createCrudApi('admin/deals'),
     payments: createCrudApi('admin/payments'),
   },
-} as const;
+};
 
-export { axiosInstance, http };
 export default api;

@@ -23,41 +23,40 @@ const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-interface LoginResponse {
-  access_token: string;
-  user: User;
-}
-
 const LoginScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
+
+  const [usePhone, setUsePhone] = useState(true);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const canSignIn = (phone.length >= 10 || email.includes('@')) && pin.length >= 4;
+  const inputValid = usePhone ? phone.length >= 10 : email.includes('@');
+  const canSignIn = inputValid && pin.length >= 4;
 
   const handleSignIn = async () => {
-    if (!canSignIn || loading) {
-      return;
-    }
+    if (!canSignIn || loading) {return;}
     setLoading(true);
     try {
       const payload: Record<string, string> = { password: pin };
-      if (email.includes('@')) {
-        payload.email = email;
-      } else {
+      if (usePhone) {
         payload.phone = '+92' + phone;
+      } else {
+        payload.email = email;
       }
 
-      const data = await api.auth.login<LoginResponse>(payload);
-      await AsyncStorage.setItem('authToken', data.access_token);
-      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
-      dispatch(loginSuccess({ user: data.user, token: data.access_token }));
+      // api returns the full envelope: { status, message, data: { access_token, user } }
+      const result = await api.auth.login(payload) as any;
+      const { access_token, user }: { access_token: string; user: User } = result.data;
+
+      await AsyncStorage.setItem('authToken', access_token);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      dispatch(loginSuccess({ user, token: access_token }));
       navigation.replace('MainTabs');
     } catch {
-      // error already shown by axios interceptor
+      // error already shown by HttpService interceptor
     } finally {
       setLoading(false);
     }
@@ -67,85 +66,103 @@ const LoginScreen = ({ navigation }: Props) => {
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ backgroundColor: 'rgb(13, 59, 31)', flex: 1, justifyContent: 'space-between' }}
+      style={styles.root}
     >
       <StatusBar barStyle="light-content" backgroundColor="white" />
 
-      {/* Green hero */}
-      <View className="overflow-hidden" style={styles.hero}>
-        <View
-          className="items-center justify-center rounded-full bg-white"
-          style={styles.logoCircle}
-        >
+      {/* ── Green hero ── */}
+      <View style={styles.hero}>
+        <View style={styles.logoCircle}>
           <Text style={styles.logoUrdu}>نصیب</Text>
           <Text style={styles.logoAgri}>AGRI</Text>
         </View>
-
-        <Text
-          className="text-white font-extrabold text-center mt-5"
-          style={styles.heroTitle}
-        >
-          Welcome Back
-        </Text>
+        <Text style={styles.heroTitle}>Welcome Back</Text>
         <Text className="text-green-300 text-center text-sm mt-2">
           Sign in to your Naseeb account
         </Text>
       </View>
 
-      {/* White card */}
+      {/* ── White card ── */}
       <View className="bg-white" style={styles.card}>
         <ScrollView
           contentContainerStyle={styles.cardScroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text className="text-gray-900 text-2xl font-extrabold mb-6">
+          <Text className="text-gray-900 text-2xl font-extrabold mb-5">
             Sign In
           </Text>
 
-          {/* Phone Number */}
-          <Text className="text-gray-700 text-sm font-bold mb-2">
-            Phone Number
-          </Text>
-          <View
-            className="border border-gray-200 rounded-2xl flex-row items-center mb-4 bg-gray-50"
-            style={styles.inputRow}
-          >
-            <Text className="text-gray-900 font-bold text-base px-4">+92</Text>
-            <View className="w-px bg-gray-200" style={styles.divider} />
-            <TextInput
-              className="flex-1 text-gray-900 text-base px-4"
-              style={styles.inputText}
-              placeholder="3XX XXXXXXX"
-              placeholderTextColor="#9CA3AF"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              maxLength={11}
-            />
+          {/* ── Phone / Email toggle ── */}
+          <View style={styles.toggle}>
+            <TouchableOpacity
+              onPress={() => setUsePhone(true)}
+              style={[styles.toggleBtn, usePhone && styles.toggleBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.toggleText, usePhone && styles.toggleTextActive]}>
+                Phone
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setUsePhone(false)}
+              style={[styles.toggleBtn, !usePhone && styles.toggleBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.toggleText, !usePhone && styles.toggleTextActive]}>
+                Email
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Email */}
-          <Text className="text-gray-700 text-sm font-bold mb-2">
-            Email
-          </Text>
-          <View
-            className="border border-gray-200 rounded-2xl flex-row items-center mb-4 bg-gray-50"
-            style={styles.inputRow}
-          >
-            <TextInput
-              className="flex-1 text-gray-900 text-base px-4"
-              style={styles.inputText}
-              placeholder="you@example.com"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
+          {/* ── Input ── */}
+          {usePhone ? (
+            <>
+              <Text className="text-gray-700 text-sm font-bold mb-2">
+                Phone Number
+              </Text>
+              <View
+                className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
+                style={styles.inputRow}
+              >
+                <Text className="text-gray-900 font-bold text-base px-4">+92</Text>
+                <View className="w-px bg-gray-200" style={styles.divider} />
+                <TextInput
+                  className="flex-1 text-gray-900 text-base px-4"
+                  style={styles.inputText}
+                  placeholder="3XX XXXXXXX"
+                  placeholderTextColor="#9CA3AF"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  maxLength={11}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text className="text-gray-700 text-sm font-bold mb-2">
+                Email Address
+              </Text>
+              <View
+                className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
+                style={styles.inputRow}
+              >
+                <TextInput
+                  className="flex-1 text-gray-900 text-base px-4"
+                  style={styles.inputText}
+                  placeholder="you@example.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            </>
+          )}
 
-          {/* PIN / Password */}
+          {/* ── PIN / Password ── */}
           <Text className="text-gray-700 text-sm font-bold mb-2">
             PIN / Password
           </Text>
@@ -171,14 +188,12 @@ const LoginScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
           </View>
 
-          {/* Forgot PIN */}
+          {/* ── Forgot PIN ── */}
           <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
-            <Text className="text-green-700 text-sm font-bold">
-              Forgot PIN?
-            </Text>
+            <Text className="text-green-700 text-sm font-bold">Forgot PIN?</Text>
           </TouchableOpacity>
 
-          {/* Sign In button */}
+          {/* ── Sign In button ── */}
           <TouchableOpacity
             onPress={handleSignIn}
             disabled={!canSignIn || loading}
@@ -195,7 +210,7 @@ const LoginScreen = ({ navigation }: Props) => {
             )}
           </TouchableOpacity>
 
-          {/* Create Account link */}
+          {/* ── Create account ── */}
           <View className="flex-row justify-center">
             <Text className="text-gray-500 text-sm">New to Naseeb? </Text>
             <TouchableOpacity
@@ -214,6 +229,11 @@ const LoginScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
+  root: {
+    backgroundColor: 'rgb(13, 59, 31)',
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   hero: {
     paddingTop: 60,
     paddingBottom: 48,
@@ -223,6 +243,10 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 72,
     height: 72,
+    borderRadius: 36,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -240,9 +264,15 @@ const styles = StyleSheet.create({
     color: '#1A6B34',
     letterSpacing: 2,
   },
-  heroTitle: { fontSize: 30 },
+  heroTitle: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 20,
+  },
   card: {
-    height: WINDOW_HEIGHT * 0.65,
+    height: WINDOW_HEIGHT * 0.68,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     shadowColor: '#000',
@@ -251,6 +281,30 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   cardScroll: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40 },
+  // toggle
+  toggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 20,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toggleText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF' },
+  toggleTextActive: { color: '#15803d', fontWeight: '700' },
+  // inputs
   inputRow: { overflow: 'hidden' },
   divider: { height: 24 },
   inputText: { paddingVertical: 16 },

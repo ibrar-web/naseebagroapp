@@ -1,18 +1,43 @@
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
+import EncryptedStorage from 'react-native-encrypted-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
+import { useAppDispatch } from '../../../store';
+import { loginSuccess } from '../../../store/slices/authSlice';
+import type { User } from '../../../store/slices/authSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const SplashScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const t = setTimeout(() => navigation.replace('Welcome'), 2400);
-    return () => clearTimeout(t);
-  }, [navigation]);
+    const restoreSession = async () => {
+      // Keep splash visible for at least 1.2s
+      const [raw] = await Promise.all([
+        EncryptedStorage.getItem('session').catch(() => null),
+        new Promise<void>(resolve => setTimeout(() => resolve(), 1200)),
+      ]);
+
+      if (raw) {
+        try {
+          const { token, user }: { token: string; user: User } = JSON.parse(raw);
+          dispatch(loginSuccess({ user, token }));
+          navigation.replace('MainTabs');
+          return;
+        } catch {
+          // corrupted data — fall through to Welcome
+          await EncryptedStorage.removeItem('session').catch(() => null);
+        }
+      }
+      navigation.replace('Welcome');
+    };
+
+    restoreSession();
+  }, [dispatch, navigation]);
 
   return (
     <View className="flex-1 bg-green-800 items-center justify-center overflow-hidden">

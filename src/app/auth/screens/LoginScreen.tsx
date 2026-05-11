@@ -12,7 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import EncryptedStorage from 'react-native-encrypted-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
@@ -54,8 +54,7 @@ const LoginScreen = ({ navigation }: Props) => {
       const { access_token, user }: { access_token: string; user: User } =
         result.data;
       console.log('access_token, user:', access_token, user);
-      await AsyncStorage.setItem('authToken', access_token);
-      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      await EncryptedStorage.setItem('session', JSON.stringify({ token: access_token, user }));
       dispatch(loginSuccess({ user, token: access_token }));
       navigation.replace('MainTabs');
     } catch (error) {

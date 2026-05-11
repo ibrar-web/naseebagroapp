@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useAppDispatch } from '../../../store';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import { CommonActions } from '@react-navigation/native';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -90,6 +92,19 @@ const MENU: MenuGroup[] = [
 const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const user = useAppSelector(s => s.auth.user);
+
+  const handleLogout = async () => {
+    await EncryptedStorage.removeItem('session').catch(() => null);
+    dispatch(logout());
+    // Reset the root stack so the user cannot navigate back to MainTabs
+    navigation.getParent()?.dispatch(
+      CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }),
+    );
+  };
+
+  const displayName = user?.fullName ?? 'Guest';
+  const displayEmail = user?.email ?? '';
 
   return (
     <View className="flex-1 bg-green-800">
@@ -113,16 +128,20 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Name + email + badge */}
           <View className="flex-1 gap-1">
-            <Text className="text-white text-2xl font-bold">Muhammad Asad</Text>
-            <Text className="text-green-300 text-sm">asad@traders.com</Text>
-            <View className="self-start mt-1 px-3 py-1 rounded-full border border-green-400 bg-green-800 flex-row items-center">
-              <View className="mr-1.5">
-                <AppIcon name="approved" size={12} color="#45B86A" />
+            <Text className="text-white text-2xl font-bold">{displayName}</Text>
+            {displayEmail ? (
+              <Text className="text-green-300 text-sm">{displayEmail}</Text>
+            ) : null}
+            {user?.is_verified ? (
+              <View className="self-start mt-1 px-3 py-1 rounded-full border border-green-400 bg-green-800 flex-row items-center">
+                <View className="mr-1.5">
+                  <AppIcon name="approved" size={12} color="#45B86A" />
+                </View>
+                <Text className="text-green-400 text-xs font-bold">
+                  {t('profile.approved')}
+                </Text>
               </View>
-              <Text className="text-green-400 text-xs font-bold">
-                {t('profile.approved')}
-              </Text>
-            </View>
+            ) : null}
           </View>
         </View>
 
@@ -206,12 +225,9 @@ const ProfileScreen = ({ navigation }: any) => {
                       : ''
                   }`}
                 >
-                  {/* Icon in green circle */}
                   <View className="w-10 h-10 rounded-xl bg-green-100 items-center justify-center mr-3">
                     <AppIcon name={item.icon} size={19} color="#1A6B34" />
                   </View>
-
-                  {/* Text */}
                   <View className="flex-1">
                     <Text className="text-gray-900 text-sm font-semibold">
                       {t(item.labelKey)}
@@ -220,8 +236,6 @@ const ProfileScreen = ({ navigation }: any) => {
                       {t(item.subKey)}
                     </Text>
                   </View>
-
-                  {/* Chevron */}
                   <AppIcon name="chevronRight" size={18} color="#D1D5DB" />
                 </TouchableOpacity>
               ))}
@@ -232,7 +246,7 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Log out */}
         <View className="px-4 mt-6">
           <TouchableOpacity
-            onPress={() => dispatch(logout())}
+            onPress={handleLogout}
             activeOpacity={0.85}
             className="bg-white rounded-2xl py-4 items-center"
             style={{

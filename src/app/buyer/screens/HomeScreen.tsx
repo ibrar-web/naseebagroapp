@@ -90,8 +90,12 @@ const QUICK_ACTIONS = [
 const HomeScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
   const mode = useAppSelector(s => s.app.mode);
+  const user = useAppSelector(s => s.auth.user);
   const { t } = useTranslation();
   const isBuyer = mode === 'buyer';
+
+  const displayName = user?.fullName ?? 'Guest';
+  const displayCity = user?.city ?? null;
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -174,10 +178,10 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
             <View>
               <Text className="text-white text-base font-extrabold">
-                Muhammad Asad
+                {displayName}
               </Text>
               <Text className="text-green-300 text-xs">
-                📍 {t('home.location')}
+                📍 {displayCity ?? t('home.location')}
               </Text>
             </View>
           </View>

@@ -1,12 +1,46 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export interface UserProfile {
+  cnic: string | null;
+  cnic_front_image_name: string | null;
+  cnic_front_image_url: string | null;
+  cnic_back_image_name: string | null;
+  cnic_back_image_url: string | null;
+  business_name: string | null;
+  business_type: string | null;
+  business_registration_number: string | null;
+  primary_crop: string | null;
+  farm_size: string | null;
+}
+
+export interface UserSettings {
+  deal_alerts: boolean;
+  offer_updates: boolean;
+  payment_dispatch_alerts: boolean;
+  promotion_alerts: boolean;
+  sms_alerts: boolean;
+  language: string;
+  currency: string;
+  biometric_login_enabled: boolean;
+  two_factor_enabled: boolean;
+}
+
 export interface User {
   id: string;
-  name: string;
+  fullName: string;
+  email: string;
   phone: string;
-  location: string;
+  city: string | null;
+  profile_picture: string | null;
+  date_of_birth: string | null;
   role: 'buyer' | 'seller';
-  verified: boolean;
+  is_verified: boolean;
+  verified_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  profile: UserProfile | null;
+  settings: UserSettings | null;
 }
 
 interface AuthState {
@@ -33,11 +67,15 @@ const authSlice = createSlice({
       state.isLoading = true;
       state.error = null;
     },
-    loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+    loginSuccess: (
+      state,
+      action: PayloadAction<{ user: User; token: string }>,
+    ) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.isLoading = false;
+      state.error = null;
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.isLoading = false;
@@ -47,12 +85,22 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.error = null;
     },
     clearError: state => {
       state.error = null;
     },
+    resetAllReduxStates: () => initialState,
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, clearError } = authSlice.actions;
+export const {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout,
+  clearError,
+  resetAllReduxStates,
+} = authSlice.actions;
+
 export default authSlice.reducer;

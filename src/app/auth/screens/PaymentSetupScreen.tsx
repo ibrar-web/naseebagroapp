@@ -7,11 +7,16 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
 import { BANKS } from '../../../constants';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { resetRegisterForm } from '../../../store/slices/registerSlice';
+import api from '../../../utils/api';
 import GreenHeader from '../components/GreenHeader';
 import StepDots from '../components/StepDots';
 
@@ -28,9 +33,13 @@ const CARD_SHADOW = {
 
 const PaymentSetupScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const registerForm = useAppSelector(state => state.register);
+
   const [form, setForm] = useState({ bank: '', accountTitle: '', iban: '' });
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [showBankPicker, setShowBankPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const toggleWallet = (w: string) =>
     setSelectedWallets(prev =>
@@ -41,6 +50,59 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
     form.bank.length > 0 &&
     form.accountTitle.length > 2 &&
     form.iban.length >= 10;
+
+  const handleSubmit = async () => {
+    if (!canSubmit || loading) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('fullName', registerForm.fullName);
+      formData.append('email', registerForm.email);
+      formData.append('phone', '+92' + registerForm.phone);
+      formData.append('password', registerForm.password);
+      formData.append('role', registerForm.role);
+
+      if (registerForm.city) {
+        formData.append('city', registerForm.city);
+      }
+      if (registerForm.cnic) {
+        formData.append('cnic', registerForm.cnic);
+      }
+      if (registerForm.businessName || registerForm.businessType) {
+        formData.append(
+          'business_profile',
+          JSON.stringify({
+            business_name: registerForm.businessName || undefined,
+            business_type: registerForm.businessType || undefined,
+          }),
+        );
+      }
+      if (registerForm.cnicFront) {
+        formData.append('cnic_front_image', {
+          uri: registerForm.cnicFront.uri,
+          name: registerForm.cnicFront.name,
+          type: 'image/jpeg',
+        } as any);
+      }
+      if (registerForm.cnicBack) {
+        formData.append('cnic_back_image', {
+          uri: registerForm.cnicBack.uri,
+          name: registerForm.cnicBack.name,
+          type: 'image/jpeg',
+        } as any);
+      }
+
+      await api.auth.register(formData);
+      dispatch(resetRegisterForm());
+      navigation.navigate('VerifyPending');
+    } catch {
+      Alert.alert('Registration Failed', 'Please check your details and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -164,15 +226,19 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('VerifyPending')}
-          className={`py-4 rounded-2xl items-center ${canSubmit ? 'bg-orange-500' : 'bg-orange-500 opacity-40'}`}
-          disabled={!canSubmit}
-          style={canSubmit ? { shadowColor: '#F3CD03', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 } : {}}
+          onPress={handleSubmit}
+          disabled={!canSubmit || loading}
+          className={`py-4 rounded-2xl items-center bg-orange-500 ${!canSubmit || loading ? 'opacity-40' : ''}`}
+          style={canSubmit && !loading ? { shadowColor: '#F3CD03', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 } : {}}
           activeOpacity={0.88}
         >
-          <Text className="text-white text-base font-bold">
-            {t('auth.submitRegistration')}
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white text-base font-bold">
+              {t('auth.submitRegistration')}
+            </Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

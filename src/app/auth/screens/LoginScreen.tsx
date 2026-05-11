@@ -10,32 +10,69 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+import { useAppDispatch } from '../../../store';
+import { loginSuccess, type User } from '../../../store/slices/authSlice';
+import api from '../../../utils/api';
 
 const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+interface LoginResponse {
+  access_token: string;
+  user: User;
+}
+
 const LoginScreen = ({ navigation }: Props) => {
+  const dispatch = useAppDispatch();
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
-  const canSignIn = phone.length >= 10 && pin.length >= 4;
+  const [loading, setLoading] = useState(false);
+
+  const canSignIn = (phone.length >= 10 || email.includes('@')) && pin.length >= 4;
+
+  const handleSignIn = async () => {
+    if (!canSignIn || loading) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload: Record<string, string> = { password: pin };
+      if (email.includes('@')) {
+        payload.email = email;
+      } else {
+        payload.phone = '+92' + phone;
+      }
+
+      const data = await api.auth.login<LoginResponse>(payload);
+      await AsyncStorage.setItem('authToken', data.access_token);
+      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      dispatch(loginSuccess({ user: data.user, token: data.access_token }));
+      navigation.replace('MainTabs');
+    } catch {
+      // error already shown by axios interceptor
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ backgroundColor: 'rgb(13, 59, 31)', flex: 1,justifyContent:'space-between' }}
+      style={{ backgroundColor: 'rgb(13, 59, 31)', flex: 1, justifyContent: 'space-between' }}
     >
       <StatusBar barStyle="light-content" backgroundColor="white" />
 
       {/* Green hero */}
       <View className="overflow-hidden" style={styles.hero}>
-        {/* Naseeb logo badge */}
         <View
           className="items-center justify-center rounded-full bg-white"
           style={styles.logoCircle}
@@ -71,7 +108,7 @@ const LoginScreen = ({ navigation }: Props) => {
             Phone Number
           </Text>
           <View
-            className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
+            className="border border-gray-200 rounded-2xl flex-row items-center mb-4 bg-gray-50"
             style={styles.inputRow}
           >
             <Text className="text-gray-900 font-bold text-base px-4">+92</Text>
@@ -85,6 +122,26 @@ const LoginScreen = ({ navigation }: Props) => {
               onChangeText={setPhone}
               keyboardType="phone-pad"
               maxLength={11}
+            />
+          </View>
+
+          {/* Email */}
+          <Text className="text-gray-700 text-sm font-bold mb-2">
+            Email
+          </Text>
+          <View
+            className="border border-gray-200 rounded-2xl flex-row items-center mb-4 bg-gray-50"
+            style={styles.inputRow}
+          >
+            <TextInput
+              className="flex-1 text-gray-900 text-base px-4"
+              style={styles.inputText}
+              placeholder="you@example.com"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
 
@@ -123,15 +180,19 @@ const LoginScreen = ({ navigation }: Props) => {
 
           {/* Sign In button */}
           <TouchableOpacity
-            onPress={() => navigation.replace('MainTabs')}
+            onPress={handleSignIn}
+            disabled={!canSignIn || loading}
             className={`rounded-2xl py-4 items-center bg-green-700 mb-5 ${
-              !canSignIn ? 'opacity-50' : ''
+              !canSignIn || loading ? 'opacity-50' : ''
             }`}
-            disabled={!canSignIn}
-            style={canSignIn ? styles.btnShadow : undefined}
+            style={canSignIn && !loading ? styles.btnShadow : undefined}
             activeOpacity={0.88}
           >
-            <Text className="text-white text-base font-bold">Sign In</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-base font-bold">Sign In</Text>
+            )}
           </TouchableOpacity>
 
           {/* Create Account link */}
@@ -181,7 +242,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: { fontSize: 30 },
   card: {
-    height: WINDOW_HEIGHT * 0.6,
+    height: WINDOW_HEIGHT * 0.65,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     shadowColor: '#000',

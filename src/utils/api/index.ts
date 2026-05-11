@@ -20,8 +20,6 @@ export const api = {
   auth: {
     register: <T = unknown>(data: RequestBody) =>
       http.createRequest<T>('auth/register', data),
-    registerAdmin: <T = unknown>(data: RequestBody) =>
-      http.createRequest<T>('auth/admin/register', data),
     login: <T = unknown>(data: RequestBody) =>
       http.createRequest<T>('auth/login', data),
     logout: <T = unknown>() => http.createRequest<T>('auth/logout'),

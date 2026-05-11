@@ -145,3 +145,34 @@ export const http = {
 };
 
 export default http;
+
+// ─── Simplified exports — handle both JSON and FormData natively ──────────────
+
+export const Get = <T = unknown>(
+  url: string,
+  params?: QueryParams,
+  config?: AxiosRequestConfig,
+) => request<T>({ ...config, method: 'GET', url, params });
+
+export const Post = <T = unknown>(
+  url: string,
+  data?: RequestBody,
+  config?: AxiosRequestConfig,
+) => request<T>({ ...config, method: 'POST', url, data });
+
+export const Patch = <T = unknown>(
+  url: string,
+  data?: RequestBody,
+  config?: AxiosRequestConfig,
+) => request<T>({ ...config, method: 'PATCH', url, data });
+
+export const Put = <T = unknown>(
+  url: string,
+  data?: RequestBody,
+  config?: AxiosRequestConfig,
+) => request<T>({ ...config, method: 'PUT', url, data });
+
+export const Delete = <T = unknown>(
+  url: string,
+  config?: AxiosRequestConfig,
+) => request<T>({ ...config, method: 'DELETE', url });

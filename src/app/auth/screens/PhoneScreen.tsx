@@ -11,14 +11,22 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
+import { useAppDispatch } from '../../../store';
+import { setRegisterPhone } from '../../../store/slices/registerSlice';
 import GreenHeader from '../components/GreenHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Phone'>;
 
 const PhoneScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const [phone, setPhone] = useState('');
   const canContinue = phone.length >= 10;
+
+  const handleContinue = () => {
+    dispatch(setRegisterPhone(phone));
+    navigation.navigate('Location');
+  };
 
   return (
     <KeyboardAvoidingView
@@ -41,20 +49,17 @@ const PhoneScreen = ({ navigation }: Props) => {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Input card */}
         <View className=" p-4 mb-5">
           <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
             {t('auth.mobileNumber')}
           </Text>
 
           <View className="flex-row gap-3 items-center">
-            {/* Country code */}
             <View className="flex-row items-center gap-2 px-3 py-3.5 rounded-xl bg-gray-50 border border-gray-200">
               <Text style={{ fontSize: 18 }}>🇵🇰</Text>
               <Text className="text-gray-800 text-base font-bold">+92</Text>
             </View>
 
-            {/* Phone input */}
             <TextInput
               className="flex-1 text-gray-900 text-lg font-bold border border-gray-200 rounded-xl px-4 bg-gray-50"
               style={{ paddingVertical: 12 }}
@@ -73,7 +78,7 @@ const PhoneScreen = ({ navigation }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('OTP', { phone })}
+          onPress={handleContinue}
           className={`py-4 rounded-2xl items-center bg-green-700 ${
             !canContinue ? 'opacity-40' : ''
           }`}
@@ -87,7 +92,7 @@ const PhoneScreen = ({ navigation }: Props) => {
           }}
         >
           <Text className="text-white text-base font-bold">
-            {t('auth.sendOtp')}
+            {t('auth.continueNext')}
           </Text>
         </TouchableOpacity>
 

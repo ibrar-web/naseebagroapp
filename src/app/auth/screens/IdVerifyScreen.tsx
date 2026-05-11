@@ -15,6 +15,8 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
+import { useAppDispatch } from '../../../store';
+import { setRegisterIdInfo } from '../../../store/slices/registerSlice';
 import { AppIcon } from '../../../assets/icons';
 import GreenHeader from '../components/GreenHeader';
 import StepDots from '../components/StepDots';
@@ -55,11 +57,21 @@ const pickImage = (onPick: (uri: string, name: string) => void) => {
 
 const IdVerifyScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const [cnic, setCnic] = useState('');
   const [front, setFront] = useState<UploadState>(null);
   const [back, setBack] = useState<UploadState>(null);
 
   const canContinue = cnic.length >= 13 && front !== null && back !== null;
+
+  const handleContinue = () => {
+    dispatch(setRegisterIdInfo({
+      cnic,
+      cnicFront: front!,
+      cnicBack: back!,
+    }));
+    navigation.navigate('PaymentSetup');
+  };
 
   const UploadBox = ({
     label,
@@ -175,7 +187,7 @@ const IdVerifyScreen = ({ navigation }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('PaymentSetup')}
+          onPress={handleContinue}
           className={`py-4 rounded-2xl items-center bg-green-700 ${!canContinue ? 'opacity-40' : ''}`}
           disabled={!canContinue}
           style={canContinue ? styles.btnShadow : undefined}

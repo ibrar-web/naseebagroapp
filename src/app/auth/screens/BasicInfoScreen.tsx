@@ -11,6 +11,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
+import { useAppDispatch } from '../../../store';
+import { setRegisterBasicInfo } from '../../../store/slices/registerSlice';
 import GreenHeader from '../components/GreenHeader';
 import StepDots from '../components/StepDots';
 
@@ -25,6 +27,7 @@ const INPUT_STYLE = {
 
 const BasicInfoScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -40,6 +43,15 @@ const BasicInfoScreen = ({ navigation }: Props) => {
 
   const set = (key: keyof typeof form) => (val: string) =>
     setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleContinue = () => {
+    dispatch(setRegisterBasicInfo({
+      fullName: form.name,
+      email: form.email,
+      password: form.password,
+    }));
+    navigation.navigate('BizInfo');
+  };
 
   return (
     <KeyboardAvoidingView
@@ -115,7 +127,7 @@ const BasicInfoScreen = ({ navigation }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('BizInfo')}
+          onPress={handleContinue}
           className={`py-4 rounded-2xl items-center bg-green-700 ${!canContinue ? 'opacity-40' : ''}`}
           disabled={!canContinue}
           style={

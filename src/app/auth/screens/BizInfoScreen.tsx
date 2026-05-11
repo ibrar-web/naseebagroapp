@@ -12,6 +12,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
 import { CITIES } from '../../../constants';
+import { useAppDispatch } from '../../../store';
+import { setRegisterBizInfo } from '../../../store/slices/registerSlice';
 import GreenHeader from '../components/GreenHeader';
 import StepDots from '../components/StepDots';
 
@@ -28,6 +30,7 @@ const CARD_SHADOW = {
 
 const BizInfoScreen = ({ navigation }: Props) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const [form, setForm] = useState({
     businessName: '',
     businessType: '',
@@ -177,7 +180,14 @@ const BizInfoScreen = ({ navigation }: Props) => {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('IdVerify')}
+          onPress={() => {
+            dispatch(setRegisterBizInfo({
+              city: form.city,
+              businessName: form.businessName,
+              businessType: form.businessType,
+            }));
+            navigation.navigate('IdVerify');
+          }}
           className={`py-4 rounded-2xl items-center bg-green-700 ${!canContinue ? 'opacity-40' : ''}`}
           disabled={!canContinue}
           style={canContinue ? { shadowColor: '#1A6B34', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 } : {}}

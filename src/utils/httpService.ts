@@ -9,6 +9,7 @@ class HttpService {
   service: any;
 
   constructor() {
+    console.log(ENV.API_BASE_URL);
     this.service = axios.create({
       baseURL: ENV.API_BASE_URL,
       timeout: ENV.TIMEOUT,
@@ -55,16 +56,28 @@ class HttpService {
           AsyncStorage.clear();
           break;
         case 403:
-          Alert.alert('Forbidden', 'You do not have permission to perform this action.');
+          Alert.alert(
+            'Forbidden',
+            'You do not have permission to perform this action.',
+          );
           break;
         case 422:
-          Alert.alert('Validation Error', errorMessage || 'Please check your inputs.');
+          Alert.alert(
+            'Validation Error',
+            errorMessage || 'Please check your inputs.',
+          );
           break;
         case 500:
-          Alert.alert('Server Error', 'A server error occurred. Please try again later.');
+          Alert.alert(
+            'Server Error',
+            'A server error occurred. Please try again later.',
+          );
           break;
         default:
-          Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+          Alert.alert(
+            'Error',
+            'An unexpected error occurred. Please try again.',
+          );
           break;
       }
 

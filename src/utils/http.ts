@@ -16,6 +16,7 @@ export const Post = (path: string, payload: any) => {
   const apiService = new HttpService();
   return new Promise(async (accept, reject) => {
     try {
+      console.log(apiService)
       // FormData is detected automatically by HttpService.post()
       const response = await apiService.post(path, payload);
       accept(response.data);

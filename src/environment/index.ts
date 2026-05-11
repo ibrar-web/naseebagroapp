@@ -45,6 +45,5 @@ const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
 };
 
 const currentEnv = (NODE_ENV || 'development') as EnvType;
-
 export const ENV = ENVIRONMENT_CONFIG[currentEnv];
 export default ENV;

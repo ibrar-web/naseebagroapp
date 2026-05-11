@@ -37,7 +37,9 @@ const LoginScreen = ({ navigation }: Props) => {
   const canSignIn = inputValid && pin.length >= 4;
 
   const handleSignIn = async () => {
-    if (!canSignIn || loading) {return;}
+    if (!canSignIn || loading) {
+      return;
+    }
     setLoading(true);
     try {
       const payload: Record<string, string> = { password: pin };
@@ -46,17 +48,18 @@ const LoginScreen = ({ navigation }: Props) => {
       } else {
         payload.email = email;
       }
-
+      console.log('payload', payload);
       // api returns the full envelope: { status, message, data: { access_token, user } }
-      const result = await api.auth.login(payload) as any;
-      const { access_token, user }: { access_token: string; user: User } = result.data;
-
+      const result = (await api.auth.login(payload)) as any;
+      const { access_token, user }: { access_token: string; user: User } =
+        result.data;
+      console.log('access_token, user:', access_token, user);
       await AsyncStorage.setItem('authToken', access_token);
       await AsyncStorage.setItem('userData', JSON.stringify(user));
       dispatch(loginSuccess({ user, token: access_token }));
       navigation.replace('MainTabs');
-    } catch {
-      // error already shown by HttpService interceptor
+    } catch (error) {
+      console.log('error :', error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +103,9 @@ const LoginScreen = ({ navigation }: Props) => {
               style={[styles.toggleBtn, usePhone && styles.toggleBtnActive]}
               activeOpacity={0.8}
             >
-              <Text style={[styles.toggleText, usePhone && styles.toggleTextActive]}>
+              <Text
+                style={[styles.toggleText, usePhone && styles.toggleTextActive]}
+              >
                 Phone
               </Text>
             </TouchableOpacity>
@@ -109,7 +114,12 @@ const LoginScreen = ({ navigation }: Props) => {
               style={[styles.toggleBtn, !usePhone && styles.toggleBtnActive]}
               activeOpacity={0.8}
             >
-              <Text style={[styles.toggleText, !usePhone && styles.toggleTextActive]}>
+              <Text
+                style={[
+                  styles.toggleText,
+                  !usePhone && styles.toggleTextActive,
+                ]}
+              >
                 Email
               </Text>
             </TouchableOpacity>
@@ -125,7 +135,9 @@ const LoginScreen = ({ navigation }: Props) => {
                 className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
                 style={styles.inputRow}
               >
-                <Text className="text-gray-900 font-bold text-base px-4">+92</Text>
+                <Text className="text-gray-900 font-bold text-base px-4">
+                  +92
+                </Text>
                 <View className="w-px bg-gray-200" style={styles.divider} />
                 <TextInput
                   className="flex-1 text-gray-900 text-base px-4"
@@ -190,7 +202,9 @@ const LoginScreen = ({ navigation }: Props) => {
 
           {/* ── Forgot PIN ── */}
           <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
-            <Text className="text-green-700 text-sm font-bold">Forgot PIN?</Text>
+            <Text className="text-green-700 text-sm font-bold">
+              Forgot PIN?
+            </Text>
           </TouchableOpacity>
 
           {/* ── Sign In button ── */}

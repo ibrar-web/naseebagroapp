@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
@@ -148,50 +149,41 @@ const VerificationStatusScreen = ({ navigation }: any) => {
   const [accountVerified, setAccountVerified] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadVerificationStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.profile.verificationStatus.get();
+      const payload = unwrapApiData(response);
+      const nextItems = buildVerificationItems(response);
+      const verified =
+        toBoolean(
+          payload?.is_verified ??
+            payload?.account_verified ??
+            payload?.accountVerified,
+        ) || nextItems.every(item => item.status === 'approved');
 
-    const loadVerificationStatus = async () => {
-      setLoading(true);
-      try {
-        const response = await api.profile.verificationStatus.get();
-        const payload = unwrapApiData(response);
-        const nextItems = buildVerificationItems(response);
-        const verified =
-          toBoolean(
-            payload?.is_verified ??
-              payload?.account_verified ??
-              payload?.accountVerified,
-          ) || nextItems.every(item => item.status === 'approved');
-
-        if (mounted) {
-          setItems(nextItems);
-          setAccountVerified(verified);
-        }
-      } catch {
-        if (mounted) {
-          setItems(
-            BASE_ITEMS.map(item => ({
-              ...item,
-              status: 'pending',
-              verifiedAt: '',
-            })),
-          );
-          setAccountVerified(false);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadVerificationStatus().catch(() => undefined);
-
-    return () => {
-      mounted = false;
-    };
+      setItems(nextItems);
+      setAccountVerified(verified);
+    } catch (error) {
+      console.error('VerificationStatusScreen: Failed to load verification status:', error);
+      setItems(
+        BASE_ITEMS.map(item => ({
+          ...item,
+          status: 'pending',
+          verifiedAt: '',
+        })),
+      );
+      setAccountVerified(false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadVerificationStatus();
+    }, [loadVerificationStatus]),
+  );
 
   return (
     <View className="flex-1 bg-gray-50">

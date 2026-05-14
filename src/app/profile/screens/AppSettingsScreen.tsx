@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
@@ -84,45 +85,38 @@ const AppSettingsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.profile.appSettings.get();
+      const payload = unwrapApiData(response);
+      const data = payload?.settings ?? payload?.app_settings ?? payload;
+      const apiLanguage = firstString(data?.language);
+      const nextLanguage = isSupportedLanguage(apiLanguage)
+        ? apiLanguage
+        : undefined;
 
-    const loadSettings = async () => {
-      setLoading(true);
-      try {
-        const response = await api.profile.appSettings.get();
-        const payload = unwrapApiData(response);
-        const data = payload?.settings ?? payload?.app_settings ?? payload;
-        const apiLanguage = firstString(data?.language);
-        const nextLanguage = isSupportedLanguage(apiLanguage)
-          ? apiLanguage
-          : undefined;
-
-        if (mounted) {
-          const resolvedLanguage = nextLanguage ?? languageRef.current;
-          languageRef.current = resolvedLanguage;
-          setLanguage(resolvedLanguage);
-          setSettings({
-            language: resolvedLanguage,
-            currency: firstString(data?.currency),
-            biometricLogin: toBoolean(data?.biometric_login_enabled),
-            twoFactor: toBoolean(data?.two_factor_enabled),
-          });
-        }
-      } catch {
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadSettings().catch(() => undefined);
-
-    return () => {
-      mounted = false;
-    };
+      const resolvedLanguage = nextLanguage ?? languageRef.current;
+      languageRef.current = resolvedLanguage;
+      setLanguage(resolvedLanguage);
+      setSettings({
+        language: resolvedLanguage,
+        currency: firstString(data?.currency),
+        biometricLogin: toBoolean(data?.biometric_login_enabled),
+        twoFactor: toBoolean(data?.two_factor_enabled),
+      });
+    } catch (error) {
+      console.error('AppSettingsScreen: Failed to load settings:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [setLanguage]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+    }, [loadSettings]),
+  );
 
   const updateSettings = async (
     payload: Record<string, any>,
@@ -137,7 +131,8 @@ const AppSettingsScreen = ({ navigation }: any) => {
     setUpdating(true);
     try {
       await api.profile.appSettings.update(payload);
-    } catch {
+    } catch (error) {
+      console.error('AppSettingsScreen: Update failed:', error);
       rollback();
     } finally {
       setUpdating(false);

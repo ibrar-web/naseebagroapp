@@ -29,7 +29,7 @@ export const api = {
       updateForm: (data: any) => Post('profile/personal', data),
     },
     business: {
-      get: () => Get('profile/personal/business'),
+      get: () => Get('profile/business'),
       update: (data: any) => Patch('profile/business', data),
     },
     verificationStatus: {

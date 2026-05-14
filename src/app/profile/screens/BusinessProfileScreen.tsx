@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   View,
@@ -19,6 +20,7 @@ import { useAppDispatch, useAppSelector } from '../../../store';
 import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
+import { unwrapApiData } from '../utils/profileApi';
 
 const formatDisplayDate = (value: any) => {
   if (!value) {
@@ -101,16 +103,17 @@ const BusinessProfileScreen = ({ navigation }: any) => {
   const user = useAppSelector(s => s.auth.user);
 
   const [form, setForm] = useState<BusinessForm>({
-    business_name: user?.profile?.business_name ?? '',
-    business_type: user?.profile?.business_type ?? '',
-    business_registration_number:
-      user?.profile?.business_registration_number ?? '',
-    primary_crop: user?.profile?.primary_crop ?? '',
-    farm_location: user?.city ?? '',
-    farm_size: user?.profile?.farm_size ?? '',
+    business_name: '',
+    business_type: '',
+    business_registration_number: '',
+    primary_crop: '',
+    farm_location: '',
+    farm_size: '',
   });
+  const [serverForm, setServerForm] = useState<BusinessForm>(form);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const verified = user?.is_verified ?? false;
   const verifiedAt = user?.verified_at ?? '';
@@ -122,38 +125,92 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
+  const loadBusinessInfo = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.profile.business.get();
+      console.log('business',response)
+      const data = unwrapApiData(response) ?? {};
+      const loaded: BusinessForm = {
+        business_name: String(data.business_name ?? data.businessName ?? ''),
+        business_type: String(data.business_type ?? data.businessType ?? ''),
+        business_registration_number: String(
+          data.business_registration_number ?? data.businessRegistrationNumber ?? '',
+        ),
+        primary_crop: String(data.primary_crop ?? data.primaryCrop ?? ''),
+        farm_location: String(data.farm_location ?? data.farmLocation ?? data.city ?? ''),
+        farm_size: String(data.farm_size ?? data.farmSize ?? ''),
+      };
+      setForm(loaded);
+      setServerForm(loaded);
+    } catch (error) {
+      console.error('BusinessProfileScreen: Failed to load business info:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBusinessInfo();
+    }, [loadBusinessInfo]),
+  );
+
   const handleSave = async () => {
     if (saving) {
       return;
     }
 
+    const changedFields = (Object.keys(form) as Array<keyof BusinessForm>).filter(
+      k => form[k] !== serverForm[k],
+    );
+
+    if (changedFields.length === 0) {
+      return;
+    }
+
+    const payload: Record<string, string> = {};
+    for (const key of changedFields) {
+      payload[key] = form[key];
+    }
+
     setSaving(true);
     try {
-      await api.profile.business.update({
-        business_name: form.business_name,
-        business_type: form.business_type,
-        business_registration_number: form.business_registration_number,
-        primary_crop: form.primary_crop,
-        farm_location: form.farm_location,
-        farm_size: form.farm_size,
-      });
+      await api.profile.business.update(payload);
+
+      // Fetch fresh data from server instead of relying on local state
+      const freshResponse = await api.profile.business.get();
+      const freshData = unwrapApiData(freshResponse) ?? {};
+      const freshForm: BusinessForm = {
+        business_name: String(freshData.business_name ?? freshData.businessName ?? ''),
+        business_type: String(freshData.business_type ?? freshData.businessType ?? ''),
+        business_registration_number: String(
+          freshData.business_registration_number ?? freshData.businessRegistrationNumber ?? '',
+        ),
+        primary_crop: String(freshData.primary_crop ?? freshData.primaryCrop ?? ''),
+        farm_location: String(freshData.farm_location ?? freshData.farmLocation ?? freshData.city ?? ''),
+        farm_size: String(freshData.farm_size ?? freshData.farmSize ?? ''),
+      };
 
       dispatch(
         updateUser({
-          city: form.farm_location,
+          city: freshForm.farm_location,
           profile: {
             ...(user?.profile ?? {}),
-            business_name: form.business_name,
-            business_type: form.business_type,
-            business_registration_number: form.business_registration_number,
-            primary_crop: form.primary_crop,
-            farm_size: form.farm_size,
+            business_name: freshForm.business_name,
+            business_type: freshForm.business_type,
+            business_registration_number: freshForm.business_registration_number,
+            primary_crop: freshForm.primary_crop,
+            farm_size: freshForm.farm_size,
           },
         }),
       );
 
+      setForm(freshForm);
+      setServerForm(freshForm);
       setSaved(true);
-    } catch {
+    } catch (error) {
+      console.error('BusinessProfileScreen: Save failed:', error);
       Alert.alert('Update Failed', 'Please check your details and try again.');
     } finally {
       setSaving(false);
@@ -288,9 +345,9 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       </ScrollView>
 
       <AppLoader
-        visible={saving}
+        visible={saving || loading}
         overlay
-        message={t('common.updating')}
+        message={saving ? t('common.updating') : t('common.loading')}
       />
     </KeyboardAvoidingView>
   );

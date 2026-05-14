@@ -5,6 +5,7 @@ export const Get = (path: string, params?: Record<string, any>) => {
   return new Promise(async (accept, reject) => {
     try {
       const response = await apiService.get(path, params ? { params } : undefined);
+      console.log('Get',response)
       accept(response.data);
     } catch (error) {
       reject(error);

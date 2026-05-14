@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   Image,
@@ -22,6 +23,7 @@ import { useAppDispatch, useAppSelector } from '../../../store';
 import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
+import { unwrapApiData } from '../utils/profileApi';
 
 type PersonalForm = {
   fullName: string;
@@ -122,20 +124,21 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
 
-  const initial: PersonalForm = {
-    fullName: user?.fullName ?? '',
-    email: user?.email ?? '',
-    phone: user?.phone ?? '',
-    city: user?.city ?? '',
-    date_of_birth: user?.date_of_birth ?? '',
-    cnic: user?.profile?.cnic ?? '',
-    profile_picture: user?.profile_picture ?? '',
-  };
-
-  const [form, setForm] = useState<PersonalForm>(initial);
+  const [form, setForm] = useState<PersonalForm>({
+    fullName: '',
+    email: '',
+    phone: '',
+    city: '',
+    date_of_birth: '',
+    cnic: '',
+    profile_picture: '',
+  });
+  const [serverForm, setServerForm] = useState<PersonalForm>(form);
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const setField =
     <K extends keyof PersonalForm>(key: K) =>
@@ -144,10 +147,41 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
+  const loadPersonalInfo = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.profile.personal.get();
+      const data = unwrapApiData(response) ?? {};
+      const loaded: PersonalForm = {
+        fullName: String(data.full_name ?? data.fullName ?? ''),
+        email: String(data.email ?? ''),
+        phone: String(data.phone ?? ''),
+        city: String(data.city ?? ''),
+        date_of_birth: String(data.date_of_birth ?? data.dateOfBirth ?? ''),
+        cnic: String(data.cnic ?? data.profile?.cnic ?? ''),
+        profile_picture: String(data.profile_picture ?? data.profilePicture ?? ''),
+      };
+      setForm(loaded);
+      setServerForm(loaded);
+      setImageError(false);
+    } catch (error) {
+      console.error('PersonalInfoScreen: Failed to load personal info:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPersonalInfo();
+    }, [loadPersonalInfo]),
+  );
+
   const handlePickPhoto = () =>
     pickProfileImage(image => {
       setSelectedPhoto(image);
       setField('profile_picture')(image.uri);
+      setImageError(false);
     });
 
   const handleSave = async () => {
@@ -164,7 +198,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       'cnic',
     ];
 
-    const changedFields = textKeys.filter(k => form[k] !== initial[k]);
+    const changedFields = textKeys.filter(k => form[k] !== serverForm[k]);
     const hasPhotoChange = !!selectedPhoto;
 
     if (changedFields.length === 0 && !hasPhotoChange) {
@@ -189,24 +223,40 @@ const PersonalInfoScreen = ({ navigation }: any) => {
 
       await api.profile.personal.updateForm(formData);
 
+      // Fetch fresh data from server instead of relying on local state
+      const freshResponse = await api.profile.personal.get();
+      const freshData = unwrapApiData(freshResponse) ?? {};
+      const freshForm: PersonalForm = {
+        fullName: String(freshData.full_name ?? freshData.fullName ?? ''),
+        email: String(freshData.email ?? ''),
+        phone: String(freshData.phone ?? ''),
+        city: String(freshData.city ?? ''),
+        date_of_birth: String(freshData.date_of_birth ?? freshData.dateOfBirth ?? ''),
+        cnic: String(freshData.cnic ?? freshData.profile?.cnic ?? ''),
+        profile_picture: String(freshData.profile_picture ?? freshData.profilePicture ?? ''),
+      };
+
       const storeUpdate: Parameters<typeof updateUser>[0] = {};
-
-      for (const key of changedFields) {
-        if (key === 'cnic') {
-          storeUpdate.profile = { ...(user?.profile ?? {}), cnic: form.cnic };
-        } else {
-          (storeUpdate as any)[key] = form[key];
-        }
+      if (freshForm.fullName) storeUpdate.fullName = freshForm.fullName;
+      if (freshForm.email) storeUpdate.email = freshForm.email;
+      if (freshForm.phone) storeUpdate.phone = freshForm.phone;
+      if (freshForm.city) storeUpdate.city = freshForm.city;
+      if (freshForm.date_of_birth) storeUpdate.date_of_birth = freshForm.date_of_birth;
+      if (freshForm.cnic) {
+        storeUpdate.profile = { ...(user?.profile ?? {}), cnic: freshForm.cnic };
       }
-
-      if (hasPhotoChange) {
-        storeUpdate.profile_picture = form.profile_picture;
+      if (freshForm.profile_picture) {
+        storeUpdate.profile_picture = freshForm.profile_picture;
       }
 
       dispatch(updateUser(storeUpdate));
+      setForm(freshForm);
+      setServerForm(freshForm);
       setSelectedPhoto(null);
+      setImageError(false);
       setSaved(true);
-    } catch {
+    } catch (error) {
+      console.error('PersonalInfoScreen: Save failed:', error);
       Alert.alert('Update Failed', 'Please check your details and try again.');
     } finally {
       setSaving(false);
@@ -283,11 +333,12 @@ const PersonalInfoScreen = ({ navigation }: any) => {
               className="h-24 w-24 items-center justify-center rounded-[28px] border-4 border-white bg-orange-500 shadow-2xl shadow-black/10"
               activeOpacity={0.85}
             >
-              {form.profile_picture ? (
+              {form.profile_picture && !imageError ? (
                 <Image
                   source={{ uri: form.profile_picture }}
                   style={styles.avatar}
                   resizeMode="cover"
+                  onError={() => setImageError(true)}
                 />
               ) : (
                 <AppIcon name="profileAvatar" size={44} color="#FFFFFF" />
@@ -330,9 +381,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       </ScrollView>
 
       <AppLoader
-        visible={saving}
+        visible={saving || loading}
         overlay
-        message={t('common.updating')}
+        message={saving ? t('common.updating') : t('common.loading')}
       />
     </KeyboardAvoidingView>
   );

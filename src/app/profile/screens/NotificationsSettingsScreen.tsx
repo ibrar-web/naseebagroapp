@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, Switch } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { useTranslation } from '../../../localization';
@@ -85,54 +86,47 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<ToggleKey | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
+  const readToggleValue = useCallback((data: any, item: ToggleRow) => {
+    const candidates = [item.apiKey, ...(item.fallbackKeys ?? [])];
+    const value = candidates
+      .map(key => data?.[key])
+      .find(candidate => candidate !== undefined && candidate !== null);
 
-    const readToggleValue = (data: any, item: ToggleRow) => {
-      const candidates = [item.apiKey, ...(item.fallbackKeys ?? [])];
-      const value = candidates
-        .map(key => data?.[key])
-        .find(candidate => candidate !== undefined && candidate !== null);
-
-      return toBoolean(value, false);
-    };
-
-    const loadNotifications = async () => {
-      setLoading(true);
-      try {
-        const response = await api.profile.notifications.get();
-        const payload = unwrapApiData(response);
-        const data =
-          payload?.notifications ??
-          payload?.settings ??
-          payload?.preferences ??
-          payload;
-
-        if (mounted) {
-          setPrefs(
-            TOGGLES.reduce(
-              (nextPrefs, item) => ({
-                ...nextPrefs,
-                [item.key]: readToggleValue(data, item),
-              }),
-              {} as Record<ToggleKey, boolean>,
-            ),
-          );
-        }
-      } catch {
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadNotifications().catch(() => undefined);
-
-    return () => {
-      mounted = false;
-    };
+    return toBoolean(value, false);
   }, []);
+
+  const loadNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.profile.notifications.get();
+      const payload = unwrapApiData(response);
+      const data =
+        payload?.notifications ??
+        payload?.settings ??
+        payload?.preferences ??
+        payload;
+
+      setPrefs(
+        TOGGLES.reduce(
+          (nextPrefs, item) => ({
+            ...nextPrefs,
+            [item.key]: readToggleValue(data, item),
+          }),
+          {} as Record<ToggleKey, boolean>,
+        ),
+      );
+    } catch (error) {
+      console.error('NotificationsSettingsScreen: Failed to load notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [readToggleValue]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications();
+    }, [loadNotifications]),
+  );
 
   const toggle = async (item: ToggleRow) => {
     if (updatingKey) {
@@ -145,7 +139,8 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
 
     try {
       await api.profile.notifications.update({ [item.apiKey]: nextValue });
-    } catch {
+    } catch (error) {
+      console.error('NotificationsSettingsScreen: Toggle update failed:', error);
       setPrefs(current => ({ ...current, [item.key]: !nextValue }));
     } finally {
       setUpdatingKey(null);

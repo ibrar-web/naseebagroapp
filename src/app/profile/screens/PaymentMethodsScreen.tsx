@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   View,
@@ -119,21 +120,24 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
     form.accountTitle.trim().length > 1 &&
     form.iban.trim().length > 4;
 
-  const loadBankingDetails = async () => {
+  const loadBankingDetails = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.profile.banking.get();
       setAccounts(normalizeBankingDetails(response));
-    } catch {
+    } catch (error) {
+      console.error('PaymentMethodsScreen: Failed to load banking details:', error);
       setAccounts([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadBankingDetails().catch(() => undefined);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBankingDetails();
+    }, [loadBankingDetails]),
+  );
 
   const startCreate = () => {
     setEditingId(null);
@@ -180,7 +184,8 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
       }
       closeForm();
       await loadBankingDetails();
-    } catch {
+    } catch (error) {
+      console.error('PaymentMethodsScreen: Submit failed:', error);
       Alert.alert('Update Failed', 'Please check your banking details.');
     } finally {
       setSaving(false);
@@ -202,7 +207,8 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
           try {
             await api.profile.banking.remove(account.id);
             await loadBankingDetails();
-          } catch {
+          } catch (error) {
+            console.error('PaymentMethodsScreen: Delete failed:', error);
             Alert.alert('Delete Failed', 'Please try again.');
           } finally {
             setSaving(false);

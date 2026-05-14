@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   View,
@@ -19,31 +19,44 @@ import { useAppDispatch, useAppSelector } from '../../../store';
 import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
-import {
-  firstString,
-  formatDisplayDate,
-  toBoolean,
-  unwrapApiData,
-} from '../utils/profileApi';
+
+const formatDisplayDate = (value: any) => {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+type BusinessForm = {
+  business_name: string;
+  business_type: string;
+  business_registration_number: string;
+  primary_crop: string;
+  farm_location: string;
+  farm_size: string;
+};
 
 type BusinessField = {
   labelKey: TranslationKey;
   value: string;
-  setValue: React.Dispatch<React.SetStateAction<string>>;
+  onChangeText: (v: string) => void;
   keyboardType?: KeyboardTypeOptions;
   placeholderKey: TranslationKey;
   icon: AppIconName;
 };
 
 const BusinessRow = ({
-  field,
-  isLast,
-}: {
-  field: BusinessField;
-  isLast: boolean;
-}) => <BusinessRowContent field={field} isLast={isLast} />;
-
-const BusinessRowContent = ({
   field,
   isLast,
 }: {
@@ -68,7 +81,7 @@ const BusinessRowContent = ({
         <TextInput
           className="p-0 text-gray-900 text-lg font-extrabold"
           value={field.value}
-          onChangeText={field.setValue}
+          onChangeText={field.onChangeText}
           keyboardType={field.keyboardType}
           placeholder={t(field.placeholderKey)}
           placeholderTextColor="#9CA3AF"
@@ -86,109 +99,28 @@ const BusinessProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
-  const [bizName, setBizName] = useState(user?.profile?.business_name ?? '');
-  const [bizType, setBizType] = useState(user?.profile?.business_type ?? '');
-  const [registration, setRegistration] = useState(
-    user?.profile?.business_registration_number ?? '',
-  );
-  const [crop, setCrop] = useState(user?.profile?.primary_crop ?? '');
-  const [location, setLocation] = useState(user?.city ?? '');
-  const [farmSize, setFarmSize] = useState(user?.profile?.farm_size ?? '');
-  const [verified, setVerified] = useState(user?.is_verified ?? false);
-  const [verifiedAt, setVerifiedAt] = useState(user?.verified_at ?? '');
-  const [loading, setLoading] = useState(false);
+
+  const [form, setForm] = useState<BusinessForm>({
+    business_name: user?.profile?.business_name ?? '',
+    business_type: user?.profile?.business_type ?? '',
+    business_registration_number:
+      user?.profile?.business_registration_number ?? '',
+    primary_crop: user?.profile?.primary_crop ?? '',
+    farm_location: user?.city ?? '',
+    farm_size: user?.profile?.farm_size ?? '',
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
+  const verified = user?.is_verified ?? false;
+  const verifiedAt = user?.verified_at ?? '';
 
-    const applyBusinessProfile = (response: any) => {
-      const payload = unwrapApiData(response);
-      const business = payload?.business ?? payload?.profile ?? payload;
-      const responseUser = payload?.user ?? payload;
-
-      if (!mounted) {
-        return;
-      }
-
-      setBizName(
-        firstString(
-          business?.business_name,
-          business?.businessName,
-          responseUser?.profile?.business_name,
-        ),
-      );
-      setBizType(
-        firstString(
-          business?.business_type,
-          business?.businessType,
-          responseUser?.profile?.business_type,
-        ),
-      );
-      setRegistration(
-        firstString(
-          business?.business_registration_number,
-          business?.registration_number,
-          business?.registrationNo,
-          responseUser?.profile?.business_registration_number,
-        ),
-      );
-      setCrop(
-        firstString(
-          business?.primary_crop,
-          business?.primaryCrop,
-          responseUser?.profile?.primary_crop,
-        ),
-      );
-      setLocation(
-        firstString(
-          business?.farm_location,
-          business?.farmLocation,
-          business?.location,
-          responseUser?.city,
-        ),
-      );
-      setFarmSize(
-        firstString(
-          business?.farm_size,
-          business?.farmSize,
-          responseUser?.profile?.farm_size,
-        ),
-      );
-      setVerified(
-        toBoolean(
-          business?.is_verified ?? responseUser?.is_verified,
-          user?.is_verified ?? false,
-        ),
-      );
-      setVerifiedAt(
-        firstString(business?.verified_at, responseUser?.verified_at),
-      );
+  const setField =
+    <K extends keyof BusinessForm>(key: K) =>
+    (v: string) => {
+      setForm(f => ({ ...f, [key]: v }));
+      setSaved(false);
     };
-
-    const loadBusinessProfile = async () => {
-      setLoading(true);
-      try {
-        const response = await api.profile.business.get();
-        applyBusinessProfile(response);
-      } catch {
-        if (user) {
-          applyBusinessProfile({ user, profile: user.profile });
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadBusinessProfile().catch(() => undefined);
-
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
 
   const handleSave = async () => {
     if (saving) {
@@ -197,31 +129,29 @@ const BusinessProfileScreen = ({ navigation }: any) => {
 
     setSaving(true);
     try {
-      const payload = {
-        business_name: bizName,
-        business_type: bizType,
-        business_registration_number: registration,
-        primary_crop: crop,
-        farm_location: location,
-        farm_size: farmSize,
-      };
-      const response = await api.profile.business.update(payload);
-      const responsePayload = unwrapApiData(response);
+      await api.profile.business.update({
+        business_name: form.business_name,
+        business_type: form.business_type,
+        business_registration_number: form.business_registration_number,
+        primary_crop: form.primary_crop,
+        farm_location: form.farm_location,
+        farm_size: form.farm_size,
+      });
 
       dispatch(
         updateUser({
-          ...(responsePayload?.user ?? {}),
-          city: firstString(responsePayload?.user?.city, user?.city),
+          city: form.farm_location,
           profile: {
             ...(user?.profile ?? {}),
-            ...(responsePayload?.profile ??
-              responsePayload?.business ??
-              responsePayload ??
-              {}),
-            ...payload,
+            business_name: form.business_name,
+            business_type: form.business_type,
+            business_registration_number: form.business_registration_number,
+            primary_crop: form.primary_crop,
+            farm_size: form.farm_size,
           },
         }),
       );
+
       setSaved(true);
     } catch {
       Alert.alert('Update Failed', 'Please check your details and try again.');
@@ -233,48 +163,48 @@ const BusinessProfileScreen = ({ navigation }: any) => {
   const fields: BusinessField[] = [
     {
       labelKey: 'business.businessName',
-      value: bizName,
-      setValue: setBizName,
+      value: form.business_name,
+      onChangeText: setField('business_name'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderBusinessName',
       icon: 'business',
     },
     {
       labelKey: 'business.businessType',
-      value: bizType,
-      setValue: setBizType,
+      value: form.business_type,
+      onChangeText: setField('business_type'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderBusinessType',
       icon: 'businessType',
     },
     {
       labelKey: 'business.registrationNo',
-      value: registration,
-      setValue: setRegistration,
+      value: form.business_registration_number,
+      onChangeText: setField('business_registration_number'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderRegistrationNo',
       icon: 'registration',
     },
     {
       labelKey: 'business.primaryCrop',
-      value: crop,
-      setValue: setCrop,
+      value: form.primary_crop,
+      onChangeText: setField('primary_crop'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderPrimaryCrop',
       icon: 'crop',
     },
     {
       labelKey: 'business.farmLocation',
-      value: location,
-      setValue: setLocation,
+      value: form.farm_location,
+      onChangeText: setField('farm_location'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderFarmLocation',
       icon: 'profileCity',
     },
     {
       labelKey: 'business.farmSize',
-      value: farmSize,
-      setValue: setFarmSize,
+      value: form.farm_size,
+      onChangeText: setField('farm_size'),
       keyboardType: 'default',
       placeholderKey: 'business.placeholderFarmSize',
       icon: 'farmSize',
@@ -300,13 +230,11 @@ const BusinessProfileScreen = ({ navigation }: any) => {
             </View>
             <View className="ml-4 flex-1">
               <Text className="text-white text-xl font-extrabold">
-                {bizName || t('business.businessName')}
+                {form.business_name || t('business.businessName')}
               </Text>
               <Text className="mt-1 text-green-300 text-base font-medium">
                 {verified && verifiedAt
-                  ? `${t('business.verifiedSeller')} · ${formatDisplayDate(
-                      verifiedAt,
-                    )}`
+                  ? `${t('business.verifiedSeller')} · ${formatDisplayDate(verifiedAt)}`
                   : verified
                   ? t('business.verifiedSeller')
                   : t('common.pending')}
@@ -360,9 +288,9 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       </ScrollView>
 
       <AppLoader
-        visible={loading || saving}
+        visible={saving}
         overlay
-        message={saving ? t('common.updating') : t('common.loading')}
+        message={t('common.updating')}
       />
     </KeyboardAvoidingView>
   );

@@ -13,7 +13,6 @@ import { useTranslation } from '../../../localization';
 import { BANKS } from '../../../constants';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
-import { firstString, normalizeList, toBoolean } from '../utils/profileApi';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -46,31 +45,49 @@ const emptyForm: BankingForm = {
   iban: '',
 };
 
+const str = (...values: any[]): string => {
+  for (const v of values) {
+    if (v !== undefined && v !== null) {
+      return String(v);
+    }
+  }
+  return '';
+};
+
+const parseBankingList = (response: any): any[] => {
+  const payload = response?.data ?? response?.result ?? response;
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  for (const key of ['banking', 'banking_details', 'bankingDetails', 'accounts', 'items']) {
+    if (Array.isArray(payload?.[key])) {
+      return payload[key];
+    }
+  }
+
+  return [];
+};
+
 const normalizeBankingDetails = (response: any): BankingDetail[] =>
-  normalizeList(response, [
-    'banking',
-    'banking_details',
-    'bankingDetails',
-    'accounts',
-    'items',
-  ])
+  parseBankingList(response)
     .map((item: any) => ({
-      id: firstString(item?.id, item?._id, item?.banking_detail_id),
-      bankName: firstString(item?.bank_name, item?.bankName, item?.bank),
-      accountTitle: firstString(
+      id: str(item?.id, item?._id, item?.banking_detail_id),
+      bankName: str(item?.bank_name, item?.bankName, item?.bank),
+      accountTitle: str(
         item?.account_title,
         item?.accountTitle,
         item?.account_name,
         item?.accountName,
       ),
-      accountNumber: firstString(
+      accountNumber: str(
+        item?.bank_account_number,
         item?.account_number,
         item?.accountNumber,
-        item?.account_no,
-        item?.accountNo,
       ),
-      iban: firstString(item?.iban, item?.IBAN),
-      isPrimary: toBoolean(item?.is_primary ?? item?.isPrimary),
+      iban: str(item?.bank_iban_number, item?.iban, item?.IBAN),
+      isPrimary: Boolean(item?.is_primary ?? item?.isPrimary ?? false),
     }))
     .filter(
       (item: BankingDetail) =>
@@ -150,8 +167,8 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
     const payload = {
       bank_name: form.bankName.trim(),
       account_title: form.accountTitle.trim(),
-      account_number: form.accountNumber.trim(),
-      iban: form.iban.trim(),
+      bank_account_number: form.accountNumber.trim(),
+      bank_iban_number: form.iban.trim(),
     };
 
     setSaving(true);

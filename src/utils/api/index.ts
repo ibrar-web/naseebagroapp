@@ -29,26 +29,26 @@ export const api = {
       updateForm: (data: any) => Post('profile/personal', data),
     },
     business: {
-      get: () => Get('profile/business'),
+      get: () => Get('profile/personal/business'),
       update: (data: any) => Patch('profile/business', data),
     },
     verificationStatus: {
-      get: () => Get('profile/verification-status'),
+      get: () => Get('profile/personal/verification-status'),
     },
     banking: {
-      get: () => Get('profile/banking'),
-      create: (data: any) => Post('profile/banking', data),
+      get: () => Get('profile/personal/banking'),
+      create: (data: any) => Post('profile/personal/banking', data),
       update: (id: string | number, data: any) =>
-        Patch(`profile/banking/${id}`, data),
-      remove: (id: string | number) => Delete(`profile/banking/${id}`),
+        Patch(`profile/personal/banking/${id}`, data),
+      remove: (id: string | number) => Delete(`profile/personal/banking/${id}`),
     },
     appSettings: {
-      get: () => Get('profile/app-settings'),
-      update: (data: any) => Patch('profile/app-settings', data),
+      get: () => Get('profile/personal/app-settings'),
+      update: (data: any) => Patch('profile/personal/app-settings', data),
     },
     notifications: {
-      get: () => Get('profile/notifications'),
-      update: (data: any) => Patch('profile/notifications', data),
+      get: () => Get('profile/personal/notifications'),
+      update: (data: any) => Patch('profile/personal/notifications', data),
     },
   },
 

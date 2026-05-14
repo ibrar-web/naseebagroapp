@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Image,
@@ -22,21 +22,30 @@ import { useAppDispatch, useAppSelector } from '../../../store';
 import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
-import { firstString, unwrapApiData } from '../utils/profileApi';
 
-type InfoField = {
-  labelKey: TranslationKey;
-  value: string;
-  setValue: React.Dispatch<React.SetStateAction<string>>;
-  keyboardType?: KeyboardTypeOptions;
-  placeholderKey: TranslationKey;
-  icon: AppIconName;
+type PersonalForm = {
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  date_of_birth: string;
+  cnic: string;
+  profile_picture: string;
 };
 
 type SelectedImage = {
   uri: string;
   name: string;
   type: string;
+};
+
+type InfoField = {
+  labelKey: TranslationKey;
+  value: string;
+  onChangeText: (v: string) => void;
+  keyboardType?: KeyboardTypeOptions;
+  placeholderKey: TranslationKey;
+  icon: AppIconName;
 };
 
 const pickProfileImage = (onPick: (image: SelectedImage) => void) => {
@@ -94,7 +103,7 @@ const InfoRow = ({ field, isLast }: { field: InfoField; isLast: boolean }) => {
         <TextInput
           className="p-0 text-gray-900 text-lg font-extrabold"
           value={field.value}
-          onChangeText={field.setValue}
+          onChangeText={field.onChangeText}
           keyboardType={field.keyboardType}
           placeholder={t(field.placeholderKey)}
           placeholderTextColor="#9CA3AF"
@@ -112,82 +121,33 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
-  console.log(user);
-  const [name, setName] = useState(user?.fullName ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
-  const [city, setCity] = useState(user?.city ?? '');
-  const [dob, setDob] = useState(user?.date_of_birth ?? '');
-  const [cnic, setCnic] = useState(user?.profile?.cnic ?? '');
-  const [profilePhotoUri, setProfilePhotoUri] = useState(
-    user?.profile_picture ?? '',
-  );
-  const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(false);
+
+  const initial: PersonalForm = {
+    fullName: user?.fullName ?? '',
+    email: user?.email ?? '',
+    phone: user?.phone ?? '',
+    city: user?.city ?? '',
+    date_of_birth: user?.date_of_birth ?? '',
+    cnic: user?.profile?.cnic ?? '',
+    profile_picture: user?.profile_picture ?? '',
+  };
+
+  const [form, setForm] = useState<PersonalForm>(initial);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const applyPersonalProfile = (response: any) => {
-      const payload = unwrapApiData(response);
-      const userData = payload?.user ?? payload;
-      const profileData =
-        payload?.profile ?? userData?.profile ?? payload?.personal_profile;
-
-      if (!mounted) {
-        return;
-      }
-
-      setName(
-        firstString(userData?.fullName, userData?.full_name, userData?.name),
-      );
-      setEmail(firstString(userData?.email));
-      setPhone(firstString(userData?.phone));
-      setCity(firstString(userData?.city));
-      setDob(firstString(userData?.date_of_birth, userData?.dob));
-      setCnic(firstString(profileData?.cnic, userData?.cnic));
-      setProfilePhotoUri(
-        firstString(
-          userData?.profile_picture_url,
-          userData?.profile_picture,
-          payload?.profile_picture_url,
-          payload?.profile_picture,
-        ),
-      );
+  const setField =
+    <K extends keyof PersonalForm>(key: K) =>
+    (v: string) => {
+      setForm(f => ({ ...f, [key]: v }));
+      setSaved(false);
     };
-
-    const loadPersonalProfile = async () => {
-      setLoading(true);
-      try {
-        const response = await api.profile.personal.get();
-        applyPersonalProfile(response);
-      } catch {
-        if (user) {
-          applyPersonalProfile({ user });
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadPersonalProfile().catch(() => undefined);
-
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
 
   const handlePickPhoto = () =>
     pickProfileImage(image => {
       setSelectedPhoto(image);
-      setProfilePhotoUri(image.uri);
-      setSaved(false);
+      setField('profile_picture')(image.uri);
     });
 
   const handleSave = async () => {
@@ -195,48 +155,55 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       return;
     }
 
+    const textKeys: (keyof Omit<PersonalForm, 'profile_picture'>)[] = [
+      'fullName',
+      'email',
+      'phone',
+      'city',
+      'date_of_birth',
+      'cnic',
+    ];
+
+    const changedFields = textKeys.filter(k => form[k] !== initial[k]);
+    const hasPhotoChange = !!selectedPhoto;
+
+    if (changedFields.length === 0 && !hasPhotoChange) {
+      return;
+    }
+
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('fullName', name);
-      formData.append('email', email);
-      formData.append('phone', phone);
-      formData.append('city', city);
-      formData.append('date_of_birth', dob);
-      formData.append('cnic', cnic);
 
-      if (selectedPhoto) {
+      for (const key of changedFields) {
+        formData.append(key, form[key]);
+      }
+
+      if (hasPhotoChange) {
         formData.append('profile_picture', {
-          uri: selectedPhoto.uri,
-          name: selectedPhoto.name,
-          type: selectedPhoto.type,
+          uri: selectedPhoto!.uri,
+          name: selectedPhoto!.name,
+          type: selectedPhoto!.type,
         } as any);
       }
 
-      const response = await api.profile.personal.updateForm(formData);
-      const payload = unwrapApiData(response);
-      const responseUser = payload?.user ?? payload;
+      await api.profile.personal.updateForm(formData);
 
-      dispatch(
-        updateUser({
-          ...responseUser,
-          fullName: firstString(responseUser?.fullName, name),
-          email: firstString(responseUser?.email, email),
-          phone: firstString(responseUser?.phone, phone),
-          city: firstString(responseUser?.city, city),
-          date_of_birth: firstString(responseUser?.date_of_birth, dob),
-          profile_picture: firstString(
-            responseUser?.profile_picture,
-            responseUser?.profile_picture_url,
-            profilePhotoUri,
-          ),
-          profile: {
-            ...(user?.profile ?? {}),
-            ...(responseUser?.profile ?? payload?.profile ?? {}),
-            cnic,
-          },
-        }),
-      );
+      const storeUpdate: Parameters<typeof updateUser>[0] = {};
+
+      for (const key of changedFields) {
+        if (key === 'cnic') {
+          storeUpdate.profile = { ...(user?.profile ?? {}), cnic: form.cnic };
+        } else {
+          (storeUpdate as any)[key] = form[key];
+        }
+      }
+
+      if (hasPhotoChange) {
+        storeUpdate.profile_picture = form.profile_picture;
+      }
+
+      dispatch(updateUser(storeUpdate));
       setSelectedPhoto(null);
       setSaved(true);
     } catch {
@@ -249,48 +216,48 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const fields: InfoField[] = [
     {
       labelKey: 'personal.fullName',
-      value: name,
-      setValue: setName,
+      value: form.fullName,
+      onChangeText: setField('fullName'),
       keyboardType: 'default',
       placeholderKey: 'personal.placeholderFullName',
       icon: 'profileName',
     },
     {
       labelKey: 'personal.email',
-      value: email,
-      setValue: setEmail,
+      value: form.email,
+      onChangeText: setField('email'),
       keyboardType: 'email-address',
       placeholderKey: 'personal.placeholderEmail',
       icon: 'profileEmail',
     },
     {
       labelKey: 'personal.phone',
-      value: phone,
-      setValue: setPhone,
+      value: form.phone,
+      onChangeText: setField('phone'),
       keyboardType: 'phone-pad',
       placeholderKey: 'personal.placeholderPhone',
       icon: 'profilePhone',
     },
     {
       labelKey: 'personal.city',
-      value: city,
-      setValue: setCity,
+      value: form.city,
+      onChangeText: setField('city'),
       keyboardType: 'default',
       placeholderKey: 'personal.placeholderCity',
       icon: 'profileCity',
     },
     {
       labelKey: 'personal.dateOfBirth',
-      value: dob,
-      setValue: setDob,
+      value: form.date_of_birth,
+      onChangeText: setField('date_of_birth'),
       keyboardType: 'default',
       placeholderKey: 'personal.placeholderDateOfBirth',
       icon: 'profileDateOfBirth',
     },
     {
       labelKey: 'personal.cnic',
-      value: cnic,
-      setValue: setCnic,
+      value: form.cnic,
+      onChangeText: setField('cnic'),
       keyboardType: 'default',
       placeholderKey: 'personal.placeholderCnic',
       icon: 'profileCnic',
@@ -316,9 +283,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
               className="h-24 w-24 items-center justify-center rounded-[28px] border-4 border-white bg-orange-500 shadow-2xl shadow-black/10"
               activeOpacity={0.85}
             >
-              {profilePhotoUri ? (
+              {form.profile_picture ? (
                 <Image
-                  source={{ uri: profilePhotoUri }}
+                  source={{ uri: form.profile_picture }}
                   style={styles.avatar}
                   resizeMode="cover"
                 />
@@ -363,9 +330,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       </ScrollView>
 
       <AppLoader
-        visible={loading || saving}
+        visible={saving}
         overlay
-        message={saving ? t('common.updating') : t('common.loading')}
+        message={t('common.updating')}
       />
     </KeyboardAvoidingView>
   );

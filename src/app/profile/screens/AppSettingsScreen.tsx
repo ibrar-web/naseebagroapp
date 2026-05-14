@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
-import { useTranslation } from '../../../localization';
+import {
+  getLanguageByCode,
+  isSupportedLanguage,
+  useTranslation,
+} from '../../../localization';
+import type { LanguageCode } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
+import { AppLoader } from '../../components';
+import api from '../../../utils/api';
+import { firstString, toBoolean, unwrapApiData } from '../utils/profileApi';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -65,8 +73,131 @@ const SettingsCardText = ({ row }: { row: SettingsRow }) => {
 };
 
 const AppSettingsScreen = ({ navigation }: any) => {
-  const { t, language, languageInfo, setLanguage } = useTranslation();
-  const toggleLanguage = () => setLanguage(language === 'en' ? 'ur' : 'en');
+  const { t, language, setLanguage } = useTranslation();
+  const [settings, setSettings] = useState({
+    language,
+    currency: '',
+    biometricLogin: false,
+    twoFactor: false,
+  });
+  const languageRef = useRef<LanguageCode>(language);
+  const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        const response = await api.profile.appSettings.get();
+        const payload = unwrapApiData(response);
+        const data = payload?.settings ?? payload?.app_settings ?? payload;
+        const apiLanguage = firstString(data?.language);
+        const nextLanguage = isSupportedLanguage(apiLanguage)
+          ? apiLanguage
+          : undefined;
+
+        if (mounted) {
+          const resolvedLanguage = nextLanguage ?? languageRef.current;
+          languageRef.current = resolvedLanguage;
+          setLanguage(resolvedLanguage);
+          setSettings({
+            language: resolvedLanguage,
+            currency: firstString(data?.currency),
+            biometricLogin: toBoolean(data?.biometric_login_enabled),
+            twoFactor: toBoolean(data?.two_factor_enabled),
+          });
+        }
+      } catch {
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSettings().catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, [setLanguage]);
+
+  const updateSettings = async (
+    payload: Record<string, any>,
+    applyLocalChange: () => void,
+    rollback: () => void,
+  ) => {
+    if (updating) {
+      return;
+    }
+
+    applyLocalChange();
+    setUpdating(true);
+    try {
+      await api.profile.appSettings.update(payload);
+    } catch {
+      rollback();
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const toggleLanguage = () => {
+    const nextLanguage: LanguageCode = settings.language === 'en' ? 'ur' : 'en';
+    const previousLanguage = settings.language;
+
+    updateSettings(
+      { language: nextLanguage },
+      () => {
+        languageRef.current = nextLanguage;
+        setSettings(current => ({ ...current, language: nextLanguage }));
+        setLanguage(nextLanguage);
+      },
+      () => {
+        languageRef.current = previousLanguage;
+        setSettings(current => ({ ...current, language: previousLanguage }));
+        setLanguage(previousLanguage);
+      },
+    ).catch(() => undefined);
+  };
+
+  const toggleBiometric = () => {
+    const nextValue = !settings.biometricLogin;
+
+    updateSettings(
+      { biometric_login_enabled: nextValue },
+      () =>
+        setSettings(current => ({
+          ...current,
+          biometricLogin: nextValue,
+        })),
+      () =>
+        setSettings(current => ({
+          ...current,
+          biometricLogin: !nextValue,
+        })),
+    ).catch(() => undefined);
+  };
+
+  const toggleTwoFactor = () => {
+    const nextValue = !settings.twoFactor;
+
+    updateSettings(
+      { two_factor_enabled: nextValue },
+      () =>
+        setSettings(current => ({
+          ...current,
+          twoFactor: nextValue,
+        })),
+      () =>
+        setSettings(current => ({
+          ...current,
+          twoFactor: !nextValue,
+        })),
+    ).catch(() => undefined);
+  };
 
   const groups: SettingsGroup[] = [
     {
@@ -75,13 +206,13 @@ const AppSettingsScreen = ({ navigation }: any) => {
         {
           icon: 'language',
           labelKey: 'appSettings.language',
-          value: languageInfo.nativeLabel,
+          value: getLanguageByCode(settings.language).nativeLabel,
           onPress: toggleLanguage,
         },
         {
           icon: 'currency',
           labelKey: 'appSettings.currency',
-          value: t('common.currencyValue'),
+          value: settings.currency || t('common.currencyValue'),
         },
       ],
     },
@@ -92,12 +223,16 @@ const AppSettingsScreen = ({ navigation }: any) => {
         {
           icon: 'biometric',
           labelKey: 'appSettings.biometricLogin',
-          value: t('common.on'),
+          value: settings.biometricLogin ? t('common.on') : t('common.off'),
+          onPress: toggleBiometric,
         },
         {
           icon: 'twoFactor',
           labelKey: 'appSettings.twoFactorAuth',
-          value: t('common.enabled'),
+          value: settings.twoFactor
+            ? t('common.enabled')
+            : t('common.disabled'),
+          onPress: toggleTwoFactor,
         },
       ],
     },
@@ -136,6 +271,11 @@ const AppSettingsScreen = ({ navigation }: any) => {
           </View>
         ))}
       </ScrollView>
+      <AppLoader
+        visible={loading || updating}
+        overlay
+        message={updating ? t('common.updating') : t('common.loading')}
+      />
     </View>
   );
 };

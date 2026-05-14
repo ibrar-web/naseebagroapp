@@ -51,6 +51,11 @@ interface AuthState {
   error: string | null;
 }
 
+type UserUpdate = Partial<Omit<User, 'profile' | 'settings'>> & {
+  profile?: Partial<UserProfile> | null;
+  settings?: Partial<UserSettings> | null;
+};
+
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -90,6 +95,30 @@ const authSlice = createSlice({
     clearError: state => {
       state.error = null;
     },
+    updateUser: (state, action: PayloadAction<UserUpdate>) => {
+      if (!state.user) {
+        return;
+      }
+
+      state.user = {
+        ...state.user,
+        ...action.payload,
+        profile:
+          action.payload.profile || state.user.profile
+            ? {
+                ...(state.user.profile ?? {}),
+                ...(action.payload.profile ?? {}),
+              }
+            : null,
+        settings:
+          action.payload.settings || state.user.settings
+            ? {
+                ...(state.user.settings ?? {}),
+                ...(action.payload.settings ?? {}),
+              }
+            : null,
+      } as User;
+    },
     resetAllReduxStates: () => initialState,
   },
 });
@@ -100,6 +129,7 @@ export const {
   loginFailure,
   logout,
   clearError,
+  updateUser,
   resetAllReduxStates,
 } = authSlice.actions;
 

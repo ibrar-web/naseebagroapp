@@ -26,11 +26,21 @@ export const api = {
     personal: {
       get: () => Get('profile/personal'),
       update: (data: any) => Patch('profile/personal', data),
-      updateForm: (data: any) => Patch('profile/personal', data),
+      updateForm: (data: any) => Post('profile/personal', data),
     },
     business: {
       get: () => Get('profile/business'),
       update: (data: any) => Patch('profile/business', data),
+    },
+    verificationStatus: {
+      get: () => Get('profile/verification-status'),
+    },
+    banking: {
+      get: () => Get('profile/banking'),
+      create: (data: any) => Post('profile/banking', data),
+      update: (id: string | number, data: any) =>
+        Patch(`profile/banking/${id}`, data),
+      remove: (id: string | number) => Delete(`profile/banking/${id}`),
     },
     appSettings: {
       get: () => Get('profile/app-settings'),

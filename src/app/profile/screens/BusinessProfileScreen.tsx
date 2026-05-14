@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   ScrollView,
@@ -14,6 +15,16 @@ import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { updateUser } from '../../../store/slices/authSlice';
+import { AppLoader } from '../../components';
+import api from '../../../utils/api';
+import {
+  firstString,
+  formatDisplayDate,
+  toBoolean,
+  unwrapApiData,
+} from '../utils/profileApi';
 
 type BusinessField = {
   labelKey: TranslationKey;
@@ -73,13 +84,151 @@ const BusinessRowContent = ({
 
 const BusinessProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
-  const [bizName, setBizName] = useState('Asad Agri Traders');
-  const [bizType, setBizType] = useState('Seller / Supplier');
-  const [registration, setRegistration] = useState('REG-2021-04521');
-  const [crop, setCrop] = useState('Basmati Rice, Wheat');
-  const [location, setLocation] = useState('Gujranwala, Punjab');
-  const [farmSize, setFarmSize] = useState('45 Acres');
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(s => s.auth.user);
+  const [bizName, setBizName] = useState(user?.profile?.business_name ?? '');
+  const [bizType, setBizType] = useState(user?.profile?.business_type ?? '');
+  const [registration, setRegistration] = useState(
+    user?.profile?.business_registration_number ?? '',
+  );
+  const [crop, setCrop] = useState(user?.profile?.primary_crop ?? '');
+  const [location, setLocation] = useState(user?.city ?? '');
+  const [farmSize, setFarmSize] = useState(user?.profile?.farm_size ?? '');
+  const [verified, setVerified] = useState(user?.is_verified ?? false);
+  const [verifiedAt, setVerifiedAt] = useState(user?.verified_at ?? '');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const applyBusinessProfile = (response: any) => {
+      const payload = unwrapApiData(response);
+      const business = payload?.business ?? payload?.profile ?? payload;
+      const responseUser = payload?.user ?? payload;
+
+      if (!mounted) {
+        return;
+      }
+
+      setBizName(
+        firstString(
+          business?.business_name,
+          business?.businessName,
+          responseUser?.profile?.business_name,
+        ),
+      );
+      setBizType(
+        firstString(
+          business?.business_type,
+          business?.businessType,
+          responseUser?.profile?.business_type,
+        ),
+      );
+      setRegistration(
+        firstString(
+          business?.business_registration_number,
+          business?.registration_number,
+          business?.registrationNo,
+          responseUser?.profile?.business_registration_number,
+        ),
+      );
+      setCrop(
+        firstString(
+          business?.primary_crop,
+          business?.primaryCrop,
+          responseUser?.profile?.primary_crop,
+        ),
+      );
+      setLocation(
+        firstString(
+          business?.farm_location,
+          business?.farmLocation,
+          business?.location,
+          responseUser?.city,
+        ),
+      );
+      setFarmSize(
+        firstString(
+          business?.farm_size,
+          business?.farmSize,
+          responseUser?.profile?.farm_size,
+        ),
+      );
+      setVerified(
+        toBoolean(
+          business?.is_verified ?? responseUser?.is_verified,
+          user?.is_verified ?? false,
+        ),
+      );
+      setVerifiedAt(
+        firstString(business?.verified_at, responseUser?.verified_at),
+      );
+    };
+
+    const loadBusinessProfile = async () => {
+      setLoading(true);
+      try {
+        const response = await api.profile.business.get();
+        applyBusinessProfile(response);
+      } catch {
+        if (user) {
+          applyBusinessProfile({ user, profile: user.profile });
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadBusinessProfile().catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        business_name: bizName,
+        business_type: bizType,
+        business_registration_number: registration,
+        primary_crop: crop,
+        farm_location: location,
+        farm_size: farmSize,
+      };
+      const response = await api.profile.business.update(payload);
+      const responsePayload = unwrapApiData(response);
+
+      dispatch(
+        updateUser({
+          ...(responsePayload?.user ?? {}),
+          city: firstString(responsePayload?.user?.city, user?.city),
+          profile: {
+            ...(user?.profile ?? {}),
+            ...(responsePayload?.profile ??
+              responsePayload?.business ??
+              responsePayload ??
+              {}),
+            ...payload,
+          },
+        }),
+      );
+      setSaved(true);
+    } catch {
+      Alert.alert('Update Failed', 'Please check your details and try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fields: BusinessField[] = [
     {
@@ -151,18 +300,36 @@ const BusinessProfileScreen = ({ navigation }: any) => {
             </View>
             <View className="ml-4 flex-1">
               <Text className="text-white text-xl font-extrabold">
-                Asad Agri Traders
+                {bizName || t('business.businessName')}
               </Text>
               <Text className="mt-1 text-green-300 text-base font-medium">
-                {t('business.verifiedSellerSince')}
+                {verified && verifiedAt
+                  ? `${t('business.verifiedSeller')} · ${formatDisplayDate(
+                      verifiedAt,
+                    )}`
+                  : verified
+                  ? t('business.verifiedSeller')
+                  : t('common.pending')}
               </Text>
             </View>
-            <View className="flex-row items-center rounded-full bg-green-50 px-3 py-1.5">
+            <View
+              className={`flex-row items-center rounded-full px-3 py-1.5 ${
+                verified ? 'bg-green-50' : 'bg-yellow-100'
+              }`}
+            >
               <View className="mr-2">
-                <AppIcon name="approved" size={14} color="#2E9E52" />
+                <AppIcon
+                  name={verified ? 'approved' : 'shield'}
+                  size={14}
+                  color={verified ? '#2E9E52' : '#A14E14'}
+                />
               </View>
-              <Text className="text-green-700 text-base font-extrabold">
-                {t('common.approved')}
+              <Text
+                className={`text-base font-extrabold ${
+                  verified ? 'text-green-700' : 'text-yellow-800'
+                }`}
+              >
+                {verified ? t('common.approved') : t('common.pending')}
               </Text>
             </View>
           </View>
@@ -178,8 +345,11 @@ const BusinessProfileScreen = ({ navigation }: any) => {
           </View>
 
           <TouchableOpacity
-            onPress={() => setSaved(true)}
-            className="mt-8 h-16 items-center justify-center rounded-3xl bg-green-700 shadow-2xl shadow-green-900/20"
+            onPress={handleSave}
+            disabled={saving}
+            className={`mt-8 h-16 items-center justify-center rounded-3xl bg-green-700 shadow-2xl shadow-green-900/20 ${
+              saving ? 'opacity-60' : ''
+            }`}
             activeOpacity={0.88}
           >
             <Text className="text-white text-xl font-extrabold">
@@ -188,6 +358,12 @@ const BusinessProfileScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <AppLoader
+        visible={loading || saving}
+        overlay
+        message={saving ? t('common.updating') : t('common.loading')}
+      />
     </KeyboardAvoidingView>
   );
 };

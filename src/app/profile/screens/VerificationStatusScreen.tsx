@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
+import { AppLoader } from '../../components';
+import api from '../../../utils/api';
+import {
+  firstString,
+  formatDisplayDate,
+  normalizeList,
+  toBoolean,
+  unwrapApiData,
+} from '../utils/profileApi';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -14,47 +23,175 @@ const CARD_SHADOW = {
   elevation: 3,
 };
 
+type VerificationState = 'approved' | 'pending' | 'rejected';
+
 type VerificationItem = {
   icon: AppIconName;
   labelKey: TranslationKey;
-  dateKey?: TranslationKey;
-  status: 'approved' | 'pending';
+  status: VerificationState;
+  verifiedAt: string;
+  keys: string[];
 };
 
-const ITEMS: VerificationItem[] = [
+const BASE_ITEMS: Omit<VerificationItem, 'status' | 'verifiedAt'>[] = [
   {
     icon: 'verificationId',
     labelKey: 'verification.cnic',
-    dateKey: 'verification.feb12',
-    status: 'approved',
+    keys: ['cnic', 'id', 'identity', 'identity_verification'],
   },
   {
     icon: 'verificationBusiness',
     labelKey: 'verification.businessDocs',
-    dateKey: 'verification.feb12',
-    status: 'approved',
+    keys: ['business', 'business_docs', 'business_profile'],
   },
   {
     icon: 'verificationBank',
     labelKey: 'verification.bankAccount',
-    dateKey: 'verification.feb14',
-    status: 'approved',
+    keys: ['bank', 'banking', 'bank_account'],
   },
   {
     icon: 'profilePhone',
     labelKey: 'verification.phone',
-    dateKey: 'verification.feb10',
-    status: 'approved',
+    keys: ['phone', 'phone_number'],
   },
   {
     icon: 'address',
     labelKey: 'verification.address',
-    status: 'pending',
+    keys: ['address', 'location'],
   },
 ];
 
+const normalizeStatus = (value: any): VerificationState => {
+  if (typeof value === 'boolean') {
+    return value ? 'approved' : 'pending';
+  }
+
+  const status = String(value ?? '').toLowerCase();
+
+  if (
+    ['approved', 'verified', 'complete', 'completed', 'true'].includes(status)
+  ) {
+    return 'approved';
+  }
+
+  if (['rejected', 'failed', 'declined'].includes(status)) {
+    return 'rejected';
+  }
+
+  return 'pending';
+};
+
+const findDetail = (payload: any, keys: string[]) => {
+  const sources = [
+    payload?.statuses,
+    payload?.verification_status,
+    payload?.verificationStatus,
+    payload?.verification,
+    payload,
+  ];
+
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    for (const key of keys) {
+      if (source[key] !== undefined) {
+        return source[key];
+      }
+    }
+  }
+
+  const list = normalizeList(payload, ['items', 'statuses', 'verification']);
+
+  return list.find((item: any) => {
+    const type = firstString(
+      item?.type,
+      item?.key,
+      item?.name,
+      item?.verification_type,
+    ).toLowerCase();
+
+    return keys.some(key => type.includes(key));
+  });
+};
+
+const buildVerificationItems = (response: any): VerificationItem[] => {
+  const payload = unwrapApiData(response);
+
+  return BASE_ITEMS.map(item => {
+    const detail = findDetail(payload, item.keys);
+    const statusValue =
+      typeof detail === 'object'
+        ? detail?.status ??
+          detail?.verification_status ??
+          detail?.is_verified ??
+          detail?.approved
+        : detail;
+
+    return {
+      ...item,
+      status: normalizeStatus(statusValue),
+      verifiedAt:
+        typeof detail === 'object'
+          ? firstString(detail?.verified_at, detail?.verifiedAt, detail?.date)
+          : '',
+    };
+  });
+};
+
 const VerificationStatusScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const [items, setItems] = useState<VerificationItem[]>(
+    BASE_ITEMS.map(item => ({ ...item, status: 'pending', verifiedAt: '' })),
+  );
+  const [accountVerified, setAccountVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadVerificationStatus = async () => {
+      setLoading(true);
+      try {
+        const response = await api.profile.verificationStatus.get();
+        const payload = unwrapApiData(response);
+        const nextItems = buildVerificationItems(response);
+        const verified =
+          toBoolean(
+            payload?.is_verified ??
+              payload?.account_verified ??
+              payload?.accountVerified,
+          ) || nextItems.every(item => item.status === 'approved');
+
+        if (mounted) {
+          setItems(nextItems);
+          setAccountVerified(verified);
+        }
+      } catch {
+        if (mounted) {
+          setItems(
+            BASE_ITEMS.map(item => ({
+              ...item,
+              status: 'pending',
+              verifiedAt: '',
+            })),
+          );
+          setAccountVerified(false);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadVerificationStatus().catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -66,17 +203,31 @@ const VerificationStatusScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
         <View
-          className="mb-8 items-center rounded-[28px] bg-green-800 px-5 py-10"
+          className={`mb-8 items-center rounded-[28px] px-5 py-10 ${
+            accountVerified ? 'bg-green-800' : 'bg-yellow-700'
+          }`}
           style={CARD_SHADOW}
         >
-          <View className="h-20 w-20 items-center justify-center rounded-3xl bg-green-500">
-            <AppIcon name="approved" size={54} color="#FFFFFF" />
+          <View
+            className={`h-20 w-20 items-center justify-center rounded-3xl ${
+              accountVerified ? 'bg-green-500' : 'bg-yellow-500'
+            }`}
+          >
+            <AppIcon
+              name={accountVerified ? 'approved' : 'shield'}
+              size={54}
+              color="#FFFFFF"
+            />
           </View>
           <Text className="mt-8 text-white text-2xl font-extrabold">
-            {t('verification.accountVerified')}
+            {accountVerified
+              ? t('verification.accountVerified')
+              : t('verification.accountPending')}
           </Text>
-          <Text className="mt-3 text-center text-green-200 text-lg font-medium">
-            {t('verification.accountVerifiedSub')}
+          <Text className="mt-3 text-center text-white/80 text-lg font-medium">
+            {accountVerified
+              ? t('verification.accountVerifiedSub')
+              : t('verification.accountPendingSub')}
           </Text>
         </View>
 
@@ -84,48 +235,64 @@ const VerificationStatusScreen = ({ navigation }: any) => {
           className="overflow-hidden rounded-[28px] bg-white"
           style={CARD_SHADOW}
         >
-          {ITEMS.map((item, index) => {
+          {items.map((item, index) => {
             const approved = item.status === 'approved';
+            const rejected = item.status === 'rejected';
+            const statusBg = approved
+              ? 'bg-green-50'
+              : rejected
+              ? 'bg-red-50'
+              : 'bg-yellow-100';
+            const statusText = approved
+              ? 'text-green-700'
+              : rejected
+              ? 'text-red-600'
+              : 'text-yellow-800';
+            const iconColor = approved
+              ? '#1A6B34'
+              : rejected
+              ? '#DC2626'
+              : '#A14E14';
+            const detailText =
+              approved && item.verifiedAt
+                ? t('common.verifiedDate', {
+                    date: formatDisplayDate(item.verifiedAt),
+                  })
+                : approved
+                ? t('common.verifiedDash')
+                : rejected
+                ? t('common.rejected')
+                : t('common.pending');
 
             return (
               <View
                 key={item.labelKey}
                 className={`flex-row items-center px-6 py-5 ${
-                  index < ITEMS.length - 1 ? 'border-b border-gray-100' : ''
+                  index < items.length - 1 ? 'border-b border-gray-100' : ''
                 }`}
               >
                 <View
-                  className={`h-16 w-16 items-center justify-center rounded-2xl ${
-                    approved ? 'bg-green-50' : 'bg-yellow-100'
-                  }`}
+                  className={`h-16 w-16 items-center justify-center rounded-2xl ${statusBg}`}
                 >
-                  <AppIcon
-                    name={item.icon}
-                    size={28}
-                    color={approved ? '#1A6B34' : '#A14E14'}
-                  />
+                  <AppIcon name={item.icon} size={28} color={iconColor} />
                 </View>
                 <View className="ml-5 flex-1">
                   <Text className="text-gray-900 text-xl font-extrabold">
                     {t(item.labelKey)}
                   </Text>
                   <Text className="mt-1 text-gray-400 text-lg font-medium">
-                    {item.dateKey
-                      ? t('common.verifiedDate', { date: t(item.dateKey) })
-                      : t('common.verifiedDash')}
+                    {detailText}
                   </Text>
                 </View>
-                <View
-                  className={`rounded-2xl px-5 py-3 ${
-                    approved ? 'bg-green-50' : 'bg-yellow-100'
-                  }`}
-                >
+                <View className={`rounded-2xl px-5 py-3 ${statusBg}`}>
                   <Text
-                    className={`text-base font-extrabold uppercase ${
-                      approved ? 'text-green-700' : 'text-yellow-800'
-                    }`}
+                    className={`text-base font-extrabold uppercase ${statusText}`}
                   >
-                    {approved ? t('common.approved') : t('common.pending')}
+                    {approved
+                      ? t('common.approved')
+                      : rejected
+                      ? t('common.rejected')
+                      : t('common.pending')}
                   </Text>
                 </View>
               </View>
@@ -133,6 +300,8 @@ const VerificationStatusScreen = ({ navigation }: any) => {
           })}
         </View>
       </ScrollView>
+
+      <AppLoader visible={loading} overlay message={t('common.loading')} />
     </View>
   );
 };

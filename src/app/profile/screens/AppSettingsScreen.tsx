@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -84,9 +84,10 @@ const AppSettingsScreen = ({ navigation }: any) => {
   const languageRef = useRef<LanguageCode>(language);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
+  const loadSettings = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.appSettings.get();
       const payload = unwrapApiData(response);
@@ -108,9 +109,18 @@ const AppSettingsScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('AppSettingsScreen: Failed to load settings:', error);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, [setLanguage]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadSettings(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadSettings]);
 
   useFocusEffect(
     useCallback(() => {
@@ -256,6 +266,9 @@ const AppSettingsScreen = ({ navigation }: any) => {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         {groups.map(group => (
           <View key={group.titleKey} className="mb-8">

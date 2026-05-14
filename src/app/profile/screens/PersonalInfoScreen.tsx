@@ -12,6 +12,7 @@ import {
   Platform,
   KeyboardTypeOptions,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import SubHeader from '../components/SubHeader';
@@ -138,6 +139,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const setField =
@@ -147,19 +149,20 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
-  const loadPersonalInfo = useCallback(async () => {
-    setLoading(true);
+  const loadPersonalInfo = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.personal.get();
       const data = unwrapApiData(response) ?? {};
+      const personal = data.user ?? data.profile ?? data;
       const loaded: PersonalForm = {
-        fullName: String(data.full_name ?? data.fullName ?? ''),
-        email: String(data.email ?? ''),
-        phone: String(data.phone ?? ''),
-        city: String(data.city ?? ''),
-        date_of_birth: String(data.date_of_birth ?? data.dateOfBirth ?? ''),
-        cnic: String(data.cnic ?? data.profile?.cnic ?? ''),
-        profile_picture: String(data.profile_picture ?? data.profilePicture ?? ''),
+        fullName: String(personal.full_name ?? personal.fullName ?? ''),
+        email: String(personal.email ?? ''),
+        phone: String(personal.phone ?? ''),
+        city: String(personal.city ?? ''),
+        date_of_birth: String(personal.date_of_birth ?? personal.dateOfBirth ?? ''),
+        cnic: String(personal.cnic ?? personal.profile?.cnic ?? ''),
+        profile_picture: String(personal.profile_picture ?? personal.profilePicture ?? ''),
       };
       setForm(loaded);
       setServerForm(loaded);
@@ -167,9 +170,18 @@ const PersonalInfoScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('PersonalInfoScreen: Failed to load personal info:', error);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadPersonalInfo(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadPersonalInfo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -226,14 +238,15 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       // Fetch fresh data from server instead of relying on local state
       const freshResponse = await api.profile.personal.get();
       const freshData = unwrapApiData(freshResponse) ?? {};
+      const freshPersonal = freshData.user ?? freshData.profile ?? freshData;
       const freshForm: PersonalForm = {
-        fullName: String(freshData.full_name ?? freshData.fullName ?? ''),
-        email: String(freshData.email ?? ''),
-        phone: String(freshData.phone ?? ''),
-        city: String(freshData.city ?? ''),
-        date_of_birth: String(freshData.date_of_birth ?? freshData.dateOfBirth ?? ''),
-        cnic: String(freshData.cnic ?? freshData.profile?.cnic ?? ''),
-        profile_picture: String(freshData.profile_picture ?? freshData.profilePicture ?? ''),
+        fullName: String(freshPersonal.full_name ?? freshPersonal.fullName ?? ''),
+        email: String(freshPersonal.email ?? ''),
+        phone: String(freshPersonal.phone ?? ''),
+        city: String(freshPersonal.city ?? ''),
+        date_of_birth: String(freshPersonal.date_of_birth ?? freshPersonal.dateOfBirth ?? ''),
+        cnic: String(freshPersonal.cnic ?? freshPersonal.profile?.cnic ?? ''),
+        profile_picture: String(freshPersonal.profile_picture ?? freshPersonal.profilePicture ?? ''),
       };
 
       const storeUpdate: Parameters<typeof updateUser>[0] = {};
@@ -325,6 +338,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         <View className="px-4 pt-6 pb-10">
           <View className="items-center pb-10">

@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
@@ -114,14 +115,15 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const canSubmit =
     form.bankName.trim().length > 0 &&
     form.accountTitle.trim().length > 1 &&
     form.iban.trim().length > 4;
 
-  const loadBankingDetails = useCallback(async () => {
-    setLoading(true);
+  const loadBankingDetails = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.banking.get();
       setAccounts(normalizeBankingDetails(response));
@@ -129,9 +131,18 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
       console.error('PaymentMethodsScreen: Failed to load banking details:', error);
       setAccounts([]);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadBankingDetails(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadBankingDetails]);
 
   useFocusEffect(
     useCallback(() => {
@@ -227,6 +238,9 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         <Text className="px-1 pb-4 pt-2 text-xl font-extrabold uppercase tracking-widest text-gray-400">
           {t('payments.linkedBankAccount')}

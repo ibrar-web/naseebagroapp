@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -148,9 +148,10 @@ const VerificationStatusScreen = ({ navigation }: any) => {
   );
   const [accountVerified, setAccountVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadVerificationStatus = useCallback(async () => {
-    setLoading(true);
+  const loadVerificationStatus = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.verificationStatus.get();
       const payload = unwrapApiData(response);
@@ -175,9 +176,18 @@ const VerificationStatusScreen = ({ navigation }: any) => {
       );
       setAccountVerified(false);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadVerificationStatus(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadVerificationStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -193,6 +203,9 @@ const VerificationStatusScreen = ({ navigation }: any) => {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         <View
           className={`mb-8 items-center rounded-[28px] px-5 py-10 ${

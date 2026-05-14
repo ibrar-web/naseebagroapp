@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   KeyboardTypeOptions,
+  RefreshControl,
 } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
@@ -114,6 +115,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const verified = user?.is_verified ?? false;
   const verifiedAt = user?.verified_at ?? '';
@@ -125,30 +127,40 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
-  const loadBusinessInfo = useCallback(async () => {
-    setLoading(true);
+  const loadBusinessInfo = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.business.get();
       console.log('business',response)
       const data = unwrapApiData(response) ?? {};
+      const profile = data.profile ?? data;
       const loaded: BusinessForm = {
-        business_name: String(data.business_name ?? data.businessName ?? ''),
-        business_type: String(data.business_type ?? data.businessType ?? ''),
+        business_name: String(profile.business_name ?? profile.businessName ?? ''),
+        business_type: String(profile.business_type ?? profile.businessType ?? ''),
         business_registration_number: String(
-          data.business_registration_number ?? data.businessRegistrationNumber ?? '',
+          profile.business_registration_number ?? profile.businessRegistrationNumber ?? '',
         ),
-        primary_crop: String(data.primary_crop ?? data.primaryCrop ?? ''),
-        farm_location: String(data.farm_location ?? data.farmLocation ?? data.city ?? ''),
-        farm_size: String(data.farm_size ?? data.farmSize ?? ''),
+        primary_crop: String(profile.primary_crop ?? profile.primaryCrop ?? ''),
+        farm_location: String(profile.farm_location ?? profile.farmLocation ?? profile.city ?? ''),
+        farm_size: String(profile.farm_size ?? profile.farmSize ?? ''),
       };
       setForm(loaded);
       setServerForm(loaded);
     } catch (error) {
       console.error('BusinessProfileScreen: Failed to load business info:', error);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadBusinessInfo(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadBusinessInfo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -181,15 +193,16 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       // Fetch fresh data from server instead of relying on local state
       const freshResponse = await api.profile.business.get();
       const freshData = unwrapApiData(freshResponse) ?? {};
+      const freshProfile = freshData.profile ?? freshData;
       const freshForm: BusinessForm = {
-        business_name: String(freshData.business_name ?? freshData.businessName ?? ''),
-        business_type: String(freshData.business_type ?? freshData.businessType ?? ''),
+        business_name: String(freshProfile.business_name ?? freshProfile.businessName ?? ''),
+        business_type: String(freshProfile.business_type ?? freshProfile.businessType ?? ''),
         business_registration_number: String(
-          freshData.business_registration_number ?? freshData.businessRegistrationNumber ?? '',
+          freshProfile.business_registration_number ?? freshProfile.businessRegistrationNumber ?? '',
         ),
-        primary_crop: String(freshData.primary_crop ?? freshData.primaryCrop ?? ''),
-        farm_location: String(freshData.farm_location ?? freshData.farmLocation ?? freshData.city ?? ''),
-        farm_size: String(freshData.farm_size ?? freshData.farmSize ?? ''),
+        primary_crop: String(freshProfile.primary_crop ?? freshProfile.primaryCrop ?? ''),
+        farm_location: String(freshProfile.farm_location ?? freshProfile.farmLocation ?? freshProfile.city ?? ''),
+        farm_size: String(freshProfile.farm_size ?? freshProfile.farmSize ?? ''),
       };
 
       dispatch(
@@ -279,6 +292,9 @@ const BusinessProfileScreen = ({ navigation }: any) => {
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         <View className="px-4 pt-8 pb-10">
           <View className="mb-8 flex-row items-center rounded-[28px] bg-green-900 px-5 py-5 shadow-2xl shadow-green-900/20">

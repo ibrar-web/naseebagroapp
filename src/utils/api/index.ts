@@ -26,7 +26,7 @@ export const api = {
     personal: {
       get: () => Get('profile/personal'),
       update: (data: any) => Patch('profile/personal', data),
-      updateForm: (data: any) => Post('profile/personal', data),
+      updateForm: (data: any) => Patch('profile/personal', data),
     },
     business: {
       get: () => Get('profile/business'),
@@ -43,12 +43,12 @@ export const api = {
       remove: (id: string | number) => Delete(`profile/personal/banking/${id}`),
     },
     appSettings: {
-      get: () => Get('profile/personal/app-settings'),
-      update: (data: any) => Patch('profile/personal/app-settings', data),
+      get: () => Get('profile/app-settings'),
+      update: (data: any) => Patch('profile/app-settings', data),
     },
     notifications: {
-      get: () => Get('profile/personal/notifications'),
-      update: (data: any) => Patch('profile/personal/notifications', data),
+      get: () => Get('profile/notifications'),
+      update: (data: any) => Patch('profile/notifications', data),
     },
   },
 

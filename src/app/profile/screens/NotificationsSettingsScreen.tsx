@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, Switch } from 'react-native';
+import { View, Text, ScrollView, Switch, RefreshControl } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
@@ -85,6 +85,7 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
   });
   const [loading, setLoading] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<ToggleKey | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const readToggleValue = useCallback((data: any, item: ToggleRow) => {
     const candidates = [item.apiKey, ...(item.fallbackKeys ?? [])];
@@ -95,8 +96,8 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
     return toBoolean(value, false);
   }, []);
 
-  const loadNotifications = useCallback(async () => {
-    setLoading(true);
+  const loadNotifications = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const response = await api.profile.notifications.get();
       const payload = unwrapApiData(response);
@@ -118,9 +119,18 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('NotificationsSettingsScreen: Failed to load notifications:', error);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, [readToggleValue]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadNotifications(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadNotifications]);
 
   useFocusEffect(
     useCallback(() => {
@@ -155,6 +165,9 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+        }
       >
         <View
           className="overflow-hidden rounded-[28px] bg-white"

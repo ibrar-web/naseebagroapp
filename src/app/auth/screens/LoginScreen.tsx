@@ -18,6 +18,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
 import { loginSuccess, type User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
+import ENV from '../../../environment';
 
 const WINDOW_HEIGHT = Dimensions.get('window').height;
 
@@ -37,24 +38,30 @@ const LoginScreen = ({ navigation }: Props) => {
   const canSignIn = inputValid && pin.length >= 4;
 
   const handleSignIn = async () => {
+    console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
     if (!canSignIn || loading) {
       return;
     }
     setLoading(true);
     try {
       const payload: Record<string, string> = { password: pin };
+      console.log('payload', payload);
       if (usePhone) {
         payload.phone = '+92' + phone;
       } else {
         payload.email = email;
       }
-      console.log('payload', payload);
+
       // api returns the full envelope: { status, message, data: { access_token, user } }
       const result = (await api.auth.login(payload)) as any;
+      console.log('result', result);
       const { access_token, user }: { access_token: string; user: User } =
-        result.data;
+        result;
       console.log('access_token, user:', access_token, user);
-      await EncryptedStorage.setItem('session', JSON.stringify({ token: access_token, user }));
+      await EncryptedStorage.setItem(
+        'session',
+        JSON.stringify({ token: access_token, user }),
+      );
       dispatch(loginSuccess({ user, token: access_token }));
       navigation.replace('MainTabs');
     } catch (error) {

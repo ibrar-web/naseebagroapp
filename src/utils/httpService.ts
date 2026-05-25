@@ -4,12 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { store } from '../store';
 import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
-
+console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
 class HttpService {
   service: any;
 
   constructor() {
-    console.log(ENV.API_BASE_URL);
+    console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
     this.service = axios.create({
       baseURL: ENV.API_BASE_URL,
       timeout: ENV.TIMEOUT,

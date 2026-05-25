@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal } from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -85,6 +85,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   const loadSettings = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -97,9 +98,13 @@ const AppSettingsScreen = ({ navigation }: any) => {
         ? apiLanguage
         : undefined;
 
+      // Only update language from API if it returns a valid, different value
       const resolvedLanguage = nextLanguage ?? languageRef.current;
-      languageRef.current = resolvedLanguage;
-      setLanguage(resolvedLanguage);
+      if (resolvedLanguage !== languageRef.current) {
+        languageRef.current = resolvedLanguage;
+        setLanguage(resolvedLanguage);
+      }
+
       setSettings({
         language: resolvedLanguage,
         currency: firstString(data?.currency),
@@ -204,6 +209,21 @@ const AppSettingsScreen = ({ navigation }: any) => {
     ).catch(() => undefined);
   };
 
+  const handleSelectCurrency = (currency: string) => {
+    const previousCurrency = settings.currency;
+
+    updateSettings(
+      { currency },
+      () => {
+        setSettings(current => ({ ...current, currency }));
+        setShowCurrencyPicker(false);
+      },
+      () => {
+        setSettings(current => ({ ...current, currency: previousCurrency }));
+      },
+    ).catch(() => undefined);
+  };
+
   const groups: SettingsGroup[] = [
     {
       titleKey: 'appSettings.display',
@@ -218,6 +238,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
           icon: 'currency',
           labelKey: 'appSettings.currency',
           value: settings.currency || t('common.currencyValue'),
+          onPress: () => setShowCurrencyPicker(true),
         },
       ],
     },
@@ -284,6 +305,52 @@ const AppSettingsScreen = ({ navigation }: any) => {
         overlay
         message={updating ? t('common.updating') : t('common.loading')}
       />
+
+      <Modal
+        visible={showCurrencyPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCurrencyPicker(false)}
+      >
+        <View className="flex-1 justify-end bg-black/40">
+          <View className="rounded-t-[28px] bg-white px-6 pb-10 pt-6">
+            <Text className="mb-6 text-gray-900 text-xl font-extrabold">
+              {t('appSettings.selectCurrency')}
+            </Text>
+            {['PKR', 'USD'].map(currency => (
+              <TouchableOpacity
+                key={currency}
+                onPress={() => handleSelectCurrency(currency)}
+                className={`mb-3 rounded-2xl px-5 py-4 ${
+                  settings.currency === currency ? 'bg-green-50' : 'bg-gray-50'
+                }`}
+                activeOpacity={0.75}
+              >
+                <Text
+                  className={`text-lg font-extrabold ${
+                    settings.currency === currency
+                      ? 'text-green-700'
+                      : 'text-gray-900'
+                  }`}
+                >
+                  {currency === 'PKR'
+                    ? t('appSettings.pkr')
+                    : t('appSettings.usd')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              onPress={() => setShowCurrencyPicker(false)}
+              className="mt-2 rounded-2xl border border-gray-200 py-4"
+              activeOpacity={0.75}
+            >
+              <Text className="text-center text-gray-500 text-lg font-extrabold">
+                {t('appSettings.cancel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

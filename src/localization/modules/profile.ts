@@ -110,6 +110,10 @@ export const profileTranslations = {
     'appSettings.twoFactorAuth': 'Two-Factor Auth',
     'appSettings.clearCache': 'Clear Cache',
     'appSettings.appVersion': 'App Version',
+    'appSettings.selectCurrency': 'Select Currency',
+    'appSettings.pkr': 'Pakistani Rupee (PKR)',
+    'appSettings.usd': 'US Dollar (USD)',
+    'appSettings.cancel': 'Cancel',
 
     'notifications.title': 'Notifications',
     'notifications.newDealAlerts': 'New Deal Alerts',
@@ -286,6 +290,10 @@ export const profileTranslations = {
     'appSettings.twoFactorAuth': 'دو مرحلہ تصدیق',
     'appSettings.clearCache': 'کیش صاف کریں',
     'appSettings.appVersion': 'ایپ ورژن',
+    'appSettings.selectCurrency': 'کرنسی منتخب کریں',
+    'appSettings.pkr': 'پاکستانی روپیہ (PKR)',
+    'appSettings.usd': 'امریکی ڈالر (USD)',
+    'appSettings.cancel': 'منسوخ کریں',
 
     'notifications.title': 'اطلاعات',
     'notifications.newDealAlerts': 'نئی ڈیل الرٹس',

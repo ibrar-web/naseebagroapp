@@ -10,12 +10,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import EncryptedStorage from 'react-native-encrypted-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
 import { BANKS } from '../../../constants';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { resetRegisterForm } from '../../../store/slices/registerSlice';
+import { loginSuccess, type User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
 import GreenHeader from '../components/GreenHeader';
 import StepDots from '../components/StepDots';
@@ -62,6 +64,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       formData.append('email', registerForm.email);
       formData.append('phone', '+92' + registerForm.phone);
       formData.append('password', registerForm.password);
+      formData.append('date_of_birth', registerForm.dateOfBirth);
       formData.append('role', registerForm.role);
 
       if (registerForm.city) {
@@ -94,11 +97,39 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         } as any);
       }
 
-      await api.auth.register(formData);
+      const result = (await api.auth.register(formData)) as {
+        access_token: string;
+        user: User;
+      };
+
+      await EncryptedStorage.setItem(
+        'session',
+        JSON.stringify({ token: result.access_token, user: result.user }),
+      );
+      dispatch(loginSuccess({ user: result.user, token: result.access_token }));
+
+      await Promise.allSettled([
+        registerForm.businessName || registerForm.businessType
+          ? api.profile.business.update({
+              business_name: registerForm.businessName,
+              business_type: registerForm.businessType,
+            })
+          : Promise.resolve(),
+        api.profile.banking.create({
+          bank_name: form.bank,
+          account_title: form.accountTitle,
+          bank_account_number: form.iban,
+          bank_iban_number: form.iban,
+        }),
+      ]);
+
       dispatch(resetRegisterForm());
       navigation.navigate('VerifyPending');
     } catch {
-      Alert.alert('Registration Failed', 'Please check your details and try again.');
+      Alert.alert(
+        'Registration Failed',
+        'Please check your details and try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -124,7 +155,10 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View className="bg-white rounded-2xl p-4 mb-4 gap-4" style={CARD_SHADOW}>
+        <View
+          className="bg-white rounded-2xl p-4 mb-4 gap-4"
+          style={CARD_SHADOW}
+        >
           {/* Bank picker */}
           <View>
             <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -136,7 +170,13 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
               style={{ paddingVertical: 14 }}
               activeOpacity={0.8}
             >
-              <Text className={form.bank ? 'text-gray-900 text-base' : 'text-gray-400 text-base'}>
+              <Text
+                className={
+                  form.bank
+                    ? 'text-gray-900 text-base'
+                    : 'text-gray-400 text-base'
+                }
+              >
                 {form.bank || t('auth.selectBank')}
               </Text>
               <Text className="text-gray-400 text-sm">▼</Text>
@@ -154,10 +194,18 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
                       setForm(p => ({ ...p, bank }));
                       setShowBankPicker(false);
                     }}
-                    className={`px-4 py-3 border-b border-gray-100 ${form.bank === bank ? 'bg-green-50' : ''}`}
+                    className={`px-4 py-3 border-b border-gray-100 ${
+                      form.bank === bank ? 'bg-green-50' : ''
+                    }`}
                     activeOpacity={0.7}
                   >
-                    <Text className={`text-sm ${form.bank === bank ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
+                    <Text
+                      className={`text-sm ${
+                        form.bank === bank
+                          ? 'text-green-700 font-bold'
+                          : 'text-gray-700'
+                      }`}
+                    >
                       {bank}
                     </Text>
                   </TouchableOpacity>
@@ -212,11 +260,17 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
                   key={w}
                   onPress={() => toggleWallet(w)}
                   className={`flex-1 py-3 rounded-2xl items-center border-2 ${
-                    active ? 'bg-orange-500 border-orange-500' : 'bg-gray-50 border-gray-200'
+                    active
+                      ? 'bg-orange-500 border-orange-500'
+                      : 'bg-gray-50 border-gray-200'
                   }`}
                   activeOpacity={0.8}
                 >
-                  <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-gray-600'}`}>
+                  <Text
+                    className={`text-sm font-bold ${
+                      active ? 'text-white' : 'text-gray-600'
+                    }`}
+                  >
                     {w}
                   </Text>
                 </TouchableOpacity>
@@ -228,8 +282,19 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!canSubmit || loading}
-          className={`py-4 rounded-2xl items-center bg-orange-500 ${!canSubmit || loading ? 'opacity-40' : ''}`}
-          style={canSubmit && !loading ? { shadowColor: '#F3CD03', shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 } : {}}
+          className={`py-4 rounded-2xl items-center bg-orange-500 ${
+            !canSubmit || loading ? 'opacity-40' : ''
+          }`}
+          style={
+            canSubmit && !loading
+              ? {
+                  shadowColor: '#F3CD03',
+                  shadowOpacity: 0.4,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }
+              : {}
+          }
           activeOpacity={0.88}
         >
           {loading ? (

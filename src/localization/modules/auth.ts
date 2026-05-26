@@ -30,8 +30,10 @@ export const authTranslations = {
     // Location
     'auth.locationStep': 'LOCATION',
     'auth.locationTitle': 'Your Location',
-    'auth.locationSubtitle': 'We use this to show you relevant local market rates and buyers near you',
-    'auth.locationInfo': 'Your location helps us connect you with the right buyers and show accurate commodity prices in your area.',
+    'auth.locationSubtitle':
+      'We use this to show you relevant local market rates and buyers near you',
+    'auth.locationInfo':
+      'Your location helps us connect you with the right buyers and show accurate commodity prices in your area.',
     'auth.locationSkip': 'Skip for Now',
     'auth.locationContinue': 'Continue →',
     'auth.selectedCity': 'Selected:',
@@ -44,6 +46,8 @@ export const authTranslations = {
     'auth.fullNamePlaceholder': 'Muhammad Ali',
     'auth.email': 'Email Address',
     'auth.emailPlaceholder': 'your@email.com',
+    'auth.dateOfBirth': 'Date of Birth',
+    'auth.dateOfBirthPlaceholder': 'YYYY-MM-DD',
     'auth.password': 'Password',
     'auth.passwordPlaceholder': 'Min. 8 characters',
     'auth.confirmPassword': 'Confirm Password',
@@ -73,7 +77,8 @@ export const authTranslations = {
     'auth.cnicFront': 'CNIC Front Side',
     'auth.cnicBack': 'CNIC Back Side',
     'auth.uploadPhoto': 'Tap to Upload Photo',
-    'auth.idVerifyNote': 'Your ID is encrypted and only used for verification purposes.',
+    'auth.idVerifyNote':
+      'Your ID is encrypted and only used for verification purposes.',
 
     // Payment Setup
     'auth.paymentStep': 'STEP 4 OF 5',
@@ -90,7 +95,8 @@ export const authTranslations = {
 
     // Verify Pending
     'auth.verifyPendingTitle': 'Verification\nPending',
-    'auth.verifyPendingSubtitle': 'Our team is reviewing your application. This usually takes 24-48 hours.',
+    'auth.verifyPendingSubtitle':
+      'Our team is reviewing your application. This usually takes 24-48 hours.',
     'auth.verifyPendingId': 'Identity Check',
     'auth.verifyPendingBiz': 'Business Verification',
     'auth.verifyPendingPayment': 'Payment Account',
@@ -100,7 +106,8 @@ export const authTranslations = {
 
     // Verify Approved
     'auth.verifyApprovedTitle': "You're Verified!",
-    'auth.verifyApprovedSubtitle': 'Your account has been approved. You can now trade on the platform.',
+    'auth.verifyApprovedSubtitle':
+      'Your account has been approved. You can now trade on the platform.',
     'auth.startTrading': 'Start Trading →',
   },
   ur: {
@@ -133,8 +140,10 @@ export const authTranslations = {
 
     'auth.locationStep': 'مقام',
     'auth.locationTitle': 'آپ کا مقام',
-    'auth.locationSubtitle': 'ہم اسے مقامی مارکیٹ ریٹس اور قریبی خریداروں کو دکھانے کے لیے استعمال کرتے ہیں',
-    'auth.locationInfo': 'آپ کا مقام ہمیں آپ کو صحیح خریداروں سے ملانے اور آپ کے علاقے میں درست اجناس کی قیمتیں دکھانے میں مدد کرتا ہے۔',
+    'auth.locationSubtitle':
+      'ہم اسے مقامی مارکیٹ ریٹس اور قریبی خریداروں کو دکھانے کے لیے استعمال کرتے ہیں',
+    'auth.locationInfo':
+      'آپ کا مقام ہمیں آپ کو صحیح خریداروں سے ملانے اور آپ کے علاقے میں درست اجناس کی قیمتیں دکھانے میں مدد کرتا ہے۔',
     'auth.locationSkip': 'ابھی چھوڑیں',
     'auth.locationContinue': 'جاری رکھیں →',
     'auth.selectedCity': 'منتخب:',
@@ -146,6 +155,8 @@ export const authTranslations = {
     'auth.fullNamePlaceholder': 'محمد علی',
     'auth.email': 'ای میل پتہ',
     'auth.emailPlaceholder': 'آپ کی@ای میل.com',
+    'auth.dateOfBirth': 'تاریخ پیدائش',
+    'auth.dateOfBirthPlaceholder': 'YYYY-MM-DD',
     'auth.password': 'پاس ورڈ',
     'auth.passwordPlaceholder': 'کم از کم 8 حروف',
     'auth.confirmPassword': 'پاس ورڈ کی تصدیق کریں',
@@ -167,17 +178,20 @@ export const authTranslations = {
 
     'auth.idVerifyStep': 'مرحلہ 3 از 5',
     'auth.idVerifyTitle': 'شناخت کی تصدیق',
-    'auth.idVerifySubtitle': 'اپنی شناخت کی تصدیق کے لیے شناختی کارڈ اپ لوڈ کریں',
+    'auth.idVerifySubtitle':
+      'اپنی شناخت کی تصدیق کے لیے شناختی کارڈ اپ لوڈ کریں',
     'auth.cnicNumber': 'شناختی کارڈ نمبر',
     'auth.cnicPlaceholder': '35201-1234567-1',
     'auth.cnicFront': 'شناختی کارڈ کا سامنے',
     'auth.cnicBack': 'شناختی کارڈ کا پیچھے',
     'auth.uploadPhoto': 'تصویر اپ لوڈ کرنے کے لیے ٹیپ کریں',
-    'auth.idVerifyNote': 'آپ کی شناخت خفیہ ہے اور صرف تصدیق کے لیے استعمال ہوتی ہے۔',
+    'auth.idVerifyNote':
+      'آپ کی شناخت خفیہ ہے اور صرف تصدیق کے لیے استعمال ہوتی ہے۔',
 
     'auth.paymentStep': 'مرحلہ 4 از 5',
     'auth.paymentTitle': 'ادائیگی\nسیٹ اپ',
-    'auth.paymentSubtitle': 'ادائیگیاں وصول کرنے کے لیے اپنا بینک اکاؤنٹ شامل کریں',
+    'auth.paymentSubtitle':
+      'ادائیگیاں وصول کرنے کے لیے اپنا بینک اکاؤنٹ شامل کریں',
     'auth.selectBank': 'بینک منتخب کریں...',
     'auth.bankLabel': 'بینک کا نام',
     'auth.accountTitle': 'اکاؤنٹ کا نام',
@@ -188,7 +202,8 @@ export const authTranslations = {
     'auth.submitRegistration': 'رجسٹریشن جمع کریں →',
 
     'auth.verifyPendingTitle': 'تصدیق\nجاری ہے',
-    'auth.verifyPendingSubtitle': 'ہماری ٹیم آپ کی درخواست کا جائزہ لے رہی ہے۔ یہ عام طور پر 24-48 گھنٹے لیتا ہے۔',
+    'auth.verifyPendingSubtitle':
+      'ہماری ٹیم آپ کی درخواست کا جائزہ لے رہی ہے۔ یہ عام طور پر 24-48 گھنٹے لیتا ہے۔',
     'auth.verifyPendingId': 'شناخت کی جانچ',
     'auth.verifyPendingBiz': 'کاروباری تصدیق',
     'auth.verifyPendingPayment': 'ادائیگی اکاؤنٹ',
@@ -197,7 +212,8 @@ export const authTranslations = {
     'auth.contactSupport': 'سپورٹ سے رابطہ کریں',
 
     'auth.verifyApprovedTitle': 'آپ کی تصدیق ہو گئی!',
-    'auth.verifyApprovedSubtitle': 'آپ کا اکاؤنٹ منظور ہو گیا ہے۔ اب آپ پلیٹ فارم پر تجارت کر سکتے ہیں۔',
+    'auth.verifyApprovedSubtitle':
+      'آپ کا اکاؤنٹ منظور ہو گیا ہے۔ اب آپ پلیٹ فارم پر تجارت کر سکتے ہیں۔',
     'auth.startTrading': 'تجارت شروع کریں →',
   },
 } as const;

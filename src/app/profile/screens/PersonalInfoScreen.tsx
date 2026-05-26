@@ -25,6 +25,7 @@ import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
 import { unwrapApiData } from '../utils/profileApi';
+import { promptLogin } from '../../auth/utils/requireLogin';
 
 type PersonalForm = {
   fullName: string;
@@ -124,6 +125,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
+  const token = useAppSelector(s => s.auth.token);
 
   const [form, setForm] = useState<PersonalForm>({
     fullName: '',
@@ -135,7 +137,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
     profile_picture: '',
   });
   const [serverForm, setServerForm] = useState<PersonalForm>(form);
-  const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,30 +153,44 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
-  const loadPersonalInfo = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.personal.get();
-      const data = unwrapApiData(response) ?? {};
-      const personal = data.user ?? data.profile ?? data;
-      const loaded: PersonalForm = {
-        fullName: String(personal.full_name ?? personal.fullName ?? ''),
-        email: String(personal.email ?? ''),
-        phone: String(personal.phone ?? ''),
-        city: String(personal.city ?? ''),
-        date_of_birth: String(personal.date_of_birth ?? personal.dateOfBirth ?? ''),
-        cnic: String(personal.cnic ?? personal.profile?.cnic ?? ''),
-        profile_picture: String(personal.profile_picture ?? personal.profilePicture ?? ''),
-      };
-      setForm(loaded);
-      setServerForm(loaded);
-      setImageError(false);
-    } catch (error) {
-      console.error('PersonalInfoScreen: Failed to load personal info:', error);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, []);
+  const loadPersonalInfo = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        return;
+      }
+
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.personal.get();
+        const data = unwrapApiData(response) ?? {};
+        const personal = data.user ?? data.profile ?? data;
+        const loaded: PersonalForm = {
+          fullName: String(personal.full_name ?? personal.fullName ?? ''),
+          email: String(personal.email ?? ''),
+          phone: String(personal.phone ?? ''),
+          city: String(personal.city ?? ''),
+          date_of_birth: String(
+            personal.date_of_birth ?? personal.dateOfBirth ?? '',
+          ),
+          cnic: String(personal.cnic ?? personal.profile?.cnic ?? ''),
+          profile_picture: String(
+            personal.profile_picture ?? personal.profilePicture ?? '',
+          ),
+        };
+        setForm(loaded);
+        setServerForm(loaded);
+        setImageError(false);
+      } catch (error) {
+        console.error(
+          'PersonalInfoScreen: Failed to load personal info:',
+          error,
+        );
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -189,15 +207,26 @@ const PersonalInfoScreen = ({ navigation }: any) => {
     }, [loadPersonalInfo]),
   );
 
-  const handlePickPhoto = () =>
+  const handlePickPhoto = () => {
+    if (!token) {
+      promptLogin(navigation);
+      return;
+    }
+
     pickProfileImage(image => {
       setSelectedPhoto(image);
       setField('profile_picture')(image.uri);
       setImageError(false);
     });
+  };
 
   const handleSave = async () => {
     if (saving) {
+      return;
+    }
+
+    if (!token) {
+      promptLogin(navigation);
       return;
     }
 
@@ -240,13 +269,19 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       const freshData = unwrapApiData(freshResponse) ?? {};
       const freshPersonal = freshData.user ?? freshData.profile ?? freshData;
       const freshForm: PersonalForm = {
-        fullName: String(freshPersonal.full_name ?? freshPersonal.fullName ?? ''),
+        fullName: String(
+          freshPersonal.full_name ?? freshPersonal.fullName ?? '',
+        ),
         email: String(freshPersonal.email ?? ''),
         phone: String(freshPersonal.phone ?? ''),
         city: String(freshPersonal.city ?? ''),
-        date_of_birth: String(freshPersonal.date_of_birth ?? freshPersonal.dateOfBirth ?? ''),
+        date_of_birth: String(
+          freshPersonal.date_of_birth ?? freshPersonal.dateOfBirth ?? '',
+        ),
         cnic: String(freshPersonal.cnic ?? freshPersonal.profile?.cnic ?? ''),
-        profile_picture: String(freshPersonal.profile_picture ?? freshPersonal.profilePicture ?? ''),
+        profile_picture: String(
+          freshPersonal.profile_picture ?? freshPersonal.profilePicture ?? '',
+        ),
       };
 
       const storeUpdate: Parameters<typeof updateUser>[0] = {};
@@ -254,9 +289,13 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       if (freshForm.email) storeUpdate.email = freshForm.email;
       if (freshForm.phone) storeUpdate.phone = freshForm.phone;
       if (freshForm.city) storeUpdate.city = freshForm.city;
-      if (freshForm.date_of_birth) storeUpdate.date_of_birth = freshForm.date_of_birth;
+      if (freshForm.date_of_birth)
+        storeUpdate.date_of_birth = freshForm.date_of_birth;
       if (freshForm.cnic) {
-        storeUpdate.profile = { ...(user?.profile ?? {}), cnic: freshForm.cnic };
+        storeUpdate.profile = {
+          ...(user?.profile ?? {}),
+          cnic: freshForm.cnic,
+        };
       }
       if (freshForm.profile_picture) {
         storeUpdate.profile_picture = freshForm.profile_picture;
@@ -339,7 +378,11 @@ const PersonalInfoScreen = ({ navigation }: any) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         <View className="px-4 pt-6 pb-10">

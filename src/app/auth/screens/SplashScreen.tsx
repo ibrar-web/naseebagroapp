@@ -24,16 +24,19 @@ const SplashScreen = ({ navigation }: Props) => {
 
       if (raw) {
         try {
-          const { token, user }: { token: string; user: User } = JSON.parse(raw);
-          dispatch(loginSuccess({ user, token }));
-          navigation.replace('MainTabs');
-          return;
+          const { token, user }: { token: string; user: User } =
+            JSON.parse(raw);
+          if (token && user) {
+            dispatch(loginSuccess({ user, token }));
+            navigation.replace('MainTabs');
+            return;
+          }
         } catch {
-          // corrupted data — fall through to Welcome
-          await EncryptedStorage.removeItem('session').catch(() => null);
+          // Corrupted session data should not block guest browsing.
         }
+        await EncryptedStorage.removeItem('session').catch(() => null);
       }
-      navigation.replace('Welcome');
+      navigation.replace('MainTabs');
     };
 
     restoreSession();

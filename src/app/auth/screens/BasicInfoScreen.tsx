@@ -31,13 +31,19 @@ const BasicInfoScreen = ({ navigation }: Props) => {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    dateOfBirth: '',
     password: '',
     confirm: '',
   });
 
+  const dateIsValid =
+    /^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth) &&
+    !Number.isNaN(new Date(form.dateOfBirth).getTime());
+
   const canContinue =
     form.name.length > 2 &&
     form.email.includes('@') &&
+    dateIsValid &&
     form.password.length >= 8 &&
     form.password === form.confirm;
 
@@ -45,11 +51,14 @@ const BasicInfoScreen = ({ navigation }: Props) => {
     setForm(prev => ({ ...prev, [key]: val }));
 
   const handleContinue = () => {
-    dispatch(setRegisterBasicInfo({
-      fullName: form.name,
-      email: form.email,
-      password: form.password,
-    }));
+    dispatch(
+      setRegisterBasicInfo({
+        fullName: form.name,
+        email: form.email,
+        password: form.password,
+        dateOfBirth: form.dateOfBirth,
+      }),
+    );
     navigation.navigate('BizInfo');
   };
 
@@ -75,7 +84,12 @@ const BasicInfoScreen = ({ navigation }: Props) => {
       >
         <View
           className="bg-white rounded-2xl p-4 mb-5 gap-4"
-          style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }}
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
         >
           {[
             {
@@ -90,6 +104,13 @@ const BasicInfoScreen = ({ navigation }: Props) => {
               key: 'email' as const,
               placeholder: t('auth.emailPlaceholder'),
               keyboard: 'email-address' as const,
+              secure: false,
+            },
+            {
+              label: t('auth.dateOfBirth'),
+              key: 'dateOfBirth' as const,
+              placeholder: t('auth.dateOfBirthPlaceholder'),
+              keyboard: 'numbers-and-punctuation' as const,
               secure: false,
             },
             {
@@ -128,11 +149,18 @@ const BasicInfoScreen = ({ navigation }: Props) => {
 
         <TouchableOpacity
           onPress={handleContinue}
-          className={`py-4 rounded-2xl items-center bg-green-700 ${!canContinue ? 'opacity-40' : ''}`}
+          className={`py-4 rounded-2xl items-center bg-green-700 ${
+            !canContinue ? 'opacity-40' : ''
+          }`}
           disabled={!canContinue}
           style={
             canContinue
-              ? { shadowColor: '#1A6B34', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }
+              ? {
+                  shadowColor: '#1A6B34',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }
               : {}
           }
           activeOpacity={0.88}

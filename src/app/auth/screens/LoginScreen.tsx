@@ -11,6 +11,7 @@ import {
   StatusBar,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,7 +19,6 @@ import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
 import { loginSuccess, type User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
-import ENV from '../../../environment';
 
 const WINDOW_HEIGHT = Dimensions.get('window').height;
 
@@ -27,37 +27,27 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 const LoginScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
 
-  const [usePhone, setUsePhone] = useState(true);
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const inputValid = usePhone ? phone.length >= 10 : email.includes('@');
-  const canSignIn = inputValid && pin.length >= 4;
+  const canSignIn = email.includes('@') && pin.length >= 6;
 
   const handleSignIn = async () => {
-    console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
     if (!canSignIn || loading) {
       return;
     }
     setLoading(true);
     try {
-      const payload: Record<string, string> = { password: pin };
-      console.log('payload', payload);
-      if (usePhone) {
-        payload.phone = '+92' + phone;
-      } else {
-        payload.email = email;
-      }
+      const payload = {
+        email: email.trim().toLowerCase(),
+        password: pin,
+      };
 
-      // api returns the full envelope: { status, message, data: { access_token, user } }
       const result = (await api.auth.login(payload)) as any;
-      console.log('result', result);
       const { access_token, user }: { access_token: string; user: User } =
         result;
-      console.log('access_token, user:', access_token, user);
       await EncryptedStorage.setItem(
         'session',
         JSON.stringify({ token: access_token, user }),
@@ -66,6 +56,7 @@ const LoginScreen = ({ navigation }: Props) => {
       navigation.replace('MainTabs');
     } catch (error) {
       console.log('error :', error);
+      Alert.alert('Login Failed', 'Please check your email and password.');
     } finally {
       setLoading(false);
     }
@@ -102,83 +93,24 @@ const LoginScreen = ({ navigation }: Props) => {
             Sign In
           </Text>
 
-          {/* ── Phone / Email toggle ── */}
-          <View style={styles.toggle}>
-            <TouchableOpacity
-              onPress={() => setUsePhone(true)}
-              style={[styles.toggleBtn, usePhone && styles.toggleBtnActive]}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[styles.toggleText, usePhone && styles.toggleTextActive]}
-              >
-                Phone
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setUsePhone(false)}
-              style={[styles.toggleBtn, !usePhone && styles.toggleBtnActive]}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  !usePhone && styles.toggleTextActive,
-                ]}
-              >
-                Email
-              </Text>
-            </TouchableOpacity>
+          <Text className="text-gray-700 text-sm font-bold mb-2">
+            Email Address
+          </Text>
+          <View
+            className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
+            style={styles.inputRow}
+          >
+            <TextInput
+              className="flex-1 text-gray-900 text-base px-4"
+              style={styles.inputText}
+              placeholder="you@example.com"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
           </View>
-
-          {/* ── Input ── */}
-          {usePhone ? (
-            <>
-              <Text className="text-gray-700 text-sm font-bold mb-2">
-                Phone Number
-              </Text>
-              <View
-                className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
-                style={styles.inputRow}
-              >
-                <Text className="text-gray-900 font-bold text-base px-4">
-                  +92
-                </Text>
-                <View className="w-px bg-gray-200" style={styles.divider} />
-                <TextInput
-                  className="flex-1 text-gray-900 text-base px-4"
-                  style={styles.inputText}
-                  placeholder="3XX XXXXXXX"
-                  placeholderTextColor="#9CA3AF"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  maxLength={11}
-                />
-              </View>
-            </>
-          ) : (
-            <>
-              <Text className="text-gray-700 text-sm font-bold mb-2">
-                Email Address
-              </Text>
-              <View
-                className="border border-gray-200 rounded-2xl flex-row items-center mb-5 bg-gray-50"
-                style={styles.inputRow}
-              >
-                <TextInput
-                  className="flex-1 text-gray-900 text-base px-4"
-                  style={styles.inputText}
-                  placeholder="you@example.com"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </>
-          )}
 
           {/* ── PIN / Password ── */}
           <Text className="text-gray-700 text-sm font-bold mb-2">
@@ -228,6 +160,16 @@ const LoginScreen = ({ navigation }: Props) => {
             ) : (
               <Text className="text-white text-base font-bold">Sign In</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.replace('MainTabs')}
+            className="py-3 items-center mb-3"
+            activeOpacity={0.7}
+          >
+            <Text className="text-gray-400 text-sm font-bold">
+              Continue as Guest
+            </Text>
           </TouchableOpacity>
 
           {/* ── Create account ── */}

@@ -8,6 +8,7 @@ import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
+import { useAppSelector } from '../../../store';
 import {
   firstString,
   formatDisplayDate,
@@ -143,6 +144,7 @@ const buildVerificationItems = (response: any): VerificationItem[] => {
 
 const VerificationStatusScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const token = useAppSelector(s => s.auth.token);
   const [items, setItems] = useState<VerificationItem[]>(
     BASE_ITEMS.map(item => ({ ...item, status: 'pending', verifiedAt: '' })),
   );
@@ -150,35 +152,45 @@ const VerificationStatusScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadVerificationStatus = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.verificationStatus.get();
-      const payload = unwrapApiData(response);
-      const nextItems = buildVerificationItems(response);
-      const verified =
-        toBoolean(
-          payload?.is_verified ??
-            payload?.account_verified ??
-            payload?.accountVerified,
-        ) || nextItems.every(item => item.status === 'approved');
+  const loadVerificationStatus = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        return;
+      }
 
-      setItems(nextItems);
-      setAccountVerified(verified);
-    } catch (error) {
-      console.error('VerificationStatusScreen: Failed to load verification status:', error);
-      setItems(
-        BASE_ITEMS.map(item => ({
-          ...item,
-          status: 'pending',
-          verifiedAt: '',
-        })),
-      );
-      setAccountVerified(false);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, []);
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.verificationStatus.get();
+        const payload = unwrapApiData(response);
+        const nextItems = buildVerificationItems(response);
+        const verified =
+          toBoolean(
+            payload?.is_verified ??
+              payload?.account_verified ??
+              payload?.accountVerified,
+          ) || nextItems.every(item => item.status === 'approved');
+
+        setItems(nextItems);
+        setAccountVerified(verified);
+      } catch (error) {
+        console.error(
+          'VerificationStatusScreen: Failed to load verification status:',
+          error,
+        );
+        setItems(
+          BASE_ITEMS.map(item => ({
+            ...item,
+            status: 'pending',
+            verifiedAt: '',
+          })),
+        );
+        setAccountVerified(false);
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -204,7 +216,11 @@ const VerificationStatusScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         <View

@@ -1,21 +1,32 @@
 import axios from 'axios';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import EncryptedStorage from 'react-native-encrypted-storage';
 import { store } from '../store';
 import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
-console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
+
+type HttpServiceOptions = {
+  authRequired?: boolean;
+};
+
 class HttpService {
   service: any;
+  private authRequired: boolean;
 
-  constructor() {
-    console.log('ENV.API_BASE_URL:', ENV.API_BASE_URL);
+  constructor(options: HttpServiceOptions = {}) {
+    this.authRequired = Boolean(options.authRequired);
+
+    const token = store.getState().auth.token;
+    const headers: Record<string, string> = {};
+
+    if (token && this.authRequired) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     this.service = axios.create({
       baseURL: ENV.API_BASE_URL,
       timeout: ENV.TIMEOUT,
-      headers: {
-        Authorization: `Bearer ${store.getState().auth.token}`,
-      },
+      headers,
     });
 
     this.service.interceptors.response.use(
@@ -53,7 +64,7 @@ class HttpService {
         case 401:
           Alert.alert('Session Expired', 'Please log in again.');
           store.dispatch(resetAllReduxStates());
-          AsyncStorage.clear();
+          EncryptedStorage.removeItem('session').catch(() => undefined);
           break;
         case 403:
           Alert.alert(
@@ -87,11 +98,33 @@ class HttpService {
     }
   }
 
+  ensureAuthorized() {
+    if (!this.authRequired) {
+      return null;
+    }
+
+    const token = store.getState().auth.token;
+
+    if (token) {
+      this.service.defaults.headers.Authorization = `Bearer ${token}`;
+      return null;
+    }
+
+    const error = new Error('Login required') as Error & { code: string };
+    error.code = 'AUTH_REQUIRED';
+    Alert.alert('Login Required', 'Please log in to continue.');
+    return Promise.reject(error);
+  }
+
   get(...args: any) {
+    const authError = this.ensureAuthorized();
+    if (authError) return authError;
     return this.service.get(...args);
   }
 
   post(...args: any) {
+    const authError = this.ensureAuthorized();
+    if (authError) return authError;
     const [path, data] = args;
     if (data instanceof FormData) {
       this.service.defaults.headers['Content-Type'] = 'multipart/form-data';
@@ -100,6 +133,8 @@ class HttpService {
   }
 
   put(...args: any) {
+    const authError = this.ensureAuthorized();
+    if (authError) return authError;
     const [path, data] = args;
     if (data instanceof FormData) {
       this.service.defaults.headers['Content-Type'] = 'multipart/form-data';
@@ -108,6 +143,8 @@ class HttpService {
   }
 
   patch(...args: any) {
+    const authError = this.ensureAuthorized();
+    if (authError) return authError;
     const [path, data] = args;
     if (data instanceof FormData) {
       this.service.defaults.headers['Content-Type'] = 'multipart/form-data';
@@ -116,6 +153,8 @@ class HttpService {
   }
 
   delete(...args: any) {
+    const authError = this.ensureAuthorized();
+    if (authError) return authError;
     return this.service.delete(...args);
   }
 }

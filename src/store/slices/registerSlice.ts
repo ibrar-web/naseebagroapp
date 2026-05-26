@@ -10,6 +10,7 @@ export interface RegisterFormState {
   fullName: string;
   email: string;
   password: string;
+  dateOfBirth: string;
   city: string;
   businessName: string;
   businessType: string;
@@ -24,6 +25,7 @@ const initialState: RegisterFormState = {
   fullName: '',
   email: '',
   password: '',
+  dateOfBirth: '',
   city: '',
   businessName: '',
   businessType: '',
@@ -42,15 +44,25 @@ const registerSlice = createSlice({
     },
     setRegisterBasicInfo: (
       state,
-      action: PayloadAction<{ fullName: string; email: string; password: string }>,
+      action: PayloadAction<{
+        fullName: string;
+        email: string;
+        password: string;
+        dateOfBirth: string;
+      }>,
     ) => {
       state.fullName = action.payload.fullName;
       state.email = action.payload.email;
       state.password = action.payload.password;
+      state.dateOfBirth = action.payload.dateOfBirth;
     },
     setRegisterBizInfo: (
       state,
-      action: PayloadAction<{ city: string; businessName: string; businessType: string }>,
+      action: PayloadAction<{
+        city: string;
+        businessName: string;
+        businessType: string;
+      }>,
     ) => {
       state.city = action.payload.city;
       state.businessName = action.payload.businessName;
@@ -58,7 +70,11 @@ const registerSlice = createSlice({
     },
     setRegisterIdInfo: (
       state,
-      action: PayloadAction<{ cnic: string; cnicFront: CnicImage; cnicBack: CnicImage }>,
+      action: PayloadAction<{
+        cnic: string;
+        cnicFront: CnicImage;
+        cnicBack: CnicImage;
+      }>,
     ) => {
       state.cnic = action.payload.cnic;
       state.cnicFront = action.payload.cnicFront;

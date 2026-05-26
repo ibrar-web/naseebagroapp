@@ -1,6 +1,13 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Modal,
+} from 'react-native';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -14,6 +21,7 @@ import type { TranslationKey } from '../../../localization';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
 import { firstString, toBoolean, unwrapApiData } from '../utils/profileApi';
+import { useAppSelector } from '../../../store';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -75,6 +83,7 @@ const SettingsCardText = ({ row }: { row: SettingsRow }) => {
 
 const AppSettingsScreen = ({ navigation }: any) => {
   const { t, language, setLanguage } = useTranslation();
+  const token = useAppSelector(s => s.auth.token);
   const [settings, setSettings] = useState({
     language,
     currency: '',
@@ -87,36 +96,48 @@ const AppSettingsScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
-  const loadSettings = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.appSettings.get();
-      const payload = unwrapApiData(response);
-      const data = payload?.settings ?? payload?.app_settings ?? payload;
-      const apiLanguage = firstString(data?.language);
-      const nextLanguage = isSupportedLanguage(apiLanguage)
-        ? apiLanguage
-        : undefined;
-
-      // Only update language from API if it returns a valid, different value
-      const resolvedLanguage = nextLanguage ?? languageRef.current;
-      if (resolvedLanguage !== languageRef.current) {
-        languageRef.current = resolvedLanguage;
-        setLanguage(resolvedLanguage);
+  const loadSettings = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        setSettings(current => ({
+          ...current,
+          language: languageRef.current,
+          currency: current.currency || 'PKR',
+        }));
+        return;
       }
 
-      setSettings({
-        language: resolvedLanguage,
-        currency: firstString(data?.currency),
-        biometricLogin: toBoolean(data?.biometric_login_enabled),
-        twoFactor: toBoolean(data?.two_factor_enabled),
-      });
-    } catch (error) {
-      console.error('AppSettingsScreen: Failed to load settings:', error);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, [setLanguage]);
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.appSettings.get();
+        const payload = unwrapApiData(response);
+        const data = payload?.settings ?? payload?.app_settings ?? payload;
+        const apiLanguage = firstString(data?.language);
+        const nextLanguage = isSupportedLanguage(apiLanguage)
+          ? apiLanguage
+          : undefined;
+
+        // Only update language from API if it returns a valid, different value
+        const resolvedLanguage = nextLanguage ?? languageRef.current;
+        if (resolvedLanguage !== languageRef.current) {
+          languageRef.current = resolvedLanguage;
+          setLanguage(resolvedLanguage);
+        }
+
+        setSettings({
+          language: resolvedLanguage,
+          currency: firstString(data?.currency),
+          biometricLogin: toBoolean(data?.biometric_login_enabled),
+          twoFactor: toBoolean(data?.two_factor_enabled),
+        });
+      } catch (error) {
+        console.error('AppSettingsScreen: Failed to load settings:', error);
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [setLanguage, token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -143,6 +164,11 @@ const AppSettingsScreen = ({ navigation }: any) => {
     }
 
     applyLocalChange();
+
+    if (!token) {
+      return;
+    }
+
     setUpdating(true);
     try {
       await api.profile.appSettings.update(payload);
@@ -288,7 +314,11 @@ const AppSettingsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         {groups.map(group => (

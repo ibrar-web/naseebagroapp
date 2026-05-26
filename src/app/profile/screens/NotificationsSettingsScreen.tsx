@@ -7,6 +7,7 @@ import type { TranslationKey } from '../../../localization';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
 import { toBoolean, unwrapApiData } from '../utils/profileApi';
+import { useAppSelector } from '../../../store';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -75,6 +76,7 @@ const TOGGLES: ToggleRow[] = [
 
 const NotificationsSettingsScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const token = useAppSelector(s => s.auth.token);
   const [prefs, setPrefs] = useState<Record<ToggleKey, boolean>>({
     deals: false,
     offers: false,
@@ -96,32 +98,42 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
     return toBoolean(value, false);
   }, []);
 
-  const loadNotifications = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.notifications.get();
-      const payload = unwrapApiData(response);
-      const data =
-        payload?.notifications ??
-        payload?.settings ??
-        payload?.preferences ??
-        payload;
+  const loadNotifications = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        return;
+      }
 
-      setPrefs(
-        TOGGLES.reduce(
-          (nextPrefs, item) => ({
-            ...nextPrefs,
-            [item.key]: readToggleValue(data, item),
-          }),
-          {} as Record<ToggleKey, boolean>,
-        ),
-      );
-    } catch (error) {
-      console.error('NotificationsSettingsScreen: Failed to load notifications:', error);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, [readToggleValue]);
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.notifications.get();
+        const payload = unwrapApiData(response);
+        const data =
+          payload?.notifications ??
+          payload?.settings ??
+          payload?.preferences ??
+          payload;
+
+        setPrefs(
+          TOGGLES.reduce(
+            (nextPrefs, item) => ({
+              ...nextPrefs,
+              [item.key]: readToggleValue(data, item),
+            }),
+            {} as Record<ToggleKey, boolean>,
+          ),
+        );
+      } catch (error) {
+        console.error(
+          'NotificationsSettingsScreen: Failed to load notifications:',
+          error,
+        );
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [readToggleValue, token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -145,12 +157,20 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
 
     const nextValue = !prefs[item.key];
     setPrefs(current => ({ ...current, [item.key]: nextValue }));
+
+    if (!token) {
+      return;
+    }
+
     setUpdatingKey(item.key);
 
     try {
       await api.profile.notifications.update({ [item.apiKey]: nextValue });
     } catch (error) {
-      console.error('NotificationsSettingsScreen: Toggle update failed:', error);
+      console.error(
+        'NotificationsSettingsScreen: Toggle update failed:',
+        error,
+      );
       setPrefs(current => ({ ...current, [item.key]: !nextValue }));
     } finally {
       setUpdatingKey(null);
@@ -166,7 +186,11 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         <View

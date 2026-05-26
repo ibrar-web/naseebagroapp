@@ -22,6 +22,7 @@ import { updateUser } from '../../../store/slices/authSlice';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
 import { unwrapApiData } from '../utils/profileApi';
+import { promptLogin } from '../../auth/utils/requireLogin';
 
 const formatDisplayDate = (value: any) => {
   if (!value) {
@@ -102,6 +103,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
+  const token = useAppSelector(s => s.auth.token);
 
   const [form, setForm] = useState<BusinessForm>({
     business_name: '',
@@ -127,31 +129,51 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setSaved(false);
     };
 
-  const loadBusinessInfo = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.business.get();
-      console.log('business',response)
-      const data = unwrapApiData(response) ?? {};
-      const profile = data.profile ?? data;
-      const loaded: BusinessForm = {
-        business_name: String(profile.business_name ?? profile.businessName ?? ''),
-        business_type: String(profile.business_type ?? profile.businessType ?? ''),
-        business_registration_number: String(
-          profile.business_registration_number ?? profile.businessRegistrationNumber ?? '',
-        ),
-        primary_crop: String(profile.primary_crop ?? profile.primaryCrop ?? ''),
-        farm_location: String(profile.farm_location ?? profile.farmLocation ?? profile.city ?? ''),
-        farm_size: String(profile.farm_size ?? profile.farmSize ?? ''),
-      };
-      setForm(loaded);
-      setServerForm(loaded);
-    } catch (error) {
-      console.error('BusinessProfileScreen: Failed to load business info:', error);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, []);
+  const loadBusinessInfo = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        return;
+      }
+
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.business.get();
+        console.log('business', response);
+        const data = unwrapApiData(response) ?? {};
+        const profile = data.profile ?? data;
+        const loaded: BusinessForm = {
+          business_name: String(
+            profile.business_name ?? profile.businessName ?? '',
+          ),
+          business_type: String(
+            profile.business_type ?? profile.businessType ?? '',
+          ),
+          business_registration_number: String(
+            profile.business_registration_number ??
+              profile.businessRegistrationNumber ??
+              '',
+          ),
+          primary_crop: String(
+            profile.primary_crop ?? profile.primaryCrop ?? '',
+          ),
+          farm_location: String(
+            profile.farm_location ?? profile.farmLocation ?? profile.city ?? '',
+          ),
+          farm_size: String(profile.farm_size ?? profile.farmSize ?? ''),
+        };
+        setForm(loaded);
+        setServerForm(loaded);
+      } catch (error) {
+        console.error(
+          'BusinessProfileScreen: Failed to load business info:',
+          error,
+        );
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -173,9 +195,14 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       return;
     }
 
-    const changedFields = (Object.keys(form) as Array<keyof BusinessForm>).filter(
-      k => form[k] !== serverForm[k],
-    );
+    if (!token) {
+      promptLogin(navigation);
+      return;
+    }
+
+    const changedFields = (
+      Object.keys(form) as Array<keyof BusinessForm>
+    ).filter(k => form[k] !== serverForm[k]);
 
     if (changedFields.length === 0) {
       return;
@@ -195,14 +222,29 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       const freshData = unwrapApiData(freshResponse) ?? {};
       const freshProfile = freshData.profile ?? freshData;
       const freshForm: BusinessForm = {
-        business_name: String(freshProfile.business_name ?? freshProfile.businessName ?? ''),
-        business_type: String(freshProfile.business_type ?? freshProfile.businessType ?? ''),
-        business_registration_number: String(
-          freshProfile.business_registration_number ?? freshProfile.businessRegistrationNumber ?? '',
+        business_name: String(
+          freshProfile.business_name ?? freshProfile.businessName ?? '',
         ),
-        primary_crop: String(freshProfile.primary_crop ?? freshProfile.primaryCrop ?? ''),
-        farm_location: String(freshProfile.farm_location ?? freshProfile.farmLocation ?? freshProfile.city ?? ''),
-        farm_size: String(freshProfile.farm_size ?? freshProfile.farmSize ?? ''),
+        business_type: String(
+          freshProfile.business_type ?? freshProfile.businessType ?? '',
+        ),
+        business_registration_number: String(
+          freshProfile.business_registration_number ??
+            freshProfile.businessRegistrationNumber ??
+            '',
+        ),
+        primary_crop: String(
+          freshProfile.primary_crop ?? freshProfile.primaryCrop ?? '',
+        ),
+        farm_location: String(
+          freshProfile.farm_location ??
+            freshProfile.farmLocation ??
+            freshProfile.city ??
+            '',
+        ),
+        farm_size: String(
+          freshProfile.farm_size ?? freshProfile.farmSize ?? '',
+        ),
       };
 
       dispatch(
@@ -212,7 +254,8 @@ const BusinessProfileScreen = ({ navigation }: any) => {
             ...(user?.profile ?? {}),
             business_name: freshForm.business_name,
             business_type: freshForm.business_type,
-            business_registration_number: freshForm.business_registration_number,
+            business_registration_number:
+              freshForm.business_registration_number,
             primary_crop: freshForm.primary_crop,
             farm_size: freshForm.farm_size,
           },
@@ -293,7 +336,11 @@ const BusinessProfileScreen = ({ navigation }: any) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         <View className="px-4 pt-8 pb-10">
@@ -307,7 +354,9 @@ const BusinessProfileScreen = ({ navigation }: any) => {
               </Text>
               <Text className="mt-1 text-green-300 text-base font-medium">
                 {verified && verifiedAt
-                  ? `${t('business.verifiedSeller')} · ${formatDisplayDate(verifiedAt)}`
+                  ? `${t('business.verifiedSeller')} · ${formatDisplayDate(
+                      verifiedAt,
+                    )}`
                   : verified
                   ? t('business.verifiedSeller')
                   : t('common.pending')}

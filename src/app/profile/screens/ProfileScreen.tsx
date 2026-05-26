@@ -8,6 +8,7 @@ import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
+import { navigateToLogin } from '../../auth/utils/requireLogin';
 
 type MenuItem = {
   icon: AppIconName;
@@ -93,14 +94,17 @@ const ProfileScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const user = useAppSelector(s => s.auth.user);
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
 
   const handleLogout = async () => {
     await EncryptedStorage.removeItem('session').catch(() => null);
     dispatch(logout());
     // Reset the root stack so the user cannot navigate back to MainTabs
-    navigation.getParent()?.dispatch(
-      CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }),
-    );
+    navigation
+      .getParent()
+      ?.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }),
+      );
   };
 
   const displayName = user?.fullName ?? 'Guest';
@@ -243,15 +247,19 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         ))}
 
-        {/* Log out */}
+        {/* Log in / Log out */}
         <View className="px-4 mt-6">
           <TouchableOpacity
-            onPress={handleLogout}
+            onPress={
+              isAuthenticated ? handleLogout : () => navigateToLogin(navigation)
+            }
             activeOpacity={0.85}
             className="bg-white rounded-2xl py-4 items-center"
             style={{
               borderWidth: 1,
-              borderColor: 'rgba(239,68,68,0.25)',
+              borderColor: isAuthenticated
+                ? 'rgba(239,68,68,0.25)'
+                : 'rgba(26,107,52,0.25)',
               shadowColor: '#000',
               shadowOpacity: 0.04,
               shadowRadius: 4,
@@ -260,10 +268,18 @@ const ProfileScreen = ({ navigation }: any) => {
           >
             <View className="flex-row items-center">
               <View className="mr-2">
-                <AppIcon name="logout" size={18} color="#EF4444" />
+                <AppIcon
+                  name={isAuthenticated ? 'logout' : 'profileAvatar'}
+                  size={18}
+                  color={isAuthenticated ? '#EF4444' : '#1A6B34'}
+                />
               </View>
-              <Text className="text-red-500 text-base font-bold">
-                {t('profile.logout')}
+              <Text
+                className={`text-base font-bold ${
+                  isAuthenticated ? 'text-red-500' : 'text-green-700'
+                }`}
+              >
+                {isAuthenticated ? t('profile.logout') : t('auth.login')}
               </Text>
             </View>
           </TouchableOpacity>

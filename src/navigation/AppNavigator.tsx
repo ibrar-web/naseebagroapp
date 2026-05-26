@@ -56,14 +56,17 @@ import { AppIcon } from '../assets/icons';
 import type { AppIconName } from '../assets/icons';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab   = createBottomTabNavigator<TabParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
-const TAB_CONFIG: Record<string, { icon: AppIconName; labelKey: TranslationKey }> = {
-  Home:    { icon: 'tabHome',    labelKey: 'tabs.home'    },
-  Market:  { icon: 'tabMarket',  labelKey: 'tabs.market'  },
-  Deals:   { icon: 'tabDeals',   labelKey: 'tabs.deals'   },
-  Post:    { icon: 'tabPost',    labelKey: 'tabs.post'    },
+const TAB_CONFIG: Record<
+  string,
+  { icon: AppIconName; labelKey: TranslationKey }
+> = {
+  Home: { icon: 'tabHome', labelKey: 'tabs.home' },
+  Market: { icon: 'tabMarket', labelKey: 'tabs.market' },
+  Deals: { icon: 'tabDeals', labelKey: 'tabs.deals' },
+  Post: { icon: 'tabPost', labelKey: 'tabs.post' },
   Profile: { icon: 'tabProfile', labelKey: 'tabs.profile' },
 };
 
@@ -95,14 +98,20 @@ const CustomTabBar = ({ state, navigation }: any) => {
         return (
           <TouchableOpacity
             key={route.key}
-            onPress={() => { if (!isFocused) { navigation.navigate(route.name); } }}
+            onPress={() => {
+              if (!isFocused) {
+                navigation.navigate(route.name);
+              }
+            }}
             className="flex-1 items-center"
             style={{ gap: 2, paddingTop: 4 }}
             activeOpacity={0.7}
             accessibilityRole="button"
           >
             <View
-              className={`w-10 items-center justify-center rounded-xl ${isFocused ? 'bg-green-100' : ''}`}
+              className={`w-10 items-center justify-center rounded-xl ${
+                isFocused ? 'bg-green-100' : ''
+              }`}
               style={{ height: 28 }}
             >
               {cfg ? (
@@ -111,7 +120,13 @@ const CustomTabBar = ({ state, navigation }: any) => {
                 <Text style={{ fontSize: 18, color: iconColor }}>●</Text>
               )}
             </View>
-            <Text style={{ fontSize: 10, fontWeight: isFocused ? '700' : '500', color: iconColor }}>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: isFocused ? '700' : '500',
+                color: iconColor,
+              }}
+            >
               {label}
             </Text>
           </TouchableOpacity>
@@ -158,26 +173,6 @@ export const AppNavigator = () => (
       initialRouteName="Splash"
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
-      {/* Auth */}
-      <Stack.Screen
-        name="Splash"
-        component={SplashScreen}
-        options={{ animation: 'none' }}
-      />
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Phone" component={PhoneScreen} />
-      <Stack.Screen name="OTP" component={OTPScreen} />
-
-      {/* Onboarding */}
-      <Stack.Screen name="Location" component={LocationScreen} />
-      <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
-      <Stack.Screen name="BizInfo" component={BizInfoScreen} />
-      <Stack.Screen name="IdVerify" component={IdVerifyScreen} />
-      <Stack.Screen name="PaymentSetup" component={PaymentSetupScreen} />
-      <Stack.Screen name="VerifyPending" component={VerifyPendingScreen} />
-      <Stack.Screen name="VerifyApproved" component={VerifyApprovedScreen} />
-
       {/* Main tabs */}
       <Stack.Screen
         name="MainTabs"
@@ -205,6 +200,26 @@ export const AppNavigator = () => (
       <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
+
+      {/* Auth */}
+      <Stack.Screen
+        name="Splash"
+        component={SplashScreen}
+        options={{ animation: 'none' }}
+      />
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Phone" component={PhoneScreen} />
+      <Stack.Screen name="OTP" component={OTPScreen} />
+
+      {/* Onboarding */}
+      <Stack.Screen name="Location" component={LocationScreen} />
+      <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
+      <Stack.Screen name="BizInfo" component={BizInfoScreen} />
+      <Stack.Screen name="IdVerify" component={IdVerifyScreen} />
+      <Stack.Screen name="PaymentSetup" component={PaymentSetupScreen} />
+      <Stack.Screen name="VerifyPending" component={VerifyPendingScreen} />
+      <Stack.Screen name="VerifyApproved" component={VerifyApprovedScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );
@@ -220,5 +235,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
 });

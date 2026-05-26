@@ -15,6 +15,8 @@ import { useTranslation } from '../../../localization';
 import { BANKS } from '../../../constants';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
+import { useAppSelector } from '../../../store';
+import { promptLogin } from '../../auth/utils/requireLogin';
 
 const CARD_SHADOW = {
   shadowColor: '#000',
@@ -63,7 +65,13 @@ const parseBankingList = (response: any): any[] => {
     return payload;
   }
 
-  for (const key of ['banking', 'banking_details', 'bankingDetails', 'accounts', 'items']) {
+  for (const key of [
+    'banking',
+    'banking_details',
+    'bankingDetails',
+    'accounts',
+    'items',
+  ]) {
     if (Array.isArray(payload?.[key])) {
       return payload[key];
     }
@@ -108,6 +116,7 @@ const maskAccount = (accountNumber: string, iban: string) => {
 
 const PaymentMethodsScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const token = useAppSelector(s => s.auth.token);
   const [accounts, setAccounts] = useState<BankingDetail[]>([]);
   const [form, setForm] = useState<BankingForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,18 +131,29 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
     form.accountTitle.trim().length > 1 &&
     form.iban.trim().length > 4;
 
-  const loadBankingDetails = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const response = await api.profile.banking.get();
-      setAccounts(normalizeBankingDetails(response));
-    } catch (error) {
-      console.error('PaymentMethodsScreen: Failed to load banking details:', error);
-      setAccounts([]);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-  }, []);
+  const loadBankingDetails = useCallback(
+    async (isRefresh = false) => {
+      if (!token) {
+        setAccounts([]);
+        return;
+      }
+
+      if (!isRefresh) setLoading(true);
+      try {
+        const response = await api.profile.banking.get();
+        setAccounts(normalizeBankingDetails(response));
+      } catch (error) {
+        console.error(
+          'PaymentMethodsScreen: Failed to load banking details:',
+          error,
+        );
+        setAccounts([]);
+      } finally {
+        if (!isRefresh) setLoading(false);
+      }
+    },
+    [token],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -151,12 +171,22 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   );
 
   const startCreate = () => {
+    if (!token) {
+      promptLogin(navigation);
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm);
     setShowForm(true);
   };
 
   const startEdit = (account: BankingDetail) => {
+    if (!token) {
+      promptLogin(navigation);
+      return;
+    }
+
     setEditingId(account.id);
     setForm({
       bankName: account.bankName,
@@ -176,6 +206,11 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
 
   const handleSubmit = async () => {
     if (!canSubmit || saving) {
+      return;
+    }
+
+    if (!token) {
+      promptLogin(navigation);
       return;
     }
 
@@ -205,6 +240,11 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
 
   const handleDelete = (account: BankingDetail) => {
     if (!account.id) {
+      return;
+    }
+
+    if (!token) {
+      promptLogin(navigation);
       return;
     }
 
@@ -239,7 +279,11 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A6B34']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A6B34']}
+          />
         }
       >
         <Text className="px-1 pb-4 pt-2 text-xl font-extrabold uppercase tracking-widest text-gray-400">

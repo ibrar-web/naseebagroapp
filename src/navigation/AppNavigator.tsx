@@ -42,6 +42,9 @@ import MarketRatesScreen from '../app/market/screens/MarketRatesScreen';
 
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
+import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
+import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
+import PostDetailScreen from '../app/marketplace/screens/PostDetailScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
@@ -191,6 +194,9 @@ export const AppNavigator = () => (
       {/* Listing & deal detail */}
       <Stack.Screen name="CreatePost" component={PostScreen} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
+      <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
+      <Stack.Screen name="RequestToPurchase" component={RequestToPurchaseScreen} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
 

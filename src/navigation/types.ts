@@ -13,10 +13,13 @@ export type RootStackParamList = {
   MainTabs: undefined;
 
   // Marketplace detail
-  CreatePost:    undefined;
-  ListingDetail: { listingId: string };
-  DealDetail:    { dealId: string };
-  Notifications: undefined;
+  CreatePost:         undefined;
+  ListingDetail:      { listingId: string };
+  CommodityDetail:    { listingId: string };
+  RequestToPurchase:  { listingId: string };
+  PostDetail:         { postId: string };
+  DealDetail:         { dealId: string };
+  Notifications:      undefined;
 
   // Onboarding
   Location:      undefined;

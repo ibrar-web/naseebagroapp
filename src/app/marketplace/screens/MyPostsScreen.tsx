@@ -258,7 +258,12 @@ const MyPostsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 14, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <PostCard item={item} onPress={() => {}} />
+          <PostCard
+            item={item}
+            onPress={() =>
+              navigation.navigate('PostDetail', { postId: item.id })
+            }
+          />
         )}
         ListEmptyComponent={
           <View className="items-center pt-16" style={{ gap: 12 }}>

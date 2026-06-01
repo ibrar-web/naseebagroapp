@@ -39,6 +39,7 @@ import VerifyApprovedScreen from '../app/auth/screens/VerifyApprovedScreen';
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
+import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
 // Profile sub-screens (tab bar hidden)
 import PersonalInfoScreen from '../app/profile/screens/PersonalInfoScreen';
@@ -183,6 +184,7 @@ export const AppNavigator = () => (
       {/* Listing & deal detail */}
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
 
       {/* Profile sub-screens */}
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />

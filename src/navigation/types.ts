@@ -15,6 +15,7 @@ export type RootStackParamList = {
   // Marketplace detail
   ListingDetail: { listingId: string };
   DealDetail:    { dealId: string };
+  Notifications: undefined;
 
   // Onboarding
   Location:      undefined;

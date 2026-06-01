@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { switchMode } from '../../../store/slices/appSlice';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
+import iconRegistry from '../../../assets/icons/iconRegistry';
+import { AppIcon } from '../../../assets/icons';
 
 const { width: W } = Dimensions.get('window');
 
@@ -92,15 +95,25 @@ const HomeScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const user = useAppSelector(s => s.auth.user);
   const { t } = useTranslation();
+  const [showModeMenu, setShowModeMenu] = useState(false);
   const isBuyer = mode === 'buyer';
 
   const displayName = user?.fullName ?? 'Guest';
   const displayCity = user?.city ?? null;
+  const modeOptions = [
+    { value: 'buyer' as const, icon: '🛒', label: t('home.buyerMode') },
+    { value: 'seller' as const, icon: '📦', label: t('home.sellerMode') },
+  ];
+  const activeMode =
+    modeOptions.find(option => option.value === mode) ?? modeOptions[0];
 
   return (
     <View className="flex-1 bg-gray-50">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <View className="bg-green-800 px-4 pt-12 pb-4 overflow-hidden">
+      <View
+        className="bg-green-800 px-4 pt-12 pb-4"
+        style={{ zIndex: 10, elevation: 10 }}
+      >
         <View
           className="absolute rounded-full bg-green-600 opacity-20"
           style={{ width: 180, height: 180, top: -40, right: -40 }}
@@ -109,52 +122,80 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Row 1: Logo + mode toggle */}
         <View className="flex-row justify-between items-center mb-2">
           <View className="flex-row items-center gap-2">
-            <Text style={{ fontSize: 26 }}>🌾</Text>
-            <View>
-              <Text
-                className="text-white text-xl font-extrabold"
-                style={{ letterSpacing: -0.3 }}
-              >
-                naseeb
-              </Text>
-              <Text
-                className="text-gold font-bold"
-                style={{ fontSize: 7, letterSpacing: 2.5 }}
-              >
-                AGRI MARKET
-              </Text>
-            </View>
+            <Image
+              source={iconRegistry.naseeb}
+              style={{ height: 20, width: 20 }}
+              resizeMode="contain"
+            />
           </View>
-          <View className="flex-row gap-2">
-            {(['buyer', 'seller'] as const).map(m => (
-              <TouchableOpacity
-                key={m}
-                onPress={() => dispatch(switchMode(m))}
-                className={`px-3 py-1.5 rounded-xl ${
-                  mode === m ? 'bg-orange-500' : ''
-                }`}
-                style={
-                  mode !== m
-                    ? {
-                        backgroundColor: 'rgba(255,255,255,0.12)',
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.2)',
-                      }
-                    : {}
-                }
-                activeOpacity={0.8}
+          <View style={{ position: 'relative', zIndex: 20 }}>
+            <TouchableOpacity
+              onPress={() => setShowModeMenu(current => !current)}
+              className="flex-row items-center rounded-xl"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.094)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.2)',
+                paddingVertical: 8,
+                paddingLeft: 12,
+                paddingRight: 10,
+                gap: 8,
+              }}
+              activeOpacity={0.8}
+            >
+              <Text className="text-xs font-bold text-white">
+                {activeMode.icon} {activeMode.label}
+              </Text>
+              <AppIcon
+                name="chevronDown"
+                size={13}
+                color="rgba(255,255,255,0.8)"
+              />
+            </TouchableOpacity>
+
+            {showModeMenu ? (
+              <View
+                className="absolute right-0 top-10 rounded-xl overflow-hidden"
+                style={{
+                  width: 150,
+                  backgroundColor: 'rgb(13,59,31)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  zIndex: 30,
+                  elevation: 12,
+                }}
               >
-                <Text
-                  className={`text-xs font-semibold ${
-                    mode === m ? 'text-gray-900' : 'text-white opacity-80'
-                  }`}
-                >
-                  {m === 'buyer'
-                    ? `🛒 ${t('home.buyer')}`
-                    : `📦 ${t('home.seller')}`}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                {modeOptions.map((option, index) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    onPress={() => {
+                      dispatch(switchMode(option.value));
+                      setShowModeMenu(false);
+                    }}
+                    className="px-3 py-2.5"
+                    style={{
+                      backgroundColor:
+                        mode === option.value
+                          ? 'rgba(255,255,255,0.12)'
+                          : 'transparent',
+                      borderBottomWidth:
+                        index < modeOptions.length - 1 ? 1 : 0,
+                      borderBottomColor: 'rgba(255,255,255,0.12)',
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      className="text-xs font-bold"
+                      style={{
+                        color: mode === option.value ? '#F3CD03' : '#FFFFFF',
+                      }}
+                    >
+                      {option.icon} {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -186,12 +227,14 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </View>
           <TouchableOpacity
+            onPress={() => navigation.navigate('Notifications')}
             className="p-2.5 rounded-xl relative"
             style={{
               backgroundColor: 'rgba(255,255,255,0.12)',
               borderWidth: 1,
               borderColor: 'rgba(255,255,255,0.2)',
             }}
+            activeOpacity={0.8}
           >
             <Text style={{ fontSize: 20 }}>🔔</Text>
             <View className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange-500" />

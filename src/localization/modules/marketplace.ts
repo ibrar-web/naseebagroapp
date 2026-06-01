@@ -2,6 +2,8 @@ export const marketplaceTranslations = {
   en: {
     'home.buyer': 'Buyer',
     'home.seller': 'Seller',
+    'home.buyerMode': 'Buyer Mode',
+    'home.sellerMode': 'Seller Mode',
     'home.location': 'Lahore, Punjab',
     'home.activeDeals': 'Active Deals',
     'home.demands': 'Demands',
@@ -84,6 +86,8 @@ export const marketplaceTranslations = {
   ur: {
     'home.buyer': 'خریدار',
     'home.seller': 'سیلر',
+    'home.buyerMode': 'خریدار موڈ',
+    'home.sellerMode': 'سیلر موڈ',
     'home.location': 'لاہور، پنجاب',
     'home.activeDeals': 'فعال ڈیلز',
     'home.demands': 'ڈیمانڈز',

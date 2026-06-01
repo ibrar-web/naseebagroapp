@@ -1,9 +1,10 @@
 import React from 'react';
-import type { TextProps } from 'react-native';
+import type { ImageSourcePropType, TextProps } from 'react-native';
 import { Feather } from './feather';
 import type { FeatherIconName } from './feather';
+import naseebLogo from '../logos/naseeb.png';
 
-const iconRegistry = {
+const vectorIconRegistry = {
   add: {
     Icon: Feather,
     name: 'plus' as FeatherIconName,
@@ -168,6 +169,14 @@ const iconRegistry = {
     Icon: Feather,
     name: 'bell' as FeatherIconName,
   },
+  notificationWarning: {
+    Icon: Feather,
+    name: 'alert-triangle' as FeatherIconName,
+  },
+  notificationLogistics: {
+    Icon: Feather,
+    name: 'truck' as FeatherIconName,
+  },
   profileAvatar: {
     Icon: Feather,
     name: 'user' as FeatherIconName,
@@ -290,7 +299,16 @@ const iconRegistry = {
   },
 } as const;
 
-export type AppIconName = keyof typeof iconRegistry;
+const imageRegistry = {
+  naseeb: naseebLogo as ImageSourcePropType,
+} as const;
+
+const iconRegistry = {
+  ...vectorIconRegistry,
+  ...imageRegistry,
+} as const;
+
+export type AppIconName = keyof typeof vectorIconRegistry;
 
 type AppIconProps = Omit<TextProps, 'children'> & {
   name: AppIconName;
@@ -304,7 +322,7 @@ export const AppIcon = ({
   color = '#D1D5DB',
   ...textProps
 }: AppIconProps) => {
-  const icon = iconRegistry[name];
+  const icon = vectorIconRegistry[name];
   const Icon = icon.Icon;
 
   return <Icon name={icon.name} size={size} color={color} {...textProps} />;

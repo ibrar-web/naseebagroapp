@@ -13,6 +13,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
 
   // Marketplace detail
+  CreatePost:    undefined;
   ListingDetail: { listingId: string };
   DealDetail:    { dealId: string };
   Notifications: undefined;

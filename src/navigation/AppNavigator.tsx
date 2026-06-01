@@ -24,6 +24,7 @@ import OTPScreen from '../app/auth/screens/OTPScreen';
 import HomeScreen from '../app/buyer/screens/HomeScreen';
 import MarketplaceScreen from '../app/marketplace/screens/MarketplaceScreen';
 import DealsScreen from '../app/deals/screens/DealsScreen';
+import MyPostsScreen from '../app/marketplace/screens/MyPostsScreen';
 import PostScreen from '../app/marketplace/screens/PostScreen';
 import ProfileScreen from '../app/profile/screens/ProfileScreen';
 
@@ -162,7 +163,7 @@ const MainTabs = () => (
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Market" component={MarketplaceScreen} />
       <Tab.Screen name="Deals" component={DealsScreen} />
-      <Tab.Screen name="Post" component={PostScreen} />
+      <Tab.Screen name="Post" component={MyPostsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   </>
@@ -182,6 +183,7 @@ export const AppNavigator = () => (
       />
 
       {/* Listing & deal detail */}
+      <Stack.Screen name="CreatePost" component={PostScreen} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />

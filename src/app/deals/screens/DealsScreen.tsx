@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ImageBackground,
+  StyleSheet,
+} from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
-
-const FILTERS = ['All', 'Active', 'Payment', 'Transit', 'Completed'];
 
 const DEALS = [
   {
     id: 'DEL-001',
     commodity: 'Premium Wheat',
-    emoji: '🌾',
     qty: '200 Tons',
     rate: '₨3,850/40kg',
     amount: '₨19.25L',
@@ -17,44 +21,62 @@ const DEALS = [
     location: 'Lahore → Karachi',
     stage: 8,
     status: 'Active',
+    image:
+      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
+    fallback: '#C29A4A',
   },
   {
     id: 'DEL-002',
     commodity: 'IRRI-6 Rice',
-    emoji: '🍚',
     qty: '80 Tons',
     rate: '₨4,200/40kg',
     amount: '₨8.4L',
     counterparty: 'Punjab Agri Co',
     location: 'Sheikhupura → Lahore',
     stage: 6,
-    status: 'Payment',
+    status: 'Active',
+    image:
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
+    fallback: '#8A9A5B',
   },
   {
     id: 'DEL-003',
     commodity: 'Desi Cotton',
-    emoji: '☁️',
     qty: '50 Tons',
     rate: '₨8,500/40kg',
     amount: '₨10.6L',
     counterparty: 'Cotton King',
     location: 'Multan → Faisalabad',
     stage: 10,
-    status: 'Transit',
+    status: 'Active',
+    image:
+      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
+    fallback: '#D8D6C7',
   },
   {
     id: 'DEL-004',
     commodity: 'Yellow Maize',
-    emoji: '🌽',
     qty: '300 Tons',
     rate: '₨2,600/40kg',
     amount: '₨19.5L',
     counterparty: 'Farm Fresh Ltd',
     location: 'Faisalabad → Karachi',
     stage: 12,
-    status: 'Completed',
+    status: 'Closed',
+    image:
+      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
+    fallback: '#DCA640',
   },
 ];
+
+const TABS = ['All', 'Active', 'Closed'] as const;
+type TabType = (typeof TABS)[number];
+
+const statusColor = (status: string) => {
+  if (status === 'Active') return '#10B981';
+  if (status === 'Closed') return '#9CA3AF';
+  return '#F59E0B';
+};
 
 const stageColor = (s: number) =>
   s < 5 ? '#F59E0B' : s < 8 ? '#3B82F6' : s < 11 ? '#8B5CF6' : '#10B981';
@@ -63,188 +85,167 @@ const DealCard = ({ item, onPress }: any) => {
   const { t } = useTranslation();
   const pct = Math.round((item.stage / 12) * 100);
   const color = stageColor(item.stage);
-  const statusLabel =
-    item.status === 'Payment'
-      ? t('deals.payment')
-      : item.status === 'Transit'
-      ? t('deals.transit')
-      : item.status === 'Completed'
-      ? t('deals.completed')
-      : t('deals.active');
+  const sColor = statusColor(item.status);
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-white rounded-2xl p-3.5 mb-3"
-      style={{
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
-      }}
+      style={styles.card}
       activeOpacity={0.88}
     >
-      <View className="flex-row gap-3">
-        <View className="w-14 h-14 rounded-xl bg-green-50 items-center justify-center">
-          <Text style={{ fontSize: 28 }}>{item.emoji}</Text>
-        </View>
-        <View className="flex-1">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-400 text-xs font-mono">{item.id}</Text>
-            <View
-              className="px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: color + '20' }}
+      <ImageBackground
+        source={{ uri: item.image }}
+        style={styles.cardImage}
+        resizeMode="cover"
+        imageStyle={{ backgroundColor: item.fallback }}
+      >
+        <View style={StyleSheet.absoluteFillObject} className="bg-black/35" />
+        <View className="absolute top-2.5 right-3">
+          <View
+            className="rounded-full px-2.5 py-1"
+            style={{ backgroundColor: sColor + '33' }}
+          >
+            <Text
+              className="text-xs font-bold"
+              style={{ color: item.status === 'Closed' ? '#D1D5DB' : sColor }}
             >
-              <Text className="text-xs font-bold" style={{ color }}>
-                {statusLabel}
-              </Text>
-            </View>
+              {item.status}
+            </Text>
           </View>
-          <Text className="text-gray-900 text-sm font-bold mt-0.5">
+        </View>
+        <View className="absolute bottom-2.5 left-3 right-12">
+          <Text className="text-white/55 text-[9px] font-mono mb-0.5">
+            {item.id}
+          </Text>
+          <Text className="text-white text-[15px] font-extrabold" numberOfLines={1}>
             {item.commodity}
           </Text>
-          <Text className="text-gray-500 text-xs mt-0.5">
+        </View>
+      </ImageBackground>
+
+      <View className="px-3.5 pt-3 pb-3.5">
+        <View className="flex-row justify-between items-center">
+          <Text className="text-gray-500 text-xs">
             {item.qty} · {item.counterparty}
           </Text>
+          <Text className="text-green-700 text-sm font-extrabold">
+            {item.amount}
+          </Text>
         </View>
-      </View>
 
-      <View className="flex-row justify-between mt-2.5">
-        <Text className="text-gray-500 text-xs">📍 {item.location}</Text>
-        <Text className="text-green-700 text-sm font-extrabold">
-          {item.amount}
-        </Text>
-      </View>
+        <View className="flex-row items-center mt-1.5" style={{ gap: 4 }}>
+          <Text className="text-gray-400 text-xs">📍</Text>
+          <Text className="text-gray-400 text-xs">{item.location}</Text>
+        </View>
 
-      {/* Pipeline */}
-      <View className="h-1.5 bg-gray-100 rounded-full mt-2.5 overflow-hidden">
-        <View
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-      </View>
-      <View className="flex-row justify-between mt-1">
-        <Text className="text-gray-400 text-xs">
-          {t('deals.stage', { stage: item.stage })}
-        </Text>
-        <Text className="text-xs font-bold" style={{ color }}>
-          {t('deals.complete', { pct })}
-        </Text>
+        <View className="h-1.5 bg-gray-100 rounded-full mt-3 overflow-hidden">
+          <View
+            className="h-full rounded-full"
+            style={{ width: `${pct}%`, backgroundColor: color }}
+          />
+        </View>
+        <View className="flex-row justify-between mt-1">
+          <Text className="text-gray-400 text-[11px]">
+            {t('deals.stage', { stage: item.stage })}
+          </Text>
+          <Text className="text-[11px] font-bold" style={{ color }}>
+            {t('deals.complete', { pct })}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
 };
 
+const TabBadge = ({ count, active }: { count: number; active: boolean }) => (
+  <View
+    className="rounded-full"
+    style={{
+      marginLeft: 5,
+      paddingHorizontal: 7,
+      paddingVertical: 1,
+      backgroundColor: active ? '#E8F7EE' : '#F3F4F6',
+    }}
+  >
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: '700',
+        color: active ? '#1A6B34' : '#9CA3AF',
+      }}
+    >
+      {count}
+    </Text>
+  </View>
+);
+
 const DealsScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const { t } = useTranslation();
-  const [activeFilter, setActiveFilter] = useState('All');
-  const filtered =
-    activeFilter === 'All'
-      ? DEALS
-      : DEALS.filter(d => d.status === activeFilter);
-  const filterLabel = (filter: string) => {
-    if (filter === 'Payment') {
-      return t('deals.payment');
-    }
-    if (filter === 'Transit') {
-      return t('deals.transit');
-    }
-    if (filter === 'Completed') {
-      return t('deals.completed');
-    }
-    if (filter === 'Active') {
-      return t('deals.active');
-    }
-    return t('deals.all');
+  const [activeTab, setActiveTab] = useState<TabType>('All');
+
+  const activeCount = DEALS.filter(d => d.status === 'Active').length;
+  const closedCount = DEALS.filter(d => d.status === 'Closed').length;
+
+  const tabCount = (tab: TabType) => {
+    if (tab === 'All') return DEALS.length;
+    if (tab === 'Active') return activeCount;
+    return closedCount;
   };
+
+  const filtered =
+    activeTab === 'All' ? DEALS : DEALS.filter(d => d.status === activeTab);
 
   return (
     <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-green-800 pt-12 pb-4 px-4 overflow-hidden">
-        <View
-          className="absolute rounded-full bg-green-700 opacity-25"
-          style={{ width: 160, height: 160, top: -40, right: -40 }}
-        />
-        <Text className="text-white text-2xl font-extrabold">
+      <View
+        style={{
+          backgroundColor: '#145228',
+          paddingTop: 44,
+          paddingBottom: 20,
+          paddingHorizontal: 20,
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff' }}>
           {mode === 'buyer' ? t('deals.myDeals') : t('deals.myOrders')}
         </Text>
-        <Text className="text-green-300 text-xs mt-1 mb-3">
-          {t('deals.totalDeals', { count: DEALS.length })}
+        <Text
+          style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}
+        >
+          {DEALS.length} total · {activeCount} active
         </Text>
-
-        {/* Summary */}
-        <View className="flex-row gap-2">
-          {[
-            {
-              l: t('deals.active'),
-              v: 1,
-              bg: 'rgba(46,158,82,0.2)',
-              c: '#45B86A',
-            },
-            {
-              l: t('deals.inTransit'),
-              v: 1,
-              bg: 'rgba(59,130,246,0.2)',
-              c: '#60A5FA',
-            },
-            {
-              l: t('deals.completed'),
-              v: 1,
-              bg: 'rgba(247,219,74,0.2)',
-              c: '#F7DB4A',
-            },
-          ].map(s => (
-            <View
-              key={s.l}
-              className="flex-1 rounded-xl p-2.5 items-center"
-              style={{ backgroundColor: s.bg }}
-            >
-              <Text className="text-xl font-extrabold" style={{ color: s.c }}>
-                {s.v}
-              </Text>
-              <Text
-                className="text-xs mt-0.5"
-                style={{ color: 'rgba(255,255,255,0.65)' }}
-              >
-                {s.l}
-              </Text>
-            </View>
-          ))}
-        </View>
       </View>
 
-      {/* Filter tabs */}
-      <View className="bg-white border-b border-gray-100">
-        <FlatList
-          horizontal
-          data={FILTERS}
-          keyExtractor={f => f}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            gap: 8,
-          }}
-          renderItem={({ item }) => (
+      <View
+        className="flex-row bg-white"
+        style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+      >
+        {TABS.map(tab => {
+          const isActive = activeTab === tab;
+          return (
             <TouchableOpacity
-              onPress={() => setActiveFilter(item)}
-              className={`px-4 py-1.5 rounded-full ${
-                activeFilter === item ? 'bg-green-700' : 'bg-gray-100'
-              }`}
-              activeOpacity={0.8}
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className="flex-1 flex-row items-center justify-center py-3"
+              style={{
+                borderBottomWidth: 2,
+                borderBottomColor: isActive ? '#217A3C' : 'transparent',
+              }}
+              activeOpacity={0.75}
             >
               <Text
-                className={`text-xs font-semibold ${
-                  activeFilter === item ? 'text-white' : 'text-gray-600'
-                }`}
+                style={{
+                  fontSize: 13,
+                  fontWeight: isActive ? '700' : '500',
+                  color: isActive ? '#1A6B34' : '#6B7280',
+                }}
               >
-                {filterLabel(item)}
+                {tab}
               </Text>
+              <TabBadge count={tabCount(tab)} active={isActive} />
             </TouchableOpacity>
-          )}
-        />
+          );
+        })}
       </View>
 
       <FlatList
@@ -261,7 +262,7 @@ const DealsScreen = ({ navigation }: any) => {
           />
         )}
         ListEmptyComponent={
-          <View className="items-center pt-16 gap-3">
+          <View className="items-center pt-16" style={{ gap: 12 }}>
             <Text style={{ fontSize: 40 }}>📭</Text>
             <Text className="text-gray-700 text-base font-bold">
               {t('deals.noDeals')}
@@ -275,5 +276,23 @@ const DealsScreen = ({ navigation }: any) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  cardImage: {
+    width: '100%',
+    height: 100,
+  },
+});
 
 export default DealsScreen;

@@ -536,11 +536,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <View className="bg-green-800 pt-10 pb-4 px-5 overflow-hidden">
-        <View
-          className="absolute rounded-full bg-green-600/25"
-          style={{ width: 160, height: 160, top: -40, right: -40 }}
-        />
+      <View style={{ backgroundColor: '#145228', paddingTop: 44, paddingBottom: 14, paddingHorizontal: 20 }}>
         <View className="flex-row justify-between items-center mb-3">
           <View>
             <Text className="text-white text-xl font-extrabold">
@@ -558,7 +554,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View className="bg-white rounded-xl flex-row items-center px-3">
+        <View className="bg-white rounded-xl flex-row items-center px-3" style={{ marginTop: 0 }}>
           <AppIcon name="search" size={16} color="#9CA3AF" />
           <TextInput
             placeholder={

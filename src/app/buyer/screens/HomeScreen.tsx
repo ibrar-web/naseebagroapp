@@ -569,6 +569,7 @@ const HomeScreen = ({ navigation }: any) => {
           <SectionHeader
             title={t('home.marketRates')}
             action={t('home.seeAll')}
+            onPress={() => navigation.navigate('MarketRates')}
           />
           <FlatList
             horizontal

@@ -37,6 +37,9 @@ import PaymentSetupScreen from '../app/auth/screens/PaymentSetupScreen';
 import VerifyPendingScreen from '../app/auth/screens/VerifyPendingScreen';
 import VerifyApprovedScreen from '../app/auth/screens/VerifyApprovedScreen';
 
+// Market rates
+import MarketRatesScreen from '../app/market/screens/MarketRatesScreen';
+
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
@@ -181,6 +184,9 @@ export const AppNavigator = () => (
         component={MainTabs}
         options={{ animation: 'fade' }}
       />
+
+      {/* Market rates */}
+      <Stack.Screen name="MarketRates" component={MarketRatesScreen} />
 
       {/* Listing & deal detail */}
       <Stack.Screen name="CreatePost" component={PostScreen} />

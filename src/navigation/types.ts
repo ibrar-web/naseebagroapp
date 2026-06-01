@@ -27,6 +27,9 @@ export type RootStackParamList = {
   VerifyPending: undefined;
   VerifyApproved: undefined;
 
+  // Market rates
+  MarketRates:           undefined;
+
   // Profile sub-screens
   PersonalInfo:          undefined;
   BusinessProfile:       undefined;

@@ -14,6 +14,9 @@ export type RootStackParamList = {
 
   // Marketplace detail
   CreatePost:         undefined;
+  PrePost:            undefined;
+  CreatePostSeller:   { category: string };
+  CreatePostBuyer:    { category: string };
   ListingDetail:      { listingId: string };
   CommodityDetail:    { listingId: string };
   RequestToPurchase:  { listingId: string };

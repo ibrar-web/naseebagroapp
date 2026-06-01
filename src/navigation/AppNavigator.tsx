@@ -45,6 +45,9 @@ import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen'
 import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
 import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
 import PostDetailScreen from '../app/marketplace/screens/PostDetailScreen';
+import PrePostScreen from '../app/marketplace/screens/PrePostScreen';
+import CreatePostSellerScreen from '../app/marketplace/screens/CreatePostSellerScreen';
+import CreatePostBuyerScreen from '../app/marketplace/screens/CreatePostBuyerScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
@@ -83,17 +86,19 @@ const CustomTabBar = ({ state, navigation }: any) => {
 
   return (
     <View
-      className="flex-row bg-white items-center"
       style={{
-        height: 66,
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        height: 64,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
-        paddingBottom: 16,
+        alignItems: 'center',
+        paddingBottom: 8,
         paddingTop: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
         elevation: 16,
       }}
     >
@@ -111,16 +116,19 @@ const CustomTabBar = ({ state, navigation }: any) => {
                 navigation.navigate(route.name);
               }
             }}
-            className="flex-1 items-center"
-            style={{ gap: 2, paddingTop: 4 }}
+            style={{ flex: 1, alignItems: 'center', gap: 3 }}
             activeOpacity={0.7}
             accessibilityRole="button"
           >
             <View
-              className={`w-10 items-center justify-center rounded-xl ${
-                isFocused ? 'bg-green-100' : ''
-              }`}
-              style={{ height: 28 }}
+              style={{
+                width: 40,
+                height: 26,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 10,
+                backgroundColor: isFocused ? '#E8F7EE' : 'transparent',
+              }}
             >
               {cfg ? (
                 <AppIcon name={cfg.icon} size={20} color={iconColor} />
@@ -193,6 +201,9 @@ export const AppNavigator = () => (
 
       {/* Listing & deal detail */}
       <Stack.Screen name="CreatePost" component={PostScreen} />
+      <Stack.Screen name="PrePost" component={PrePostScreen} />
+      <Stack.Screen name="CreatePostSeller" component={CreatePostSellerScreen} />
+      <Stack.Screen name="CreatePostBuyer" component={CreatePostBuyerScreen} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
       <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
       <Stack.Screen name="RequestToPurchase" component={RequestToPurchaseScreen} />

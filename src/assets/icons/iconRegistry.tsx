@@ -85,6 +85,10 @@ const vectorIconRegistry = {
     Icon: Feather,
     name: 'heart' as FeatherIconName,
   },
+  filter: {
+    Icon: Feather,
+    name: 'filter' as FeatherIconName,
+  },
   legal: {
     Icon: Feather,
     name: 'file-text' as FeatherIconName,
@@ -216,6 +220,14 @@ const vectorIconRegistry = {
   savedEmpty: {
     Icon: Feather,
     name: 'star' as FeatherIconName,
+  },
+  search: {
+    Icon: Feather,
+    name: 'search' as FeatherIconName,
+  },
+  sort: {
+    Icon: Feather,
+    name: 'sliders' as FeatherIconName,
   },
   themeDark: {
     Icon: Feather,

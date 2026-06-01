@@ -186,7 +186,10 @@ const NotificationsScreen = ({ navigation }: any) => (
           <Text className="text-gray-400 font-bold" style={styles.sectionTitle}>
             {section.title}
           </Text>
-          <View className="bg-white rounded-2xl overflow-hidden" style={CARD_SHADOW}>
+          <View
+            className="bg-white rounded-2xl overflow-hidden"
+            style={CARD_SHADOW}
+          >
             {section.items.map((item, index) => {
               const isLast = index === section.items.length - 1;
 
@@ -207,10 +210,8 @@ const NotificationsScreen = ({ navigation }: any) => (
                     className="items-center justify-center rounded-xl"
                     style={[
                       styles.iconBox,
-                      {
-                        backgroundColor: item.iconBg,
-                        marginLeft: item.unread ? 6 : 0,
-                      },
+                      { backgroundColor: item.iconBg },
+                      item.unread && styles.unreadIconOffset,
                     ]}
                   >
                     <AppIcon name={item.icon} size={17} color={item.color} />
@@ -317,6 +318,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     flexShrink: 0,
+  },
+  unreadIconOffset: {
+    marginLeft: 6,
   },
   itemTitle: {
     fontSize: 13,

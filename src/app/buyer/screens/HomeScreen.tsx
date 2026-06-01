@@ -178,8 +178,7 @@ const HomeScreen = ({ navigation }: any) => {
                         mode === option.value
                           ? 'rgba(255,255,255,0.12)'
                           : 'transparent',
-                      borderBottomWidth:
-                        index < modeOptions.length - 1 ? 1 : 0,
+                      borderBottomWidth: index < modeOptions.length - 1 ? 1 : 0,
                       borderBottomColor: 'rgba(255,255,255,0.12)',
                     }}
                     activeOpacity={0.8}

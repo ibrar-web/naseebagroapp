@@ -9,6 +9,7 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
+import MockStatusBar from '../../components/MockStatusBar';
 
 const RATES_DATA = [
   {
@@ -190,6 +191,7 @@ const MarketRatesScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <MockStatusBar backgroundColor="#0D3B1F" textColor="#FFFFFF" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -293,9 +295,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    background: 'transparent',
     backgroundColor: '#0D3B1F',
-    paddingTop: 44,
+    paddingTop: 6,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },

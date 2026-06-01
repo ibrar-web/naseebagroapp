@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type StageStatus = 'done' | 'current' | 'pending';
 
@@ -333,6 +334,7 @@ const DealsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.screen}>
+      <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
           {mode === 'buyer' ? t('deals.myDeals') : t('deals.myOrders')}
@@ -397,7 +399,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#145228',
-    paddingTop: 44,
+    paddingTop: 6,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

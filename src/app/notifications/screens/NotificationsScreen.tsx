@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import MockStatusBar from '../../components/MockStatusBar';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 
@@ -144,13 +144,8 @@ const unreadCount = NOTIFICATION_SECTIONS.reduce(
 
 const NotificationsScreen = ({ navigation }: any) => (
   <View className="flex-1 bg-gray-50">
-    <StatusBar
-      barStyle="light-content"
-      backgroundColor="rgb(13,59,31)"
-      translucent={false}
-    />
-
-    <View className="px-5 pt-11 pb-4" style={styles.header}>
+    <MockStatusBar backgroundColor="#0D3B1F" textColor="#FFFFFF" />
+    <View className="px-5 pt-2 pb-4" style={styles.header}>
       <View style={styles.headerGlow} />
       <View className="flex-row items-center gap-3">
         <TouchableOpacity

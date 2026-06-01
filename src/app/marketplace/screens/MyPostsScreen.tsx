@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type PostStatus = 'Active' | 'Fresh' | 'Stale' | 'Aging' | 'Inactive';
 
@@ -197,6 +198,7 @@ const MyPostsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.screen}>
+      <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
     backgroundColor: '#145228',
-    paddingTop: 44,
+    paddingTop: 6,
     paddingBottom: 14,
     paddingHorizontal: 20,
     flexDirection: 'row',

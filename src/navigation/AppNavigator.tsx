@@ -4,12 +4,10 @@ import {
   Text,
   TouchableOpacity,
   StatusBar,
-  StyleSheet,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RootStackParamList, TabParamList } from './types';
 
@@ -152,20 +150,13 @@ const CustomTabBar = ({ state, navigation }: any) => {
   );
 };
 
-const AppStatusBar = () => {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={STATUS_BAR_BACKGROUND}
-        translucent={false}
-      />
-      <View style={[styles.statusBarSurface, { paddingTop: insets.top }]} />
-    </>
-  );
-};
+const AppStatusBar = () => (
+  <StatusBar
+    barStyle="light-content"
+    backgroundColor={STATUS_BAR_BACKGROUND}
+    translucent={false}
+  />
+);
 
 const MainTabs = () => (
   <>
@@ -253,13 +244,3 @@ export const AppNavigator = () => (
 
 export default AppNavigator;
 
-const styles = StyleSheet.create({
-  statusBarSurface: {
-    backgroundColor: STATUS_BAR_BACKGROUND,
-    paddingHorizontal: 24,
-    paddingBottom: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-});

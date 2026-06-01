@@ -11,6 +11,7 @@ import {
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
 import { AppIcon } from '../../../assets/icons';
+import MockStatusBar from '../../components/MockStatusBar';
 
 const CATEGORIES = [
   {
@@ -536,7 +537,8 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <View style={{ backgroundColor: '#145228', paddingTop: 44, paddingBottom: 14, paddingHorizontal: 20 }}>
+      <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
+      <View style={{ backgroundColor: '#145228', paddingTop: 6, paddingBottom: 14, paddingHorizontal: 20 }}>
         <View className="flex-row justify-between items-center mb-3">
           <View>
             <Text className="text-white text-xl font-extrabold">

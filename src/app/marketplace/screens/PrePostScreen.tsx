@@ -9,6 +9,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrePost'>;
 
@@ -37,6 +38,7 @@ const PrePostScreen = ({ navigation }: Props) => {
 
   return (
     <View style={styles.container}>
+      <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

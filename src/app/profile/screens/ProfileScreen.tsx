@@ -15,6 +15,7 @@ import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
 import { navigateToLogin } from '../../auth/utils/requireLogin';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type MenuItem = {
   icon: AppIconName;
@@ -70,6 +71,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
       {/* ── GRADIENT HEADER ── */}
       <View style={styles.header}>
         {/* Decorative orb */}
@@ -183,7 +185,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#145228',
     paddingHorizontal: 20,
-    paddingTop: 48,
+    paddingTop: 6,
     paddingBottom: 20,
     overflow: 'hidden',
   },

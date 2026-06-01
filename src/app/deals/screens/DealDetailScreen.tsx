@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DealDetail'>;
 
@@ -320,6 +321,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
     <View style={styles.container}>
       {/* Hero */}
       <View style={styles.hero}>
+        <MockStatusBar absolute backgroundColor="transparent" textColor="#FFFFFF" />
         <ImageBackground
           source={{ uri: deal.image }}
           style={styles.heroImage}

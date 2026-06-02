@@ -7,11 +7,67 @@ import {
   TextInput,
   ImageBackground,
   StyleSheet,
+  Modal,
+  Pressable,
+  ScrollView,
+  Image,
 } from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
 import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
+import iconRegistry from '../../../assets/icons/iconRegistry';
+
+type SheetType = 'filter' | 'sort' | 'signup' | null;
+
+const COMMODITY_FILTERS = [
+  'All',
+  'Basmati Rice',
+  'Punjab Wheat',
+  'Yellow Maize',
+  'Corn',
+  'Barley',
+  'Desi Cotton',
+  'BT Cotton',
+  'Tomato',
+  'Onion',
+  'Potato',
+  'Garlic',
+  'Mustard Seed',
+  'Sunflower',
+  'Canola',
+  'Mango',
+  'Kinnow',
+  'Cumin',
+  'Coriander',
+  'Turmeric',
+  'Red Chilli',
+  'Sugarcane',
+  'Chickpea',
+  'Lentil',
+  'Mung Bean',
+];
+
+const LOCATION_FILTERS = [
+  'All',
+  'Lahore',
+  'Faisalabad',
+  'Multan',
+  'Gujranwala',
+  'Rawalpindi',
+  'Karachi',
+  'Okara',
+  'Sahiwal',
+  'Rahim Yar Khan',
+];
+
+const SORT_OPTIONS = [
+  { label: 'Newest First', icon: 'profileDateOfBirth' },
+  { label: 'Budget: Low to High', icon: 'currency' },
+  { label: 'Budget: High to Low', icon: 'currency' },
+  { label: 'Distance: Nearest', icon: 'profileCity' },
+  { label: 'Most Quantity Needed', icon: 'listing' },
+] as const;
 
 const CATEGORIES = [
   {
@@ -205,41 +261,85 @@ const COMMODITIES = [
 const DEMANDS = [
   {
     id: 'D001',
-    commodity: 'Wheat',
-    qty: '200 Tons',
-    budget: '₨3,900/40kg',
+    displayId: 'REQ-2024-041',
+    name: 'Basmati Rice',
+    commodity: 'Basmati Rice',
+    qty: '150 bags',
+    qtyLabel: 'Quantity required',
+    budget: 'PKR 4,000/40kg',
     location: 'Lahore',
-    date: '2 days ago',
-    status: 'Active',
+    posted: 'Posted Mar 28',
+    status: 'OPEN DEMAND',
+    mills: '2 mills specified',
+    payment: '30 days payment',
+    notes: 'Grade A preferred, dry packaging',
+    image:
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
+    fallback: '#8A9A5B',
   },
   {
     id: 'D002',
-    commodity: 'Rice',
-    qty: '50 Tons',
-    budget: '₨4,100/40kg',
-    location: 'Karachi',
-    date: '4 days ago',
-    status: 'Pending',
+    displayId: 'REQ-2024-039',
+    name: 'Punjab Wheat',
+    commodity: 'Punjab Wheat',
+    qty: '220 bags',
+    qtyLabel: 'Quantity required',
+    budget: 'PKR 2,850/40kg',
+    location: 'Faisalabad',
+    posted: 'Posted Mar 26',
+    status: 'OPEN DEMAND',
+    mills: '3 mills specified',
+    payment: '15 days payment',
+    notes: 'Clean grain, moisture below 12%',
+    image:
+      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
+    fallback: '#C29A4A',
   },
   {
     id: 'D003',
-    commodity: 'Cotton',
-    qty: '80 Tons',
-    budget: '₨8,200/40kg',
-    location: 'Faisalabad',
-    date: '1 week ago',
-    status: 'Active',
+    displayId: 'REQ-2024-036',
+    name: 'Yellow Maize',
+    commodity: 'Yellow Maize',
+    qty: '180 bags',
+    qtyLabel: 'Quantity required',
+    budget: 'PKR 1,920/40kg',
+    location: 'Okara',
+    posted: 'Posted Mar 24',
+    status: 'OPEN DEMAND',
+    mills: '2 mills specified',
+    payment: 'Advance payment',
+    notes: 'Machine cleaned, delivery this week',
+    image:
+      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
+    fallback: '#DCA640',
   },
 ];
+
+const parseAmount = (value?: string) =>
+  Number(value?.replace(/[^\d]/g, '') || 0);
+
+const parseQuantity = (value?: string) =>
+  Number(value?.replace(/[^\d]/g, '') || 0);
+
+const getListingBudget = (item: (typeof COMMODITIES)[number]) =>
+  Math.min(...item.mills.map(mill => parseAmount(mill.price)));
+
+const getItemBudget = (item: any) =>
+  'mills' in item && Array.isArray(item.mills)
+    ? getListingBudget(item)
+    : parseAmount(item.budget);
 
 const HeaderAction = ({
   icon,
   label,
+  onPress,
 }: {
   icon: 'filter' | 'sort';
   label: string;
+  onPress: () => void;
 }) => (
   <TouchableOpacity
+    onPress={onPress}
     className="flex-row items-center rounded-[10px] px-3 py-2 border border-white/20 bg-white/15"
     style={{ gap: 5 }}
     activeOpacity={0.82}
@@ -247,6 +347,364 @@ const HeaderAction = ({
     <AppIcon name={icon} size={14} color="#FFFFFF" />
     <Text className="text-white text-[11px] font-semibold">{label}</Text>
   </TouchableOpacity>
+);
+
+const BottomSheet = ({
+  visible,
+  onClose,
+  children,
+  maxHeight,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxHeight?: number | `${number}%`;
+}) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="slide"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalRoot}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={[styles.sheetPanel, maxHeight ? { maxHeight } : null]}>
+        {children}
+      </View>
+    </View>
+  </Modal>
+);
+
+const SheetHandle = () => <View style={styles.sheetHandle} />;
+
+const SheetSection = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.sheetSection}>
+    <Text className="text-gray-500 text-xs font-bold mb-2.5">{title}</Text>
+    {children}
+  </View>
+);
+
+const ChoiceChip = ({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    className="rounded-full px-3.5 py-2 mr-2 mb-2"
+    style={[
+      styles.choiceChip,
+      active ? styles.choiceChipActive : styles.choiceChipInactive,
+    ]}
+    activeOpacity={0.84}
+  >
+    <Text
+      className="text-xs font-semibold"
+      style={active ? styles.choiceChipTextActive : styles.choiceChipText}
+    >
+      {label === 'All' ? 'All' : label}
+    </Text>
+  </TouchableOpacity>
+);
+
+const NumberInput = ({
+  value,
+  onChangeText,
+  placeholder,
+  prefix,
+}: {
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  prefix?: string;
+}) => (
+  <View
+    className="rounded-[10px] flex-row items-center"
+    style={styles.sheetInput}
+  >
+    {prefix ? (
+      <Text className="text-gray-400 text-[13px] font-bold mr-1.5">
+        {prefix}
+      </Text>
+    ) : null}
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType="number-pad"
+      placeholder={placeholder}
+      placeholderTextColor="#9CA3AF"
+      className="flex-1 text-gray-900 text-[13px] py-2.5"
+    />
+  </View>
+);
+
+const FilterSheet = ({
+  selectedCommodity,
+  setSelectedCommodity,
+  selectedLocation,
+  setSelectedLocation,
+  minPrice,
+  setMinPrice,
+  maxPrice,
+  setMaxPrice,
+  minQuantity,
+  setMinQuantity,
+  onDone,
+}: {
+  selectedCommodity: string;
+  setSelectedCommodity: (value: string) => void;
+  selectedLocation: string;
+  setSelectedLocation: (value: string) => void;
+  minPrice: string;
+  setMinPrice: (value: string) => void;
+  maxPrice: string;
+  setMaxPrice: (value: string) => void;
+  minQuantity: string;
+  setMinQuantity: (value: string) => void;
+  onDone: () => void;
+}) => {
+  const [commodityOpen, setCommodityOpen] = useState(false);
+  const selectedCommodityLabel =
+    selectedCommodity === 'All' ? 'All Commodities' : selectedCommodity;
+
+  return (
+    <>
+      <View style={styles.sheetFixedHeader}>
+        <SheetHandle />
+        <View className="flex-row justify-between items-center mb-5">
+          <Text className="text-gray-900 text-[17px] font-extrabold">
+            Filters
+          </Text>
+          <TouchableOpacity
+            className="bg-green-800 rounded-lg px-3.5 py-1.5"
+            onPress={onDone}
+            activeOpacity={0.84}
+          >
+            <Text className="text-white text-xs font-bold">Done</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <ScrollView
+        style={styles.sheetScroll}
+        contentContainerStyle={styles.filterSheetContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <SheetSection title="COMMODITY">
+          <TouchableOpacity
+            onPress={() => setCommodityOpen(current => !current)}
+            className="rounded-[10px] flex-row items-center justify-between px-3 py-3"
+            style={styles.sheetInput}
+            activeOpacity={0.84}
+          >
+            <Text
+              className="text-[13px] font-semibold"
+              style={
+                selectedCommodity === 'All'
+                  ? styles.selectText
+                  : styles.selectTextActive
+              }
+            >
+              {selectedCommodityLabel}
+            </Text>
+            <AppIcon name="chevronDown" size={15} color="#9CA3AF" />
+          </TouchableOpacity>
+          {commodityOpen ? (
+            <View style={styles.commodityDropdown}>
+              <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
+                {COMMODITY_FILTERS.map(commodity => {
+                  const active = selectedCommodity === commodity;
+                  return (
+                    <TouchableOpacity
+                      key={commodity}
+                      className="flex-row items-center justify-between px-3 py-2.5"
+                      onPress={() => {
+                        setSelectedCommodity(commodity);
+                        setCommodityOpen(false);
+                      }}
+                      activeOpacity={0.82}
+                    >
+                      <Text
+                        className="text-[13px] font-semibold"
+                        style={
+                          active
+                            ? styles.dropdownOptionTextActive
+                            : styles.dropdownOptionText
+                        }
+                      >
+                        {commodity === 'All' ? 'All Commodities' : commodity}
+                      </Text>
+                      {active ? (
+                        <AppIcon name="approved" size={15} color="#217A3C" />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          ) : null}
+        </SheetSection>
+
+        <SheetSection title="LOCATION">
+          <View className="flex-row flex-wrap">
+            {LOCATION_FILTERS.map(location => (
+              <ChoiceChip
+                key={location}
+                label={location}
+                active={selectedLocation === location}
+                onPress={() => setSelectedLocation(location)}
+              />
+            ))}
+          </View>
+        </SheetSection>
+
+        <SheetSection title="PRICE RANGE (per 40kg)">
+          <View className="flex-row" style={styles.priceRangeRow}>
+            <View className="flex-1">
+              <NumberInput
+                value={minPrice}
+                onChangeText={setMinPrice}
+                placeholder="Min"
+                prefix="PKR"
+              />
+            </View>
+            <View className="flex-1">
+              <NumberInput
+                value={maxPrice}
+                onChangeText={setMaxPrice}
+                placeholder="Max"
+                prefix="PKR"
+              />
+            </View>
+          </View>
+        </SheetSection>
+
+        <SheetSection title="MINIMUM QUANTITY (bags)">
+          <NumberInput
+            value={minQuantity}
+            onChangeText={setMinQuantity}
+            placeholder="e.g. 50"
+          />
+        </SheetSection>
+      </ScrollView>
+    </>
+  );
+};
+
+const SortOption = ({
+  option,
+  active,
+  onPress,
+}: {
+  option: (typeof SORT_OPTIONS)[number];
+  active: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    className="w-full flex-row items-center rounded-xl px-3.5 py-3.5 mb-2"
+    style={[
+      styles.sortOption,
+      active ? styles.sortOptionActive : styles.sortOptionInactive,
+    ]}
+    activeOpacity={0.84}
+  >
+    <View
+      className="w-[38px] h-[38px] rounded-[10px] items-center justify-center"
+      style={active ? styles.sortIconActive : styles.sortIcon}
+    >
+      <AppIcon
+        name={option.icon}
+        size={17}
+        color={active ? '#217A3C' : '#6B7280'}
+      />
+    </View>
+    <Text
+      className="flex-1 text-sm"
+      style={active ? styles.sortLabelActive : styles.sortLabel}
+    >
+      {option.label}
+    </Text>
+    {active ? <AppIcon name="approved" size={18} color="#217A3C" /> : null}
+  </TouchableOpacity>
+);
+
+const SortSheet = ({
+  sortBy,
+  onSelect,
+}: {
+  sortBy: string;
+  onSelect: (value: string) => void;
+}) => (
+  <View style={styles.sortSheetContent}>
+    <SheetHandle />
+    <Text className="text-gray-900 text-[17px] font-extrabold mb-4">
+      Sort By
+    </Text>
+    {SORT_OPTIONS.map(option => (
+      <SortOption
+        key={option.label}
+        option={option}
+        active={sortBy === option.label}
+        onPress={() => onSelect(option.label)}
+      />
+    ))}
+  </View>
+);
+
+const SignupSheet = ({
+  onCreateAccount,
+  onContinue,
+}: {
+  onCreateAccount: () => void;
+  onContinue: () => void;
+}) => (
+  <View style={styles.signupSheetContent}>
+    <SheetHandle />
+    <Image source={iconRegistry.naseeb} style={styles.signupLogo} />
+    <Text className="text-gray-900 text-lg font-extrabold text-center mb-2">
+      Sign Up to Continue
+    </Text>
+    <Text className="text-gray-500 text-[13px] leading-5 text-center mb-[22px]">
+      Create a free account to post demands, create listings, send offers and
+      track deals.
+    </Text>
+    <TouchableOpacity
+      className="bg-yellow-400 rounded-xl py-4 flex-row items-center justify-center mb-2.5"
+      style={styles.signupPrimaryButton}
+      onPress={onCreateAccount}
+      activeOpacity={0.86}
+    >
+      <AppIcon
+        name="back"
+        size={17}
+        color="#0D3B1F"
+        style={styles.forwardIcon}
+      />
+      <Text className="text-green-950 text-[15px] font-semibold ml-2">
+        Create Account
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      className="rounded-xl py-3 items-center"
+      style={styles.signupSecondaryButton}
+      onPress={onContinue}
+      activeOpacity={0.84}
+    >
+      <Text className="text-gray-600 text-[13px] font-semibold">
+        Continue Browsing
+      </Text>
+    </TouchableOpacity>
+  </View>
 );
 
 const CategoryCard = ({
@@ -465,57 +923,98 @@ const CommodityCard = ({ item, onPress }: any) => {
   );
 };
 
-const DemandCard = ({ item }: any) => {
-  const { t } = useTranslation();
-
-  return (
-    <TouchableOpacity
-      className="bg-white rounded-[18px] p-3.5 mb-3"
-      style={cardShadow.card}
-      activeOpacity={0.88}
+const DemandCard = ({ item }: any) => (
+  <TouchableOpacity
+    className="bg-white overflow-hidden mb-3.5"
+    style={[styles.listingCard, cardShadow.card]}
+    activeOpacity={0.88}
+  >
+    <ImageBackground
+      source={{ uri: item.image }}
+      resizeMode="cover"
+      imageStyle={styles.listingImage}
+      style={[styles.listingImage, { backgroundColor: item.fallback }]}
     >
-      <View className="flex-row justify-between mb-2">
-        <Text className="text-gray-400 text-xs font-mono">{item.id}</Text>
-        <View
-          className={`px-2 py-0.5 rounded-full ${
-            item.status === 'Active' ? 'bg-green-50' : 'bg-amber-50'
-          }`}
-        >
-          <Text
-            className={`text-xs font-bold ${
-              item.status === 'Active' ? 'text-green-700' : 'text-amber-600'
-            }`}
-          >
-            {item.status === 'Active'
-              ? t('market.active')
-              : t('market.pending')}
+      <View style={styles.demandOverlay} />
+      <View className="absolute top-2.5 left-3 bg-yellow-400 rounded-md px-2.5 py-1 flex-row items-center">
+        <View className="w-[5px] h-[5px] rounded-full bg-green-950 mr-1" />
+        <Text className="text-green-950 text-[9px] font-black">
+          {item.status}
+        </Text>
+      </View>
+      <View className="absolute top-2.5 right-3 rounded-md px-2 py-1 bg-black/45">
+        <Text className="text-white/85 text-[9px] font-semibold">
+          {item.posted}
+        </Text>
+      </View>
+      <View className="absolute bottom-2.5 left-3">
+        <Text className="text-white/55 text-[9px] font-mono mb-0.5">
+          {item.displayId}
+        </Text>
+        <Text className="text-white text-[17px] font-black">{item.name}</Text>
+      </View>
+      <View
+        className="absolute bottom-2.5 right-3 flex-row items-center"
+        style={styles.locationOverlayRow}
+      >
+        <AppIcon name="profileCity" size={10} color="rgba(255,255,255,0.85)" />
+        <Text className="text-white/85 text-[10px] font-medium">
+          {item.location}
+        </Text>
+      </View>
+    </ImageBackground>
+
+    <View className="px-3.5 pt-3 pb-3.5">
+      <View className="flex-row justify-between items-start mb-2">
+        <View>
+          <Text className="text-gray-900 text-[13px] font-extrabold">
+            {item.qty}
+          </Text>
+          <Text className="text-gray-500 text-[11px] mt-0.5">
+            {item.qtyLabel}
           </Text>
         </View>
+        <View className="items-end flex-1 ml-3">
+          <Text className="text-green-800 text-base font-black">
+            {item.budget}
+          </Text>
+          <Text className="text-gray-400 text-[10px]">Buyer's budget</Text>
+        </View>
       </View>
-      <Text className="text-gray-900 text-base font-extrabold">
-        {item.commodity}
+
+      <View style={styles.demandMetaBox}>
+        <View className="flex-row flex-wrap" style={styles.demandMetaRow}>
+          <View className="flex-row items-center" style={styles.demandMetaItem}>
+            <AppIcon name="business" size={11} color="#9CA3AF" />
+            <Text className="text-gray-600 text-[11px] font-semibold">
+              {item.mills}
+            </Text>
+          </View>
+          <View className="flex-row items-center" style={styles.demandMetaItem}>
+            <AppIcon name="bank" size={11} color="#9CA3AF" />
+            <Text className="text-gray-600 text-[11px] font-semibold">
+              {item.payment}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <Text className="text-gray-500 text-[11px] italic leading-4 mb-2.5">
+        "{item.notes}"
       </Text>
-      <View className="flex-row justify-between mt-1.5">
-        <Text className="text-gray-600 text-xs">{item.qty}</Text>
-        <Text className="text-green-700 text-sm font-extrabold">
-          {item.budget}
-        </Text>
-      </View>
-      <View className="flex-row justify-between mt-2">
-        <Text className="text-gray-500 text-xs">📍 {item.location}</Text>
-        <Text className="text-gray-400 text-xs">{item.date}</Text>
-      </View>
+
       <TouchableOpacity
-        className="mt-3 bg-yellow-400 rounded-xl py-2.5 items-center"
+        className="bg-yellow-400 rounded-[11px] py-3 items-center"
+        style={styles.offerButton}
         activeOpacity={0.85}
       >
-        <Text className="text-green-950 text-sm font-bold">
-          {t('market.submitOffer')}
+        <Text className="text-green-950 text-[13px] font-bold">
+          Send Offer →
         </Text>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
-};
+    </View>
+  </TouchableOpacity>
+);
 
 const MarketplaceScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
@@ -523,22 +1022,84 @@ const MarketplaceScreen = ({ navigation }: any) => {
   const isBuyer = mode === 'buyer';
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeSheet, setActiveSheet] = useState<SheetType>(null);
+  const [selectedCommodity, setSelectedCommodity] = useState('All');
+  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [minQuantity, setMinQuantity] = useState('');
+  const [sortBy, setSortBy] = useState('Newest First');
 
-  const filtered = COMMODITIES.filter(
-    item =>
+  const priceFloor = parseAmount(minPrice);
+  const priceCeiling = parseAmount(maxPrice);
+  const quantityFloor = parseQuantity(minQuantity);
+
+  const filteredSupplies = COMMODITIES.filter(item => {
+    const budget = getListingBudget(item);
+    const quantity = parseQuantity(item.qty);
+
+    return (
       (activeCategory === 'All' || item.category === activeCategory) &&
+      (selectedCommodity === 'All' || item.name === selectedCommodity) &&
+      (selectedLocation === 'All' || item.location === selectedLocation) &&
+      (!priceFloor || budget >= priceFloor) &&
+      (!priceCeiling || budget <= priceCeiling) &&
+      (!quantityFloor || quantity >= quantityFloor) &&
       (!search ||
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         item.location.toLowerCase().includes(search.toLowerCase()) ||
-        item.seller.toLowerCase().includes(search.toLowerCase())),
-  );
+        item.seller.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
 
-  const listData = (isBuyer ? filtered : DEMANDS) as any[];
+  const filteredDemands = DEMANDS.filter(item => {
+    const budget = parseAmount(item.budget);
+    const quantity = parseQuantity(item.qty);
+
+    return (
+      (selectedCommodity === 'All' || item.name === selectedCommodity) &&
+      (selectedLocation === 'All' || item.location === selectedLocation) &&
+      (!priceFloor || budget >= priceFloor) &&
+      (!priceCeiling || budget <= priceCeiling) &&
+      (!quantityFloor || quantity >= quantityFloor) &&
+      (!search ||
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.location.toLowerCase().includes(search.toLowerCase()) ||
+        item.displayId.toLowerCase().includes(search.toLowerCase()) ||
+        item.notes.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
+
+  const sortItems = (items: any[]) => {
+    const sorted = [...items];
+
+    if (sortBy === 'Budget: Low to High') {
+      sorted.sort((a, b) => getItemBudget(a) - getItemBudget(b));
+    } else if (sortBy === 'Budget: High to Low') {
+      sorted.sort((a, b) => getItemBudget(b) - getItemBudget(a));
+    } else if (sortBy === 'Most Quantity Needed') {
+      sorted.sort((a, b) => parseQuantity(b.qty) - parseQuantity(a.qty));
+    }
+
+    return sorted;
+  };
+
+  const listData = sortItems(
+    isBuyer ? filteredSupplies : filteredDemands,
+  ) as any[];
+  const closeSheet = () => setActiveSheet(null);
 
   return (
     <View className="flex-1 bg-gray-50">
       <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
-      <View style={{ backgroundColor: '#145228', paddingTop: 6, paddingBottom: 14, paddingHorizontal: 20 }}>
+      <View
+        style={{
+          backgroundColor: '#145228',
+          paddingTop: 6,
+          paddingBottom: 14,
+          paddingHorizontal: 20,
+        }}
+      >
         <View className="flex-row justify-between items-center mb-3">
           <View>
             <Text className="text-white text-xl font-extrabold">
@@ -546,17 +1107,28 @@ const MarketplaceScreen = ({ navigation }: any) => {
             </Text>
             <Text className="text-white/55 text-xs mt-0.5">
               {isBuyer
-                ? `${filtered.length} verified supplies`
-                : t('market.activeRequests', { count: DEMANDS.length })}
+                ? `${filteredSupplies.length} verified supplies`
+                : t('market.activeRequests', { count: filteredDemands.length })}
             </Text>
           </View>
           <View className="flex-row" style={{ gap: 8 }}>
-            <HeaderAction icon="filter" label={t('market.filter')} />
-            <HeaderAction icon="sort" label="Sort" />
+            <HeaderAction
+              icon="filter"
+              label={t('market.filter')}
+              onPress={() => setActiveSheet('filter')}
+            />
+            <HeaderAction
+              icon="sort"
+              label="Sort"
+              onPress={() => setActiveSheet('sort')}
+            />
           </View>
         </View>
 
-        <View className="bg-white rounded-xl flex-row items-center px-3" style={{ marginTop: 0 }}>
+        <View
+          className="bg-white rounded-xl flex-row items-center px-3"
+          style={{ marginTop: 0 }}
+        >
           <AppIcon name="search" size={16} color="#9CA3AF" />
           <TextInput
             placeholder={
@@ -605,7 +1177,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
               <View className="flex-row justify-between items-center mb-3">
                 <Text className="text-gray-900 text-[15px] font-bold">
-                  {filtered.length} Listings Found
+                  {filteredSupplies.length} Listings Found
                 </Text>
                 {activeCategory !== 'All' ? (
                   <TouchableOpacity onPress={() => setActiveCategory('All')}>
@@ -643,16 +1215,54 @@ const MarketplaceScreen = ({ navigation }: any) => {
         }
       />
 
-      {!isBuyer && (
-        <TouchableOpacity
-          className="absolute bg-yellow-400 items-center justify-center"
-          style={styles.fab}
-          onPress={() => navigation.navigate('Post')}
-          activeOpacity={0.88}
-        >
-          <Text className="text-green-950 text-2xl font-bold">+</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        className="absolute bg-yellow-400 items-center justify-center"
+        style={styles.fab}
+        onPress={() => setActiveSheet('signup')}
+        activeOpacity={0.88}
+      >
+        <AppIcon name="add" size={24} color="#0D3B1F" />
+      </TouchableOpacity>
+
+      <BottomSheet
+        visible={activeSheet === 'filter'}
+        onClose={closeSheet}
+        maxHeight="88%"
+      >
+        <FilterSheet
+          selectedCommodity={selectedCommodity}
+          setSelectedCommodity={setSelectedCommodity}
+          selectedLocation={selectedLocation}
+          setSelectedLocation={setSelectedLocation}
+          minPrice={minPrice}
+          setMinPrice={setMinPrice}
+          maxPrice={maxPrice}
+          setMaxPrice={setMaxPrice}
+          minQuantity={minQuantity}
+          setMinQuantity={setMinQuantity}
+          onDone={closeSheet}
+        />
+      </BottomSheet>
+
+      <BottomSheet visible={activeSheet === 'sort'} onClose={closeSheet}>
+        <SortSheet
+          sortBy={sortBy}
+          onSelect={value => {
+            setSortBy(value);
+            closeSheet();
+          }}
+        />
+      </BottomSheet>
+
+      <BottomSheet visible={activeSheet === 'signup'} onClose={closeSheet}>
+        <SignupSheet
+          onCreateAccount={() => {
+            closeSheet();
+            navigation.navigate('Welcome');
+          }}
+          onContinue={closeSheet}
+        />
+      </BottomSheet>
     </View>
   );
 };
@@ -708,6 +1318,28 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.46)',
   },
+  demandOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  demandMetaBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 11,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  demandMetaRow: {
+    gap: 12,
+  },
+  demandMetaItem: {
+    gap: 5,
+  },
+  locationOverlayRow: {
+    gap: 3,
+  },
   interestButton: {
     shadowColor: '#F3CD03',
     shadowOpacity: 0.28,
@@ -715,17 +1347,165 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
+  offerButton: {
+    shadowColor: '#F3CD03',
+    shadowOpacity: 0.26,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
   fab: {
-    bottom: 90,
-    right: 20,
+    bottom: 20,
+    right: 18,
     width: 52,
     height: 52,
     borderRadius: 26,
-    shadowColor: '#1A6B34',
-    shadowOpacity: 0.32,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#F3CD03',
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 6,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+  },
+  sheetPanel: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetFixedHeader: {
+    paddingTop: 12,
+    paddingHorizontal: 20,
+  },
+  sheetScroll: {
+    flexGrow: 0,
+  },
+  filterSheetContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  sortSheetContent: {
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  signupSheetContent: {
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  sheetSection: {
+    marginBottom: 22,
+  },
+  choiceChip: {
+    borderWidth: 1.5,
+  },
+  choiceChipActive: {
+    borderColor: '#2E9E52',
+    backgroundColor: '#217A3C',
+  },
+  choiceChipInactive: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  choiceChipText: {
+    color: '#4B5563',
+  },
+  choiceChipTextActive: {
+    color: '#FFFFFF',
+  },
+  selectText: {
+    color: '#9CA3AF',
+  },
+  selectTextActive: {
+    color: '#111827',
+  },
+  dropdownOptionText: {
+    color: '#374151',
+  },
+  dropdownOptionTextActive: {
+    color: '#1A6B34',
+  },
+  priceRangeRow: {
+    gap: 10,
+  },
+  sortOption: {
+    gap: 14,
+    borderWidth: 1.5,
+  },
+  sortOptionActive: {
+    borderColor: '#2E9E52',
+    backgroundColor: '#F2FBF5',
+  },
+  sortOptionInactive: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  sortIcon: {
+    backgroundColor: '#F9FAFB',
+  },
+  sortIconActive: {
+    backgroundColor: '#E8F7EE',
+  },
+  sortLabel: {
+    color: '#374151',
+    fontWeight: '500',
+  },
+  sortLabelActive: {
+    color: '#1A6B34',
+    fontWeight: '700',
+  },
+  sheetInput: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    minHeight: 44,
+  },
+  commodityDropdown: {
+    maxHeight: 178,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  signupLogo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  signupPrimaryButton: {
+    shadowColor: '#F3CD03',
+    shadowOpacity: 0.33,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  signupSecondaryButton: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  forwardIcon: {
+    transform: [{ rotate: '180deg' }],
   },
 });
 

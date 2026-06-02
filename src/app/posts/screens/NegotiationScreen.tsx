@@ -140,7 +140,6 @@ const MessageBubble = ({ message }: { message: NegotiationMessage }) => {
         >
           {isBuyer ? 'You' : 'Seller'} · {message.time}
         </Text>
-
         <View
           style={[
             styles.bubble,

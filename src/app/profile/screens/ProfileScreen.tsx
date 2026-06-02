@@ -29,25 +29,70 @@ const MENU: MenuGroup[] = [
   {
     groupKey: 'profile.account',
     items: [
-      { icon: 'menuPersonal', labelKey: 'profile.personalInfo', subKey: 'profile.personalInfoSub', screen: 'PersonalInfo' },
-      { icon: 'menuBusiness', labelKey: 'profile.businessProfile', subKey: 'profile.businessProfileSub', screen: 'BusinessProfile' },
-      { icon: 'menuPayment', labelKey: 'profile.paymentMethods', subKey: 'profile.paymentMethodsSub', screen: 'PaymentMethods' },
-      { icon: 'menuVerification', labelKey: 'profile.verificationStatus', subKey: 'profile.verificationStatusSub', screen: 'VerificationStatus' },
-      { icon: 'menuSaved', labelKey: 'profile.savedListings', subKey: 'profile.savedListingsSub', screen: 'SavedListings' },
+      {
+        icon: 'menuPersonal',
+        labelKey: 'profile.personalInfo',
+        subKey: 'profile.personalInfoSub',
+        screen: 'PersonalInfo',
+      },
+      {
+        icon: 'menuBusiness',
+        labelKey: 'profile.businessProfile',
+        subKey: 'profile.businessProfileSub',
+        screen: 'BusinessProfile',
+      },
+      {
+        icon: 'menuPayment',
+        labelKey: 'profile.paymentMethods',
+        subKey: 'profile.paymentMethodsSub',
+        screen: 'PaymentMethods',
+      },
+      {
+        icon: 'menuVerification',
+        labelKey: 'profile.verificationStatus',
+        subKey: 'profile.verificationStatusSub',
+        screen: 'VerificationStatus',
+      },
+      {
+        icon: 'menuSaved',
+        labelKey: 'profile.savedListings',
+        subKey: 'profile.savedListingsSub',
+        screen: 'SavedListings',
+      },
     ],
   },
   {
     groupKey: 'profile.preferences',
     items: [
-      { icon: 'menuNotifications', labelKey: 'profile.notifications', subKey: 'profile.notificationsSub', screen: 'NotificationsSettings' },
-      { icon: 'menuAppSettings', labelKey: 'profile.appSettings', subKey: 'profile.appSettingsSub', screen: 'AppSettings' },
+      {
+        icon: 'menuNotifications',
+        labelKey: 'profile.notifications',
+        subKey: 'profile.notificationsSub',
+        screen: 'NotificationsSettings',
+      },
+      {
+        icon: 'menuAppSettings',
+        labelKey: 'profile.appSettings',
+        subKey: 'profile.appSettingsSub',
+        screen: 'AppSettings',
+      },
     ],
   },
   {
     groupKey: 'profile.support',
     items: [
-      { icon: 'menuSupport', labelKey: 'profile.helpSupport', subKey: 'profile.helpSupportSub', screen: 'Support' },
-      { icon: 'menuTerms', labelKey: 'profile.termsPrivacy', subKey: 'profile.termsPrivacySub', screen: 'Terms' },
+      {
+        icon: 'menuSupport',
+        labelKey: 'profile.helpSupport',
+        subKey: 'profile.helpSupportSub',
+        screen: 'Support',
+      },
+      {
+        icon: 'menuTerms',
+        labelKey: 'profile.termsPrivacy',
+        subKey: 'profile.termsPrivacySub',
+        screen: 'Terms',
+      },
     ],
   },
 ];
@@ -63,7 +108,9 @@ const ProfileScreen = ({ navigation }: any) => {
     dispatch(logout());
     navigation
       .getParent()
-      ?.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+      ?.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }),
+      );
   };
 
   const displayName = user?.fullName ?? 'Muhammad Asad';
@@ -94,10 +141,6 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
             )}
           </View>
-
-          <TouchableOpacity style={styles.editBtn} activeOpacity={0.8}>
-            <AppIcon name="chevronRight" size={16} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
 
         {/* Stats row */}
@@ -156,11 +199,17 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Log out */}
         <View style={styles.logoutSection}>
           <TouchableOpacity
-            onPress={isAuthenticated ? handleLogout : () => navigateToLogin(navigation)}
+            onPress={
+              isAuthenticated ? handleLogout : () => navigateToLogin(navigation)
+            }
             activeOpacity={0.85}
             style={[
               styles.logoutBtn,
-              { borderColor: isAuthenticated ? 'rgba(239,68,68,0.3)' : 'rgba(26,107,52,0.3)' },
+              {
+                borderColor: isAuthenticated
+                  ? 'rgba(239,68,68,0.3)'
+                  : 'rgba(26,107,52,0.3)',
+              },
             ]}
           >
             <AppIcon
@@ -168,7 +217,12 @@ const ProfileScreen = ({ navigation }: any) => {
               size={18}
               color={isAuthenticated ? '#EF4444' : '#1A6B34'}
             />
-            <Text style={[styles.logoutText, { color: isAuthenticated ? '#EF4444' : '#1A6B34' }]}>
+            <Text
+              style={[
+                styles.logoutText,
+                { color: isAuthenticated ? '#EF4444' : '#1A6B34' },
+              ]}
+            >
               {isAuthenticated ? t('profile.logout') : t('auth.login')}
             </Text>
           </TouchableOpacity>
@@ -238,7 +292,12 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 2,
   },
-  approvedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1A6B34' },
+  approvedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#1A6B34',
+  },
   approvedText: { fontSize: 10, fontWeight: '700', color: '#1A6B34' },
   editBtn: {
     width: 34,
@@ -258,9 +317,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statItemBorder: { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.15)' },
+  statItemBorder: {
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.15)',
+  },
   statValue: { fontSize: 20, fontWeight: '900', color: '#FFFFFF' },
-  statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: '500' },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.55)',
+    fontWeight: '500',
+  },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
   section: { marginTop: 20, paddingHorizontal: 16 },
@@ -318,7 +384,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
-  version: { textAlign: 'center', color: '#D1D5DB', fontSize: 11, marginTop: 16 },
+  version: {
+    textAlign: 'center',
+    color: '#D1D5DB',
+    fontSize: 11,
+    marginTop: 16,
+  },
 });
 
 export default ProfileScreen;

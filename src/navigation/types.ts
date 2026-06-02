@@ -21,6 +21,8 @@ export type RootStackParamList = {
   CommodityDetail:    { listingId: string };
   RequestToPurchase:  { listingId: string };
   PostDetail:         { postId: string };
+  OfferDetail:        { offerId: string };
+  Negotiation:        { offerId: string };
   DealDetail:         { dealId: string };
   Notifications:      undefined;
 

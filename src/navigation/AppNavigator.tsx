@@ -22,8 +22,8 @@ import OTPScreen from '../app/auth/screens/OTPScreen';
 import HomeScreen from '../app/buyer/screens/HomeScreen';
 import MarketplaceScreen from '../app/marketplace/screens/MarketplaceScreen';
 import DealsScreen from '../app/deals/screens/DealsScreen';
-import MyPostsScreen from '../app/marketplace/screens/MyPostsScreen';
-import PostScreen from '../app/marketplace/screens/PostScreen';
+import MyPostsScreen from '../app/posts/screens/MyPostsScreen';
+import PostScreen from '../app/posts/screens/PostScreen';
 import ProfileScreen from '../app/profile/screens/ProfileScreen';
 
 // Onboarding
@@ -36,16 +36,18 @@ import VerifyPendingScreen from '../app/auth/screens/VerifyPendingScreen';
 import VerifyApprovedScreen from '../app/auth/screens/VerifyApprovedScreen';
 
 // Market rates
-import MarketRatesScreen from '../app/market/screens/MarketRatesScreen';
+import MarketRatesScreen from '../app/marketplace/screens/MarketRatesScreen';
 
 // Detail screens (tab bar hidden)
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
 import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
-import PostDetailScreen from '../app/marketplace/screens/PostDetailScreen';
-import PrePostScreen from '../app/marketplace/screens/PrePostScreen';
-import CreatePostSellerScreen from '../app/marketplace/screens/CreatePostSellerScreen';
-import CreatePostBuyerScreen from '../app/marketplace/screens/CreatePostBuyerScreen';
+import PostDetailScreen from '../app/posts/screens/PostDetailScreen';
+import OfferDetailScreen from '../app/posts/screens/OfferDetailScreen';
+import NegotiationScreen from '../app/posts/screens/NegotiationScreen';
+import PrePostScreen from '../app/posts/screens/PrePostScreen';
+import CreatePostSellerScreen from '../app/posts/screens/CreatePostSellerScreen';
+import CreatePostBuyerScreen from '../app/posts/screens/CreatePostBuyerScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
@@ -199,6 +201,8 @@ export const AppNavigator = () => (
       <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
       <Stack.Screen name="RequestToPurchase" component={RequestToPurchaseScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+      <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
+      <Stack.Screen name="Negotiation" component={NegotiationScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
 

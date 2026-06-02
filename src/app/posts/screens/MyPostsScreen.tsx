@@ -484,7 +484,7 @@ const MyPostsScreen = ({ navigation }: any) => {
             <OfferCard
               item={item as OfferItem}
               onPress={() =>
-                navigation.navigate('PostDetail', { postId: item.id })
+                navigation.navigate('OfferDetail', { offerId: item.id })
               }
             />
           ) : (

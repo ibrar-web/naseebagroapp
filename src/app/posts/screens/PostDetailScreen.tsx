@@ -147,112 +147,9 @@ const POSTS: Record<string, any> = {
   },
 };
 
-const OFFER_DETAILS: Record<string, any> = {
-  PO001: {
-    id: 'OFF-001',
-    title: 'Punjab Wheat',
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-    fallback: '#C29A4A',
-    myOffer: 'PKR 2,750/40kg',
-    qty: '300 bags',
-    mill: 'Faisalabad Mill A',
-    payment: '30 days',
-    alert: 'Counter Received — Respond Now',
-    history: [
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 27 · 10:15 AM',
-        price: 'PKR 2,750',
-      },
-      {
-        actor: '📦 SLR-7634',
-        title: 'Counter Offer',
-        time: 'Mar 27 · 02:30 PM',
-        price: 'PKR 2,900',
-      },
-    ],
-  },
-  PO002: {
-    id: 'OFF-002',
-    title: 'Basmati Rice',
-    image:
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-    fallback: '#8A9A5B',
-    myOffer: 'PKR 4,100/40kg',
-    qty: '100 bags',
-    mill: 'Gujranwala Mill B',
-    payment: '30 days',
-    alert: 'Pending seller response',
-    history: [
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 25 · 11:20 AM',
-        price: 'PKR 4,100',
-      },
-    ],
-  },
-  PO003: {
-    id: 'OFF-003',
-    title: 'Desi Cotton',
-    image:
-      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-    fallback: '#D8D6C7',
-    myOffer: 'PKR 8,400/40kg',
-    qty: '30 bales',
-    mill: 'Multan Mill C',
-    payment: '30 days',
-    alert: 'Accepted offer',
-    history: [
-      {
-        actor: '📦 SLR-5521',
-        title: 'Seller Offer',
-        time: 'Mar 22 · 09:05 AM',
-        price: 'PKR 8,400',
-      },
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Accepted',
-        time: 'Mar 22 · 02:10 PM',
-        price: 'PKR 8,400',
-      },
-    ],
-  },
-  PO004: {
-    id: 'OFF-004',
-    title: 'Yellow Maize',
-    image:
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-    fallback: '#DCA640',
-    myOffer: 'PKR 1,850/40kg',
-    qty: '150 bags',
-    mill: 'Okara Mill D',
-    payment: '30 days',
-    alert: 'Offer rejected',
-    history: [
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 20 · 01:40 PM',
-        price: 'PKR 1,850',
-      },
-    ],
-  },
-};
-
 const statusConfig = (status: string) => {
-  if (status === 'AGING') {
-    return { bg: '#D97706', text: '#FFFFFF', dot: '#FFFFFF' };
-  }
-  if (status === 'INACTIVE') {
-    return { bg: '#6B7280', text: '#FFFFFF', dot: '#FFFFFF' };
-  }
+  if (status === 'AGING') return { bg: '#D97706', text: '#FFFFFF', dot: '#FFFFFF' };
+  if (status === 'INACTIVE') return { bg: '#6B7280', text: '#FFFFFF', dot: '#FFFFFF' };
   return { bg: '#217A3C', text: '#FFFFFF', dot: '#FFFFFF' };
 };
 
@@ -321,9 +218,7 @@ const SellerOfferCard = ({ offer }: { offer: any }) => {
       activeOpacity={0.88}
     >
       <View style={[styles.sellerOfferHeader, { backgroundColor: config.bg }]}>
-        <View
-          style={[styles.sellerOfferDot, { backgroundColor: config.dot }]}
-        />
+        <View style={[styles.sellerOfferDot, { backgroundColor: config.dot }]} />
         <Text style={[styles.sellerOfferStatus, { color: config.text }]}>
           {offer.status}
         </Text>
@@ -361,10 +256,7 @@ const SellerOfferCard = ({ offer }: { offer: any }) => {
         <View
           style={[
             styles.sellerOfferFooter,
-            {
-              backgroundColor: config.footerBg,
-              borderTopColor: config.footerBorder,
-            },
+            { backgroundColor: config.footerBg, borderTopColor: config.footerBorder },
           ]}
         >
           <AppIcon name="notificationWarning" size={12} color="#217A3C" />
@@ -377,146 +269,15 @@ const SellerOfferCard = ({ offer }: { offer: any }) => {
 
 const PostDetailScreen = ({ navigation, route }: Props) => {
   const { postId } = route.params;
-  const offerDetail = OFFER_DETAILS[postId];
   const post = POSTS[postId] ?? POSTS.PD001;
   const [activeTab, setActiveTab] = useState<TabType>('Offers Received');
-
-  if (offerDetail) {
-    return (
-      <View style={styles.container}>
-        <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
-        <View style={styles.offerDetailHeader}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.offerBackBtn}
-            activeOpacity={0.8}
-          >
-            <AppIcon name="back" size={22} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.offerDetailTitle}>Offer Detail</Text>
-          <View style={styles.offerHeaderSpacer} />
-        </View>
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.offerDetailContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.offerHeroCard}>
-            <ImageBackground
-              source={{ uri: offerDetail.image }}
-              resizeMode="cover"
-              style={styles.offerHeroImage}
-              imageStyle={{ backgroundColor: offerDetail.fallback }}
-            >
-              <View style={styles.compactHeroOverlay} />
-              <View style={styles.compactHeroBottom}>
-                <Text style={styles.compactHeroId}>{offerDetail.id}</Text>
-                <Text style={styles.compactHeroTitle}>{offerDetail.title}</Text>
-              </View>
-              <View style={styles.anonymousPill}>
-                <AppIcon
-                  name="shield"
-                  size={10}
-                  color="rgba(255,255,255,0.8)"
-                />
-                <Text style={styles.anonymousText}>Anonymous</Text>
-              </View>
-            </ImageBackground>
-
-            <View style={styles.offerSummaryBar}>
-              {[
-                ['YOUR OFFER', offerDetail.myOffer],
-                ['QTY', offerDetail.qty],
-                ['MILL', offerDetail.mill],
-                ['PAYMENT', offerDetail.payment],
-              ].map(([label, value], index) => (
-                <View
-                  key={label}
-                  style={[
-                    styles.offerSummaryItem,
-                    index > 0 && styles.offerSummaryItemBorder,
-                  ]}
-                >
-                  <Text style={styles.offerSummaryLabel}>{label}</Text>
-                  <Text
-                    style={[
-                      styles.offerSummaryValue,
-                      index === 0 && styles.offerSummaryPrice,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.counterNotice}>
-            <View style={styles.counterNoticeDot} />
-            <Text style={styles.counterNoticeText}>{offerDetail.alert}</Text>
-          </View>
-
-          <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>Offer History</Text>
-            {offerDetail.history.map((event: any, index: number) => (
-              <View
-                key={`${event.title}-${index}`}
-                style={[
-                  styles.historyRow,
-                  index < offerDetail.history.length - 1 &&
-                    styles.historyBorder,
-                ]}
-              >
-                <View style={styles.historyLeft}>
-                  <Text style={styles.historyActor}>
-                    {event.actor}{' '}
-                    {event.badge ? (
-                      <Text style={styles.historyBadge}>{event.badge}</Text>
-                    ) : null}
-                  </Text>
-                  <Text style={styles.historyEvent}>{event.title}</Text>
-                  <Text style={styles.historyTime}>{event.time}</Text>
-                </View>
-                <Text style={styles.historyPrice}>{event.price}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.offerDetailActions}>
-            <TouchableOpacity style={styles.negotiateBtn} activeOpacity={0.86}>
-              <AppIcon name="notificationWarning" size={17} color="#0D3B1F" />
-              <Text style={styles.negotiateBtnText}>Open Negotiation</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.acceptDealBtn} activeOpacity={0.86}>
-              <AppIcon name="approved" size={16} color="#FFFFFF" />
-              <Text style={styles.acceptDealText}>Accept Deal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelOfferBtn}
-              activeOpacity={0.84}
-            >
-              <Text style={styles.cancelOfferText}>Cancel Offer</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
 
   const status = statusConfig(post.status);
   const offerStats = {
     total: String(post.offers.length),
-    new: String(
-      post.offers.filter((offer: any) => offer.status === 'Awaiting').length,
-    ),
-    accepted: String(
-      post.offers.filter((offer: any) => offer.status === 'Accepted').length,
-    ),
-    rejected: String(
-      post.offers.filter((offer: any) => offer.status === 'Rejected').length,
-    ),
+    new: String(post.offers.filter((o: any) => o.status === 'Awaiting').length),
+    accepted: String(post.offers.filter((o: any) => o.status === 'Accepted').length),
+    rejected: String(post.offers.filter((o: any) => o.status === 'Rejected').length),
   };
 
   const renderPostDetails = () => (
@@ -546,30 +307,10 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   const renderOffers = () => (
     <View>
       <View style={styles.offerStatsRow}>
-        <OfferStat
-          value={offerStats.total}
-          label="TOTAL"
-          bg="#F9FAFB"
-          color="#374151"
-        />
-        <OfferStat
-          value={offerStats.new}
-          label="NEW"
-          bg="#EEF6FF"
-          color="#3B82F6"
-        />
-        <OfferStat
-          value={offerStats.accepted}
-          label="ACCEPTED"
-          bg="#E8F7EE"
-          color="#1A6B34"
-        />
-        <OfferStat
-          value={offerStats.rejected}
-          label="REJECTED"
-          bg="#FEE2E2"
-          color="#EF4444"
-        />
+        <OfferStat value={offerStats.total} label="TOTAL" bg="#F9FAFB" color="#374151" />
+        <OfferStat value={offerStats.new} label="NEW" bg="#EEF6FF" color="#3B82F6" />
+        <OfferStat value={offerStats.accepted} label="ACCEPTED" bg="#E8F7EE" color="#1A6B34" />
+        <OfferStat value={offerStats.rejected} label="REJECTED" bg="#FEE2E2" color="#EF4444" />
       </View>
 
       {post.offers.length === 0 ? (
@@ -593,11 +334,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <MockStatusBar
-          absolute
-          backgroundColor="transparent"
-          textColor="#FFFFFF"
-        />
+        <MockStatusBar absolute backgroundColor="transparent" textColor="#FFFFFF" />
         <ImageBackground
           source={{ uri: post.image }}
           style={styles.heroImage}
@@ -615,12 +352,8 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           </TouchableOpacity>
 
           <View style={styles.heroRightActions}>
-            <View
-              style={[styles.heroStatusBadge, { backgroundColor: status.bg }]}
-            >
-              <View
-                style={[styles.heroStatusDot, { backgroundColor: status.dot }]}
-              />
+            <View style={[styles.heroStatusBadge, { backgroundColor: status.bg }]}>
+              <View style={[styles.heroStatusDot, { backgroundColor: status.dot }]} />
               <Text style={[styles.heroStatusText, { color: status.text }]}>
                 {post.status}
               </Text>
@@ -650,9 +383,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
               style={[styles.tabItem, isActive && styles.tabItemActive]}
               activeOpacity={0.75}
             >
-              <Text
-                style={[styles.tabLabel, isActive && styles.tabLabelActive]}
-              >
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                 {tab === 'Offers Received'
                   ? `Offers Received (${post.offers.length})`
                   : tab}
@@ -730,12 +461,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionsDots: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    lineHeight: 20,
-  },
+  optionsDots: { fontSize: 18, color: '#FFFFFF', fontWeight: '900', lineHeight: 20 },
   heroBottom: { position: 'absolute', bottom: 14, left: 16, zIndex: 3 },
   heroId: {
     fontSize: 9,
@@ -763,11 +489,7 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
   tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
   scrollContent: { padding: 14, paddingBottom: 118 },
-  offerStatsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
+  offerStatsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   offerStat: {
     flex: 1,
     borderRadius: 10,
@@ -778,12 +500,7 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
   },
   offerStatValue: { fontSize: 18, fontWeight: '900' },
-  offerStatLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
+  offerStatLabel: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', marginTop: 2 },
   sellerOfferList: { gap: 10 },
   sellerOfferCard: {
     backgroundColor: '#FFFFFF',
@@ -822,12 +539,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   sellerOfferMill: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  sellerOfferPrice: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#1A6B34',
-    marginTop: 2,
-  },
+  sellerOfferPrice: { fontSize: 17, fontWeight: '900', color: '#1A6B34', marginTop: 2 },
   sellerOfferRight: { alignItems: 'flex-end', gap: 4 },
   sellerOfferQty: { fontSize: 12, color: '#6B7280' },
   offerChipsRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
@@ -862,12 +574,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 10,
-  },
+  cardTitle: { fontSize: 14, fontWeight: '800', color: '#111827', marginBottom: 10 },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -926,194 +633,6 @@ const styles = StyleSheet.create({
     borderColor: '#EF444499',
   },
   closeBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
-  offerDetailHeader: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  offerBackBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  offerDetailTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  offerHeaderSpacer: { width: 30 },
-  offerDetailContent: { padding: 14, paddingBottom: 100 },
-  offerHeroCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  offerHeroImage: { height: 90, width: '100%' },
-  compactHeroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  compactHeroBottom: {
-    position: 'absolute',
-    bottom: 10,
-    left: 14,
-    zIndex: 2,
-  },
-  compactHeroId: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'monospace',
-    marginBottom: 1,
-  },
-  compactHeroTitle: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
-  anonymousPill: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-    zIndex: 2,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  anonymousText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
-  },
-  offerSummaryBar: {
-    backgroundColor: '#145228',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-  },
-  offerSummaryItem: { flex: 1 },
-  offerSummaryItemBorder: {
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.13)',
-    paddingLeft: 8,
-  },
-  offerSummaryLabel: {
-    fontSize: 8,
-    color: 'rgba(255,255,255,0.33)',
-    marginBottom: 2,
-  },
-  offerSummaryValue: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
-  offerSummaryPrice: { color: '#F7DB4A' },
-  counterNotice: {
-    backgroundColor: '#FFFDE6',
-    borderWidth: 1,
-    borderColor: 'rgba(243,205,3,0.27)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    marginBottom: 16,
-  },
-  counterNoticeDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#F3CD03',
-  },
-  counterNoticeText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  historyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  historyTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-  },
-  historyBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  historyLeft: { flex: 1 },
-  historyActor: { fontSize: 11, color: '#6B7280', marginBottom: 2 },
-  historyBadge: {
-    backgroundColor: '#F2FBF5',
-    color: '#1A6B34',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  historyEvent: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  historyTime: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
-  historyPrice: { fontSize: 16, fontWeight: '900', color: '#1A6B34' },
-  offerDetailActions: { gap: 10 },
-  negotiateBtn: {
-    backgroundColor: '#F3CD03',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    shadowColor: '#F3CD03',
-    shadowOpacity: 0.33,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  negotiateBtnText: { fontSize: 15, fontWeight: '600', color: '#0D3B1F' },
-  acceptDealBtn: {
-    backgroundColor: '#217A3C',
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    shadowColor: '#2E9E52',
-    shadowOpacity: 0.27,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  acceptDealText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-  cancelOfferBtn: {
-    borderWidth: 1.5,
-    borderColor: '#FCA5A5',
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  cancelOfferText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
 });
 
 export default PostDetailScreen;

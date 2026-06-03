@@ -3,14 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
-  ImageBackground,
   Image,
   Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { switchMode } from '../../../store/slices/appSlice';
@@ -19,141 +15,12 @@ import type { TranslationKey } from '../../../localization';
 import iconRegistry from '../../../assets/icons/iconRegistry';
 import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
+import MarketRates from '../components/MarketRates';
+import CategorySection from '../components/CategorySection';
 
 const { width: W } = Dimensions.get('window');
 
 // ── DATA ────────────────────────────────────────────────────────────────────
-
-const MARKET_DATA = [
-  {
-    name: 'Basmati Rice',
-    mill: 'Gujranwala Mill A',
-    price: 'PKR 4,200',
-    change: '+2.1%',
-    up: true,
-    image:
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80',
-    fallback: '#8A9A5B',
-  },
-  {
-    name: 'Punjab Wheat',
-    mill: 'Faisalabad Mill B',
-    price: 'PKR 2,800',
-    change: '-0.8%',
-    up: false,
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=600&q=80',
-    fallback: '#C29A4A',
-  },
-  {
-    name: 'Desi Cotton',
-    mill: 'Multan Mill A',
-    price: 'PKR 8,500',
-    change: '+1.4%',
-    up: true,
-    image:
-      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=600&q=80',
-    fallback: '#D8D6C7',
-  },
-  {
-    name: 'Yellow Maize',
-    mill: 'Okara Mill A',
-    price: 'PKR 1,900',
-    change: '-1.2%',
-    up: false,
-    image:
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=600&q=80',
-    fallback: '#DCA640',
-  },
-  {
-    name: 'Mustard Seed',
-    mill: 'Sahiwal Mill A',
-    price: 'PKR 6,200',
-    change: '+0.5%',
-    up: true,
-    image:
-      'https://images.unsplash.com/photo-1535567465397-7523840f2ae9?w=600&q=80',
-    fallback: '#D9A825',
-  },
-  {
-    name: 'Sugarcane',
-    mill: 'Rahim Yar Khan Mill',
-    price: 'PKR 280',
-    change: '+3.0%',
-    up: true,
-    image:
-      'https://images.unsplash.com/photo-1559181567-c3190ca9d715?w=600&q=80',
-    fallback: '#7DC467',
-  },
-];
-
-const CATEGORY_SECTIONS = [
-  {
-    title: '🌾 Grains',
-    items: [
-      {
-        id: 'L001',
-        name: 'Basmati Rice',
-        location: 'Gujranwala',
-        price: 'PKR 4,200',
-        stock: '500 bags',
-        badge: 'PREMIUM',
-        image:
-          'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-        fallback: '#8A9A5B',
-      },
-      {
-        id: 'L002',
-        name: 'Punjab Wheat',
-        location: 'Faisalabad',
-        price: 'PKR 2,800',
-        stock: '1200 bags',
-        badge: 'VERIFIED',
-        image:
-          'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-        fallback: '#C29A4A',
-      },
-      {
-        id: 'L003',
-        name: 'Yellow Maize',
-        location: 'Okara',
-        price: 'PKR 1,900',
-        stock: '800 bags',
-        badge: 'FRESH',
-        image:
-          'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-        fallback: '#DCA640',
-      },
-    ],
-  },
-  {
-    title: '🌿 Cotton',
-    items: [
-      {
-        id: 'L004',
-        name: 'Desi Cotton',
-        location: 'Multan',
-        price: 'PKR 8,500',
-        stock: '150 bags',
-        badge: 'PREMIUM',
-        image:
-          'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-        fallback: '#D8D6C7',
-      },
-      {
-        id: 'L005',
-        name: 'NIAB-78',
-        location: 'Rahim Yar Khan',
-        price: 'PKR 7,800',
-        stock: '200 bags',
-        badge: 'VERIFIED',
-        image:
-          'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-        fallback: '#D8D6C7',
-      },
-    ],
-  },
-];
 
 const QUICK_ACTIONS = [
   {
@@ -186,123 +53,6 @@ const QUICK_ACTIONS = [
   },
 ];
 
-// ── SUB-COMPONENTS ───────────────────────────────────────────────────────────
-
-const SectionHeader = ({
-  title,
-  onSeeAll,
-}: {
-  title: string;
-  onSeeAll?: () => void;
-}) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {onSeeAll && (
-      <TouchableOpacity
-        onPress={onSeeAll}
-        style={styles.seeAllBtn}
-        activeOpacity={0.75}
-      >
-        <Text style={styles.seeAllText}>See All</Text>
-        <Text style={styles.seeAllChevron}>›</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-const MarketRateCard = ({
-  item,
-  onPress,
-}: {
-  item: (typeof MARKET_DATA)[0];
-  onPress: () => void;
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={styles.rateCard}
-    activeOpacity={0.88}
-  >
-    <ImageBackground
-      source={{ uri: item.image }}
-      style={styles.rateImage}
-      resizeMode="cover"
-      imageStyle={{ backgroundColor: item.fallback }}
-    >
-      <View style={styles.rateImageOverlay} />
-      <View
-        style={[
-          styles.changeBadge,
-          {
-            backgroundColor: item.up
-              ? 'rgba(22,163,74,0.88)'
-              : 'rgba(220,38,38,0.88)',
-          },
-        ]}
-      >
-        <Text style={styles.changeArrow}>{item.up ? '▲' : '▼'}</Text>
-        <Text style={styles.changeText}>{item.change}</Text>
-      </View>
-      <View style={styles.rateNameBox}>
-        <Text style={styles.rateName}>{item.name}</Text>
-      </View>
-    </ImageBackground>
-    <View style={styles.rateBody}>
-      <View style={styles.rateMillRow}>
-        <AppIcon name="listing" size={10} color="#9CA3AF" />
-        <Text style={styles.rateMill}>{item.mill}</Text>
-      </View>
-      <View style={styles.ratePriceRow}>
-        <Text style={styles.ratePrice}>{item.price}</Text>
-        <Text style={styles.rateUnit}>/40kg</Text>
-      </View>
-    </View>
-  </TouchableOpacity>
-);
-
-const CategoryCard = ({
-  item,
-  onPress,
-}: {
-  item: (typeof CATEGORY_SECTIONS)[0]['items'][0];
-  onPress: () => void;
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={styles.catCard}
-    activeOpacity={0.88}
-  >
-    <ImageBackground
-      source={{ uri: item.image }}
-      style={styles.catImage}
-      resizeMode="cover"
-      imageStyle={{ backgroundColor: item.fallback }}
-    >
-      <View style={styles.catImageOverlay} />
-      <View style={styles.catBadge}>
-        <Text style={styles.catBadgeText}>{item.badge}</Text>
-      </View>
-      <View style={styles.catInfo}>
-        <Text style={styles.catName}>{item.name}</Text>
-        <View style={styles.catLocationRow}>
-          <Text style={styles.catLocationPin}>📍</Text>
-          <Text style={styles.catLocation}>{item.location}</Text>
-        </View>
-      </View>
-    </ImageBackground>
-    <View style={styles.catBody}>
-      <Text style={styles.catPrice}>{item.price}</Text>
-      <Text style={styles.catStock}>per 40kg · {item.stock}</Text>
-      <TouchableOpacity
-        style={styles.interestBtn}
-        onPress={onPress}
-        activeOpacity={0.86}
-      >
-        <Text style={styles.interestBtnText}>Send Interest →</Text>
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-);
-
 // ── MAIN SCREEN ──────────────────────────────────────────────────────────────
 
 const HomeScreen = ({ navigation }: any) => {
@@ -311,7 +61,7 @@ const HomeScreen = ({ navigation }: any) => {
   const user = useAppSelector(s => s.auth.user);
   const { t } = useTranslation();
   const [showModeMenu, setShowModeMenu] = useState(false);
-  const [rateIndex, setRateIndex] = useState(0);
+
   const isBuyer = mode === 'buyer';
 
   const displayName = user?.fullName ?? 'Muhammad Asad';
@@ -354,11 +104,6 @@ const HomeScreen = ({ navigation }: any) => {
           bg: '#FFFDE6',
         },
       ];
-
-  const handleRateScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / 172);
-    setRateIndex(idx);
-  };
 
   return (
     <View style={styles.screen}>
@@ -478,41 +223,7 @@ const HomeScreen = ({ navigation }: any) => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Market Rates */}
-        <View style={styles.section}>
-          <SectionHeader
-            title={t('home.marketRates')}
-            onSeeAll={() => navigation.navigate('MarketRates')}
-          />
-          <FlatList
-            horizontal
-            data={MARKET_DATA}
-            keyExtractor={item => item.name}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 10, paddingBottom: 6 }}
-            snapToInterval={172}
-            decelerationRate="fast"
-            onScroll={handleRateScroll}
-            scrollEventThrottle={16}
-            renderItem={({ item }) => (
-              <MarketRateCard
-                item={item}
-                onPress={() => navigation.navigate('MarketRates')}
-              />
-            )}
-          />
-          {/* Dot indicators */}
-          <View style={styles.dots}>
-            {MARKET_DATA.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  i === rateIndex ? styles.dotActive : styles.dotInactive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
+        <MarketRates navigation={navigation} />
 
         {isBuyer ? (
           <>
@@ -524,31 +235,7 @@ const HomeScreen = ({ navigation }: any) => {
               </Text>
             </View>
 
-            {CATEGORY_SECTIONS.map(section => (
-              <View key={section.title} style={styles.section}>
-                <SectionHeader
-                  title={section.title}
-                  onSeeAll={() => navigation.navigate('Market')}
-                />
-                <FlatList
-                  horizontal
-                  data={section.items}
-                  keyExtractor={item => item.id}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-                  renderItem={({ item }) => (
-                    <CategoryCard
-                      item={item}
-                      onPress={() =>
-                        navigation.navigate('CommodityDetail', {
-                          listingId: item.id,
-                        })
-                      }
-                    />
-                  )}
-                />
-              </View>
-            ))}
+            <CategorySection navigation={navigation} />
           </>
         ) : (
           <>
@@ -772,89 +459,6 @@ const styles = StyleSheet.create({
 
   // Scroll & sections
   scrollContent: { paddingBottom: 100 },
-  section: { paddingHorizontal: 16, marginBottom: 20, marginTop: 16 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  seeAllText: { fontSize: 12, color: '#217A3C', fontWeight: '600' },
-  seeAllChevron: { fontSize: 14, color: '#217A3C', fontWeight: '700' },
-
-  // Market rate card
-  rateCard: {
-    width: 162,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  rateImage: { height: 80 },
-  rateImageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  changeBadge: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  changeArrow: { fontSize: 8, color: '#FFFFFF' },
-  changeText: { fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
-  rateNameBox: { position: 'absolute', bottom: 7, left: 9, right: 9 },
-  rateName: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-    lineHeight: 14,
-  },
-  rateBody: { padding: 8 },
-  rateMillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  rateMill: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
-  ratePriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-  ratePrice: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#1A6B34',
-    letterSpacing: -0.4,
-    lineHeight: 20,
-  },
-  rateUnit: { fontSize: 9, color: '#9CA3AF', fontWeight: '500' },
-
-  // Dots
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 5,
-    marginTop: 6,
-  },
-  dot: { height: 6, borderRadius: 3 },
-  dotActive: { width: 20, backgroundColor: '#217A3C' },
-  dotInactive: { width: 6, backgroundColor: '#E5E7EB' },
-
   // Featured header
   featuredHeader: { paddingHorizontal: 16, marginBottom: 4 },
   featuredTitle: {
@@ -864,61 +468,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   featuredSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-
-  // Category card
-  catCard: {
-    width: 180,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  catImage: { height: 110 },
-  catImageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  catBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 10,
-    zIndex: 3,
-    backgroundColor: '#F3CD03',
-    borderRadius: 5,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  catBadgeText: { fontSize: 8, fontWeight: '800', color: '#0D3B1F' },
-  catInfo: { position: 'absolute', bottom: 8, left: 10, zIndex: 3 },
-  catName: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
-  catLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 1,
-  },
-  catLocationPin: { fontSize: 8 },
-  catLocation: { fontSize: 9, color: 'rgba(255,255,255,0.7)' },
-  catBody: { padding: 10 },
-  catPrice: { fontSize: 17, fontWeight: '900', color: '#1A6B34' },
-  catStock: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
-  interestBtn: {
-    marginTop: 8,
-    width: '100%',
-    paddingVertical: 8,
-    backgroundColor: '#F3CD03',
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  interestBtnText: { fontSize: 11, fontWeight: '700', color: '#0D3B1F' },
 
   // Seller earnings card
   earningsCard: {

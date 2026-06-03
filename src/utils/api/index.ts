@@ -78,6 +78,8 @@ export const api = {
       listListings: (params?: Record<string, any>) =>
         Get('public/listings', params),
       listMarketRates: (params?: Record<string, any>) =>
+        Get('public/market-rates/home', params),
+      listMarketRatesAll: (params?: Record<string, any>) =>
         Get('public/market-rates', params),
     },
     private: {

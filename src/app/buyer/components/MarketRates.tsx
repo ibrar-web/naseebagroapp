@@ -16,7 +16,7 @@ import api from '../../../utils/api';
 
 interface MarketDataItem {
   id: string;
-  commodity_name: string;
+  name: string;
   mill: string;
   price: string;
   change: string;
@@ -40,7 +40,7 @@ const MarketRates = ({ navigation }: any) => {
     try {
       const data: any = await api.marketplace.public.listMarketRates();
       console.log('Market reates', data);
-      setMarketData(data?.items);
+      setMarketData(data?? []);
     } catch (error) {
       console.log(error);
     }

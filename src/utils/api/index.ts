@@ -77,6 +77,8 @@ export const api = {
         Get('public/commodities', params),
       listListings: (params?: Record<string, any>) =>
         Get('public/listings', params),
+      listMarketRates: (params?: Record<string, any>) =>
+        Get('public/commodities', params),
     },
     private: {
       createSellerListing: (data: any) =>
@@ -94,23 +96,15 @@ export const api = {
       removeSellerListing: (id: string | number) =>
         Delete(byId('seller/listings', id), undefined, protectedRequest),
     },
-    listPublicListings: (params?: Record<string, any>) =>
-      Get('public/listings', params),
-    listPublicCommodities: (params?: Record<string, any>) =>
-      Get('public/commodities', params),
-    createSellerListing: (data: any) =>
-      Post('seller/listings', data, protectedRequest),
-    createSellerListingForm: (data: any) =>
-      Post('seller/listings', data, protectedRequest),
-    getMyListings: () => Get('seller/listings/my', undefined, protectedRequest),
+  },
+  posts: {
     getSellerListing: (id: string | number) =>
       Get(byId('seller/listings', id), undefined, protectedRequest),
-    updateSellerListing: (id: string | number, data: any) =>
-      Patch(byId('seller/listings', id), data, protectedRequest),
-    updateSellerListingForm: (id: string | number, data: any) =>
-      Patch(byId('seller/listings', id), data, protectedRequest),
   },
-
+  deals: {
+    getMyDeals: (id: string | number) =>
+      Get(byId('seller/listings', id), undefined, protectedRequest),
+  },
   buyer: {
     requests: createCrudApi('buyer/buyrequest', true),
     deals: createCrudApi('buyer/buydeals', true),

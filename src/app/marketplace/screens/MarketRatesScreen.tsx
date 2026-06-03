@@ -1,147 +1,130 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   FlatList,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
   Image,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
+import api from '../../../utils/api';
 import MockStatusBar from '../../components/MockStatusBar';
 
-const RATES_DATA = [
-  {
-    id: '1',
-    name: 'Basmati Rice',
-    category: 'Grains',
-    mill: 'Gujranwala Mill A',
-    price: 'PKR 4,200',
-    prevPrice: 'PKR 4,110',
-    unit: '/40kg',
-    change: '+2.1%',
-    up: true,
-    updatedAt: 'Today 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=75',
-    fallback: '#8A9A5B',
-  },
-  {
-    id: '2',
-    name: 'Punjab Wheat',
-    category: 'Grains',
-    mill: 'Faisalabad Mill B',
-    price: 'PKR 2,800',
-    prevPrice: 'PKR 2,823',
-    unit: '/40kg',
-    change: '-0.8%',
-    up: false,
-    updatedAt: 'Today 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=75',
-    fallback: '#C29A4A',
-  },
-  {
-    id: '3',
-    name: 'Desi Cotton',
-    category: 'Cotton',
-    mill: 'Multan Mill A',
-    price: 'PKR 8,500',
-    prevPrice: 'PKR 8,382',
-    unit: '/40kg',
-    change: '+1.4%',
-    up: true,
-    updatedAt: 'Today 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=400&q=75',
-    fallback: '#D8D6C7',
-  },
-  {
-    id: '4',
-    name: 'Yellow Maize',
-    category: 'Grains',
-    mill: 'Okara Mill A',
-    price: 'PKR 1,900',
-    prevPrice: 'PKR 1,923',
-    unit: '/40kg',
-    change: '-1.2%',
-    up: false,
-    updatedAt: 'Today 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400&q=75',
-    fallback: '#DCA640',
-  },
-  {
-    id: '5',
-    name: 'Mustard Seed',
-    category: 'Oilseeds',
-    mill: 'Sahiwal Mill A',
-    price: 'PKR 6,200',
-    prevPrice: 'PKR 6,169',
-    unit: '/40kg',
-    change: '+0.5%',
-    up: true,
-    updatedAt: 'Today 8:45 AM',
-    image: 'https://images.unsplash.com/photo-1535567465397-7523840f2ae9?w=400&q=75',
-    fallback: '#D9A825',
-  },
-  {
-    id: '6',
-    name: 'Sugarcane',
-    category: 'Crops',
-    mill: 'Lahore Mill A',
-    price: 'PKR 750',
-    prevPrice: 'PKR 755',
-    unit: '/40kg',
-    change: '-0.7%',
-    up: false,
-    updatedAt: 'Today 8:30 AM',
-    image: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400&q=75',
-    fallback: '#5A8C3A',
-  },
-  {
-    id: '7',
-    name: 'IRRI-6 Rice',
-    category: 'Grains',
-    mill: 'Sheikhupura Mill A',
-    price: 'PKR 3,400',
-    prevPrice: 'PKR 3,340',
-    unit: '/40kg',
-    change: '+1.8%',
-    up: true,
-    updatedAt: 'Today 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=400&q=75',
-    fallback: '#A3B77A',
-  },
-  {
-    id: '8',
-    name: 'Sunflower Seed',
-    category: 'Oilseeds',
-    mill: 'Multan Mill B',
-    price: 'PKR 5,100',
-    prevPrice: 'PKR 5,100',
-    unit: '/40kg',
-    change: '0.0%',
-    up: true,
-    updatedAt: 'Today 8:00 AM',
-    image: 'https://images.unsplash.com/photo-1597131628149-a2c31d6e14ab?w=400&q=75',
-    fallback: '#E8C53A',
-  },
+type MarketMill = {
+  id: string;
+  mill_id?: string;
+  name: string;
+  city?: string;
+  province?: string;
+  short_code?: string;
+};
+
+type MarketRate = {
+  id: string;
+  name: string;
+  category?: string;
+  mill: string;
+  mill_id?: string;
+  price: string;
+  prevPrice?: string | null;
+  unit: string;
+  change: string;
+  up: boolean;
+  updatedAt: string;
+  image?: string;
+  fallback?: string;
+};
+
+type MarketRatesPayload = {
+  mills?: MarketMill[];
+  rates?: MarketRate[];
+  meta?: {
+    total?: number;
+    page?: number;
+    limit?: number;
+    total_pages?: number;
+  };
+  indicative_notice?: string;
+};
+
+type SortValue = 'latest' | 'price_asc' | 'price_desc' | 'rising';
+
+const SORT_OPTIONS: Array<{
+  label: string;
+  value: SortValue;
+  icon: AppIconName;
+}> = [
+  { label: 'Latest Updated', value: 'latest', icon: 'profileDateOfBirth' },
+  { label: 'Price: Low to High', value: 'price_asc', icon: 'currency' },
+  { label: 'Price: High to Low', value: 'price_desc', icon: 'currency' },
+  { label: 'Rising First', value: 'rising', icon: 'tabMarket' },
 ];
 
-const CATEGORIES = ['All', 'Grains', 'Cotton', 'Oilseeds', 'Crops'];
+const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
 
-const RateCard = ({ item }: { item: (typeof RATES_DATA)[number] }) => {
+const normalizeMarketRatesPayload = (response: any): MarketRatesPayload => {
+  const payload = response?.data ?? response ?? {};
+  return {
+    mills: Array.isArray(payload.mills) ? payload.mills : [],
+    rates: Array.isArray(payload.rates) ? payload.rates : [],
+    meta: payload.meta ?? {},
+    indicative_notice:
+      payload.indicative_notice ??
+      'Indicative rates only. Actual transaction price may vary.',
+  };
+};
+
+const cleanParams = (params: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== '' && value != null),
+  );
+
+const buildRateParams = ({
+  millId,
+  search,
+  sort,
+}: {
+  millId: string;
+  search: string;
+  sort: SortValue;
+}) => {
+  const sortParams =
+    sort === 'rising'
+      ? { trend: 'rising' }
+      : {
+          sort,
+        };
+
+  return cleanParams({
+    page: 1,
+    limit: 20,
+    mill_id: millId,
+    search: search.trim(),
+    ...sortParams,
+  });
+};
+
+const RateCard = ({ item, index }: { item: MarketRate; index: number }) => {
   const changeColor = item.up ? '#16A34A' : '#DC2626';
   const changeBg = item.up ? '#DCFCE7' : '#FEE2E2';
+  const fallback =
+    item.fallback ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 
   return (
     <View style={styles.card}>
-      <Image
-        source={{ uri: item.image }}
-        style={styles.cardImage}
-        defaultSource={{ uri: '' }}
-      />
-      <View
-        style={[styles.cardImagePlaceholder, { backgroundColor: item.fallback }]}
-      />
+      <View style={[styles.cardImageWrap, { backgroundColor: fallback }]}>
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.cardImage} />
+        ) : null}
+        <View style={styles.cardImageOverlay} />
+      </View>
 
       <View style={styles.cardMiddle}>
         <Text style={styles.commodityName} numberOfLines={1}>
@@ -150,10 +133,13 @@ const RateCard = ({ item }: { item: (typeof RATES_DATA)[number] }) => {
         <Text style={styles.millName} numberOfLines={1}>
           {item.mill}
         </Text>
-        <Text style={styles.prevRate}>
-          Prev: {item.prevPrice}{item.unit}
+        <Text style={styles.prevRate} numberOfLines={1}>
+          Prev rate:{' '}
+          <Text style={styles.prevRateStrong}>
+            {item.prevPrice ? `${item.prevPrice}${item.unit}` : 'N/A'}
+          </Text>
         </Text>
-        <Text style={styles.updatedAt}>{item.updatedAt}</Text>
+        <Text style={styles.updatedAt}>Updated {item.updatedAt}</Text>
       </View>
 
       <View style={styles.cardRight}>
@@ -175,24 +161,156 @@ const RateCard = ({ item }: { item: (typeof RATES_DATA)[number] }) => {
   );
 };
 
+const SortSheet = ({
+  visible,
+  selectedSort,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  selectedSort: SortValue;
+  onClose: () => void;
+  onSelect: (sort: SortValue) => void;
+}) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="slide"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalRoot}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={styles.sheetPanel}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>Sort By</Text>
+        {SORT_OPTIONS.map(option => {
+          const active = selectedSort === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              onPress={() => onSelect(option.value)}
+              style={[
+                styles.sortOption,
+                active ? styles.sortOptionActive : styles.sortOptionInactive,
+              ]}
+              activeOpacity={0.84}
+            >
+              <View
+                style={[
+                  styles.sortIconWrap,
+                  active ? styles.sortIconWrapActive : null,
+                ]}
+              >
+                <AppIcon
+                  name={option.icon}
+                  size={16}
+                  color={active ? '#217A3C' : '#6B7280'}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.sortOptionText,
+                  active ? styles.sortOptionTextActive : null,
+                ]}
+              >
+                {option.label}
+              </Text>
+              {active ? (
+                <AppIcon name="approved" size={16} color="#217A3C" />
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  </Modal>
+);
+
 const MarketRatesScreen = ({ navigation }: any) => {
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedMillId, setSelectedMillId] = useState('');
+  const [selectedSort, setSelectedSort] = useState<SortValue>('latest');
+  const [sortSheetVisible, setSortSheetVisible] = useState(false);
+  const [mills, setMills] = useState<MarketMill[]>([]);
+  const [rates, setRates] = useState<MarketRate[]>([]);
+  const [notice, setNotice] = useState(
+    'Indicative rates only. Actual transaction price may vary.',
+  );
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [error, setError] = useState('');
 
-  const filtered = RATES_DATA.filter(item => {
-    const matchesCategory =
-      activeCategory === 'All' || item.category === activeCategory;
-    const matchesSearch =
-      search === '' ||
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.mill.toLowerCase().includes(search.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const params = useMemo(
+    () =>
+      buildRateParams({
+        millId: selectedMillId,
+        search: debouncedSearch,
+        sort: selectedSort,
+      }),
+    [debouncedSearch, selectedMillId, selectedSort],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadRates = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response: any = await api.marketplace.public.listMarketRatesAll(
+          params,
+        );
+        const payload = normalizeMarketRatesPayload(response);
+
+        if (!mounted) {
+          return;
+        }
+
+        setMills(payload.mills ?? []);
+        setRates(payload.rates ?? []);
+        setNotice(
+          payload.indicative_notice ??
+            'Indicative rates only. Actual transaction price may vary.',
+        );
+        setTotalCount(payload.meta?.total ?? payload.rates?.length ?? 0);
+        setHasLoadedOnce(true);
+      } catch {
+        if (!mounted) {
+          return;
+        }
+        setError('Unable to load market rates. Pull latest again.');
+        setRates([]);
+        setHasLoadedOnce(true);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadRates();
+
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
+
+  const selectedSortLabel =
+    SORT_OPTIONS.find(option => option.value === selectedSort)?.label ??
+    'Latest';
+
+  const tabs = useMemo(() => [{ id: '', name: 'All' }, ...mills], [mills]);
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#0D3B1F" textColor="#FFFFFF" />
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -200,59 +318,68 @@ const MarketRatesScreen = ({ navigation }: any) => {
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <Text style={styles.backArrow}>‹</Text>
+            <AppIcon name="back" size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerTitle}>
             <Text style={styles.headerTitleText}>Market Rates</Text>
             <Text style={styles.headerSubtitle}>
-              Today's indicative rates · Admin updated
+              {loading && !hasLoadedOnce
+                ? 'Loading latest rates...'
+                : `${totalCount} rates · Admin updated`}
             </Text>
           </View>
-          <TouchableOpacity style={styles.latestButton} activeOpacity={0.8}>
-            <Text style={styles.latestIcon}>〜</Text>
+          <TouchableOpacity
+            style={styles.latestButton}
+            activeOpacity={0.8}
+            onPress={() => setSortSheetVisible(true)}
+          >
+            <AppIcon name="notificationWarning" size={13} color="#FFFFFF" />
             <Text style={styles.latestText}>Latest</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <AppIcon name="search" size={14} color="#9CA3AF" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search commodity..."
             placeholderTextColor="#9CA3AF"
             value={search}
             onChangeText={setSearch}
+            returnKeyType="search"
           />
-          {search.length > 0 && (
+          {search.length > 0 ? (
             <TouchableOpacity
               onPress={() => setSearch('')}
               style={styles.clearButton}
+              activeOpacity={0.75}
             >
               <Text style={styles.clearText}>✕</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
-      {/* Category Tabs */}
       <View style={styles.tabsWrapper}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScroll}
         >
-          {CATEGORIES.map(cat => {
-            const isActive = activeCategory === cat;
+          {tabs.map(mill => {
+            const isActive = selectedMillId === mill.id;
             return (
               <TouchableOpacity
-                key={cat}
-                onPress={() => setActiveCategory(cat)}
+                key={mill.id || 'all-mills'}
+                onPress={() => setSelectedMillId(mill.id)}
                 style={[styles.tab, isActive && styles.tabActive]}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {cat}
+                <Text
+                  style={[styles.tabText, isActive && styles.tabTextActive]}
+                  numberOfLines={1}
+                >
+                  {mill.short_code || mill.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -260,31 +387,60 @@ const MarketRatesScreen = ({ navigation }: any) => {
         </ScrollView>
       </View>
 
-      {/* Warning Banner */}
       <View style={styles.warningBanner}>
-        <Text style={styles.warningIcon}>⚠</Text>
-        <Text style={styles.warningText}>
-          Indicative rates only. Actual transaction price may vary.
-        </Text>
+        <AppIcon name="version" size={11} color="#F3CD03" />
+        <Text style={styles.warningText}>{notice}</Text>
       </View>
 
-      {/* Rate List */}
+      {error ? (
+        <TouchableOpacity
+          style={styles.errorBanner}
+          onPress={() => setDebouncedSearch(search)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.errorText}>{error}</Text>
+        </TouchableOpacity>
+      ) : null}
+
       <FlatList
-        data={filtered}
+        data={rates}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <RateCard item={item} />}
+        renderItem={({ item, index }) => <RateCard item={item} index={index} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📊</Text>
-            <Text style={styles.emptyTitle}>No rates found</Text>
-            <Text style={styles.emptySubtitle}>
-              Try a different search or category
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#217A3C" />
+            ) : (
+              <>
+                <Text style={styles.emptyEmoji}>📊</Text>
+                <Text style={styles.emptyTitle}>No rates found</Text>
+                <Text style={styles.emptySubtitle}>
+                  Try a different mill, search, or filter
+                </Text>
+              </>
+            )}
           </View>
         }
       />
+
+      <SortSheet
+        visible={sortSheetVisible}
+        selectedSort={selectedSort}
+        onClose={() => setSortSheetVisible(false)}
+        onSelect={sort => {
+          setSelectedSort(sort);
+          setSortSheetVisible(false);
+        }}
+      />
+
+      {loading && hasLoadedOnce ? (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator color="#217A3C" />
+          <Text style={styles.loadingText}>Updating {selectedSortLabel}</Text>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -309,18 +465,10 @@ const styles = StyleSheet.create({
   backButton: {
     backgroundColor: 'rgba(255,255,255,0.133)',
     borderRadius: 10,
-    padding: 8,
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '300',
-    lineHeight: 24,
-    marginTop: -2,
   },
   headerTitle: {
     flex: 1,
@@ -346,10 +494,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 11,
   },
-  latestIcon: {
-    fontSize: 11,
-    color: '#FFFFFF',
-  },
   latestText: {
     fontSize: 11,
     fontWeight: '600',
@@ -358,14 +502,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 7,
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical: 2,
-  },
-  searchIcon: {
-    fontSize: 13,
-    marginRight: 6,
   },
   searchInput: {
     flex: 1,
@@ -386,9 +527,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   tabsScroll: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
   },
   tab: {
+    maxWidth: 150,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 2.5,
@@ -416,14 +558,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  warningIcon: {
-    fontSize: 11,
-    color: '#F3CD03',
-  },
   warningText: {
     fontSize: 10,
     color: '#92400E',
     flex: 1,
+  },
+  errorBanner: {
+    backgroundColor: '#FEE2E2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FCA5A5',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
   },
   listContent: {
     padding: 12,
@@ -442,45 +592,50 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardImagePlaceholder: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
+  cardImageWrap: {
     width: 64,
-    bottom: 0,
+    height: 84,
+    alignSelf: 'stretch',
+    position: 'relative',
   },
   cardImage: {
-    width: 64,
-    alignSelf: 'stretch',
+    width: '100%',
+    height: '100%',
+  },
+  cardImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.22)',
   },
   cardMiddle: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingLeft: 12,
     paddingRight: 4,
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
   },
   commodityName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#111827',
+    lineHeight: 16,
   },
   millName: {
     fontSize: 10,
     fontWeight: '500',
     color: '#6B7280',
-    marginTop: 1,
   },
   prevRate: {
-    fontSize: 9,
-    color: '#D1D5DB',
-    marginTop: 3,
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  prevRateStrong: {
+    fontWeight: '700',
+    color: '#4B5563',
   },
   updatedAt: {
     fontSize: 9,
     color: '#D1D5DB',
-    marginTop: 1,
   },
   cardRight: {
     paddingVertical: 11,
@@ -515,7 +670,7 @@ const styles = StyleSheet.create({
   changeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
     borderRadius: 6,
     paddingVertical: 2,
     paddingHorizontal: 8,
@@ -543,6 +698,98 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 13,
     color: '#9CA3AF',
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  sheetPanel: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 14,
+    paddingHorizontal: 18,
+    paddingBottom: 28,
+  },
+  sheetHandle: {
+    width: 38,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  sortOption: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    marginBottom: 7,
+    borderWidth: 1.5,
+    borderRadius: 11,
+  },
+  sortOptionActive: {
+    borderColor: '#2E9E52',
+    backgroundColor: '#F2FBF5',
+  },
+  sortOptionInactive: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  sortIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortIconWrapActive: {
+    backgroundColor: '#E8F7EE',
+  },
+  sortOptionText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  sortOptionTextActive: {
+    fontWeight: '700',
+    color: '#1A6B34',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    right: 14,
+    bottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  loadingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
   },
 });
 

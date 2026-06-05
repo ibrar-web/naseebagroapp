@@ -1,4 +1,6 @@
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ImageBackground,
   StyleSheet,
@@ -6,96 +8,148 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import { AppIcon } from '../../../assets/icons';
+import api from '../../../utils/api';
 import SectionHeader from '../../components/headers/SectionHeader';
 
-const CATEGORY_SECTIONS = [
-  {
-    title: '🌾 Grains',
-    items: [
-      {
-        id: 'L001',
-        name: 'Basmati Rice',
-        location: 'Gujranwala',
-        price: 'PKR 4,200',
-        stock: '500 bags',
-        badge: 'PREMIUM',
-        image:
-          'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-        fallback: '#8A9A5B',
-      },
-      {
-        id: 'L002',
-        name: 'Punjab Wheat',
-        location: 'Faisalabad',
-        price: 'PKR 2,800',
-        stock: '1200 bags',
-        badge: 'VERIFIED',
-        image:
-          'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-        fallback: '#C29A4A',
-      },
-      {
-        id: 'L003',
-        name: 'Yellow Maize',
-        location: 'Okara',
-        price: 'PKR 1,900',
-        stock: '800 bags',
-        badge: 'FRESH',
-        image:
-          'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-        fallback: '#DCA640',
-      },
-    ],
-  },
-  {
-    title: '🌿 Cotton',
-    items: [
-      {
-        id: 'L004',
-        name: 'Desi Cotton',
-        location: 'Multan',
-        price: 'PKR 8,500',
-        stock: '150 bags',
-        badge: 'PREMIUM',
-        image:
-          'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-        fallback: '#D8D6C7',
-      },
-      {
-        id: 'L005',
-        name: 'NIAB-78',
-        location: 'Rahim Yar Khan',
-        price: 'PKR 7,800',
-        stock: '200 bags',
-        badge: 'VERIFIED',
-        image:
-          'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-        fallback: '#D8D6C7',
-      },
-    ],
-  },
-];
+type FeaturedListing = {
+  id: string;
+  code?: string;
+  post_type?: 'SUPPLY' | 'DEMAND';
+  commodity_name?: string;
+  image?: string;
+  location?: string;
+  price?: string;
+  badge?: string | null;
+  quantity?: number;
+  quantity_label?: string;
+  is_mill_based?: boolean;
+  avg_rating?: string;
+  review_count?: number;
+};
+
+type FeaturedCategory = {
+  id: string;
+  name: string;
+  image_url?: string;
+  listings_count?: number;
+  listings?: FeaturedListing[];
+};
+
+const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
+
+const normalizeFeaturedCategories = (response: any): FeaturedCategory[] => {
+  const root =
+    response?.items || response?.data?.items ? response : response?.data ?? {};
+  const items = root?.items ?? root?.data?.items ?? [];
+  return Array.isArray(items) ? items : [];
+};
+
+const formatBadge = (item: FeaturedListing) => {
+  if (item.badge) {
+    return item.badge.replace(/_/g, ' ');
+  }
+
+  return item.is_mill_based ? 'MILL BASED' : 'DIRECT';
+};
+
+const getDetailRoute = (item: FeaturedListing) =>
+  item.post_type === 'DEMAND' || item.code?.startsWith('LST-D')
+    ? 'ListingDetail'
+    : 'CommodityDetail';
+
 const CategorySection = ({ navigation }: any) => {
+  const [categories, setCategories] = useState<FeaturedCategory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCategories = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await api.marketplace.public.listHomeCategoryListing();
+        if (active) {
+          setCategories(normalizeFeaturedCategories(response));
+        }
+      } catch (err) {
+        console.log('Featured categories error', err);
+        if (active) {
+          setError('Unable to load featured categories.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const visibleCategories = useMemo(
+    () => categories.filter(category => (category.listings?.length ?? 0) > 0),
+    [categories],
+  );
+
+  if (loading && categories.length === 0) {
+    return (
+      <View style={styles.loadingBox}>
+        <ActivityIndicator color="#217A3C" />
+        <Text style={styles.loadingText}>Loading featured categories...</Text>
+      </View>
+    );
+  }
+
+  if (error && categories.length === 0) {
+    return (
+      <View style={styles.emptyBox}>
+        <AppIcon name="notificationWarning" size={24} color="#D97706" />
+        <Text style={styles.emptyTitle}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (visibleCategories.length === 0) {
+    return (
+      <View style={styles.emptyBox}>
+        <AppIcon name="listing" size={24} color="#9CA3AF" />
+        <Text style={styles.emptyTitle}>No featured listings yet.</Text>
+      </View>
+    );
+  }
+
   return (
     <>
-      {CATEGORY_SECTIONS.map(section => (
-        <View key={section.title} style={styles.section}>
+      {visibleCategories.map((section, sectionIndex) => (
+        <View key={section.id} style={styles.section}>
           <SectionHeader
-            title={section.title}
+            title={section.name}
             onSeeAll={() => navigation.navigate('Market')}
           />
           <FlatList
             horizontal
-            data={section.items}
+            data={section.listings ?? []}
             keyExtractor={item => item.id}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-            renderItem={({ item }) => (
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item, index }) => (
               <CategoryCard
                 item={item}
+                fallback={
+                  FALLBACK_COLORS[
+                    (sectionIndex + index) % FALLBACK_COLORS.length
+                  ]
+                }
                 onPress={() =>
-                  navigation.navigate('CommodityDetail', {
+                  navigation.navigate(getDetailRoute(item), {
                     listingId: item.id,
                   })
                 }
@@ -109,64 +163,112 @@ const CategorySection = ({ navigation }: any) => {
 };
 
 export default CategorySection;
+
 const CategoryCard = ({
   item,
+  fallback,
   onPress,
 }: {
-  item: (typeof CATEGORY_SECTIONS)[0]['items'][0];
+  item: FeaturedListing;
+  fallback: string;
   onPress: () => void;
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={styles.catCard}
-    activeOpacity={0.88}
-  >
-    <ImageBackground
-      source={{ uri: item.image }}
-      style={styles.catImage}
-      resizeMode="cover"
-      imageStyle={{ backgroundColor: item.fallback }}
+}) => {
+  const image =
+    item.image ??
+    `https://placehold.co/600x400?text=${encodeURIComponent(
+      item.commodity_name ?? 'Commodity',
+    )}`;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.catCard}
+      activeOpacity={0.88}
     >
-      <View style={styles.catImageOverlay} />
-      <View style={styles.catBadge}>
-        <Text style={styles.catBadgeText}>{item.badge}</Text>
-      </View>
-      <View style={styles.catInfo}>
-        <Text style={styles.catName}>{item.name}</Text>
-        <View style={styles.catLocationRow}>
-          <Text style={styles.catLocationPin}>📍</Text>
-          <Text style={styles.catLocation}>{item.location}</Text>
-        </View>
-      </View>
-    </ImageBackground>
-    <View style={styles.catBody}>
-      <Text style={styles.catPrice}>{item.price}</Text>
-      <Text style={styles.catStock}>per 40kg · {item.stock}</Text>
-      <TouchableOpacity
-        style={styles.interestBtn}
-        onPress={onPress}
-        activeOpacity={0.86}
+      <ImageBackground
+        source={{ uri: image }}
+        style={[styles.catImage, { backgroundColor: fallback }]}
+        resizeMode="cover"
       >
-        <Text style={styles.interestBtnText}>Send Interest →</Text>
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-);
+        <View style={styles.catImageOverlay} />
+        <View style={styles.catBadge}>
+          <Text style={styles.catBadgeText}>{formatBadge(item)}</Text>
+        </View>
+        <View style={styles.catInfo}>
+          <Text style={styles.catCode}>{item.code ?? item.id}</Text>
+          <Text style={styles.catName} numberOfLines={1}>
+            {item.commodity_name ?? 'Commodity'}
+          </Text>
+          <View style={styles.catLocationRow}>
+            <AppIcon
+              name="profileCity"
+              size={9}
+              color="rgba(255,255,255,0.7)"
+            />
+            <Text style={styles.catLocation} numberOfLines={1}>
+              {item.location ?? 'Multiple mills'}
+            </Text>
+          </View>
+        </View>
+      </ImageBackground>
+      <View style={styles.catBody}>
+        <Text style={styles.catPrice} numberOfLines={1}>
+          {item.price ?? 'Ask price'}
+        </Text>
+        <Text style={styles.catStock} numberOfLines={1}>
+          {item.quantity_label ?? 'Quantity available'}
+        </Text>
+        <TouchableOpacity
+          style={styles.interestBtn}
+          onPress={onPress}
+          activeOpacity={0.86}
+        >
+          <Text style={styles.interestBtnText}>View Details</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
-  // Scroll & sections
-  scrollContent: { paddingBottom: 100 },
   section: { paddingHorizontal: 16, marginBottom: 20, marginTop: 16 },
-  sectionHeader: {
-    flexDirection: 'row',
+  listContent: { gap: 12, paddingBottom: 4 },
+  loadingBox: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 20,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 24,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  seeAllText: { fontSize: 12, color: '#217A3C', fontWeight: '600' },
-  seeAllChevron: { fontSize: 14, color: '#217A3C', fontWeight: '700' },
-  // Category card
+  loadingText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  emptyBox: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 20,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  emptyTitle: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   catCard: {
     width: 180,
     borderRadius: 16,
@@ -180,11 +282,7 @@ const styles = StyleSheet.create({
   },
   catImage: { height: 110 },
   catImageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   catBadge: {
@@ -198,7 +296,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   catBadgeText: { fontSize: 8, fontWeight: '800', color: '#0D3B1F' },
-  catInfo: { position: 'absolute', bottom: 8, left: 10, zIndex: 3 },
+  catInfo: { position: 'absolute', bottom: 8, left: 10, right: 10, zIndex: 3 },
+  catCode: {
+    fontSize: 8,
+    color: 'rgba(255,255,255,0.55)',
+    fontWeight: '700',
+    marginBottom: 1,
+  },
   catName: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
   catLocationRow: {
     flexDirection: 'row',
@@ -206,8 +310,7 @@ const styles = StyleSheet.create({
     gap: 3,
     marginTop: 1,
   },
-  catLocationPin: { fontSize: 8 },
-  catLocation: { fontSize: 9, color: 'rgba(255,255,255,0.7)' },
+  catLocation: { fontSize: 9, color: 'rgba(255,255,255,0.7)', flex: 1 },
   catBody: { padding: 10 },
   catPrice: { fontSize: 17, fontWeight: '900', color: '#1A6B34' },
   catStock: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },

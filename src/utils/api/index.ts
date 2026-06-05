@@ -85,8 +85,16 @@ export const api = {
         Get('public/featured-categories', params),
       listMarketSuppliesListing: (params?: Record<string, any>) =>
         Get('public/supplies', params),
+      DetailMarketSuppliesListing: (
+        id: string | number,
+        params?: Record<string, any>,
+      ) => Get(byId('public/supplies', id), params),
       listMarketDemandsListing: (params?: Record<string, any>) =>
         Get('public/demand', params),
+      DetailMarketDemandsListing: (
+        id: string | number,
+        params?: Record<string, any>,
+      ) => Get(byId('public/demand', id), params),
     },
     private: {
       createSellerListing: (data: any) =>

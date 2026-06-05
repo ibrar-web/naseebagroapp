@@ -1,281 +1,746 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
-import { useTranslation } from '../../../localization';
+import MockStatusBar from '../../components/MockStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ListingDetail'>;
 
-const LISTINGS: Record<string, any> = {
-  L001: {
-    name: 'Premium Wheat',
-    emoji: '🌾',
-    qty: '500 Tons',
-    price: '₨3,850/40kg',
-    location: 'Lahore, Punjab',
-    seller: 'Asad Traders',
-    rating: 4.8,
-    deals: 24,
-    verified: true,
-    desc: 'High-quality wheat from central Punjab farms. Well-dried, free from impurities. Available immediately for bulk purchase.',
-  },
-  L002: {
-    name: 'IRRI-6 Rice',
-    emoji: '🍚',
-    qty: '200 Tons',
-    price: '₨4,200/40kg',
-    location: 'Sheikhupura, Punjab',
-    seller: 'Punjab Agri Co',
-    rating: 4.6,
-    deals: 18,
-    verified: true,
-    desc: 'Fresh harvest IRRI-6 paddy rice. 2024 crop. Moisture content below 14%. Bagged in 40kg standard sacks.',
-  },
-  L003: {
-    name: 'Desi Cotton Grade A',
-    emoji: '☁️',
-    qty: '150 Tons',
-    price: '₨8,500/40kg',
-    location: 'Multan, Punjab',
-    seller: 'Cotton King',
-    rating: 4.2,
-    deals: 9,
-    verified: false,
-    desc: 'Grade A desi cotton lint. Manually picked. Suitable for spinning mills and export.',
-  },
-  L004: {
-    name: 'Yellow Maize',
-    emoji: '🌽',
-    qty: '800 Tons',
-    price: '₨2,600/40kg',
-    location: 'Faisalabad, Punjab',
-    seller: 'Farm Fresh Ltd',
-    rating: 4.7,
-    deals: 31,
-    verified: true,
-    desc: 'Dry yellow maize suitable for feed mills and flour production. Large quantity available at competitive rates.',
-  },
+type HeaderStat = {
+  key: string;
+  label: string;
+  value: string;
 };
+
+type DemandDetailRow = {
+  key: string;
+  label: string;
+  value: string;
+  is_highlighted?: boolean;
+  value_color?: string;
+};
+
+type DemandMill = {
+  id: string;
+  mill?: {
+    name?: string;
+    location_label?: string;
+  };
+  price_display?: string;
+  price_unit_label?: string;
+  requested_quantity_label?: string;
+};
+
+type DemandDetail = {
+  id: string;
+  code?: string;
+  status_label?: string;
+  title?: string;
+  hero_image_url?: string;
+  header_stats?: HeaderStat[];
+  quantity_label?: string;
+  delivery_location?: {
+    label?: string;
+    full_label?: string;
+  };
+  dates?: {
+    posted_label?: string;
+    posted_full_label?: string;
+    required_by_label?: string;
+    is_expired?: boolean;
+  };
+  request_details?: {
+    title?: string;
+    icon?: string;
+    rows?: DemandDetailRow[];
+  };
+  mills_specified_section?: {
+    title?: string;
+    icon?: string;
+    subtitle?: string | null;
+    has_mills?: boolean;
+    mills?: DemandMill[];
+    total_requested_label?: string;
+  };
+  buyer_requirements_section?: {
+    title?: string;
+    icon?: string;
+    has_content?: boolean;
+    body?: string;
+  };
+  actions?: {
+    is_favorited?: boolean;
+    primary_cta?: {
+      label?: string;
+    };
+  };
+};
+
+const normalizeDemandDetail = (response: any): DemandDetail | null => {
+  const payload = response?.id ? response : response?.data ?? response;
+  return payload?.id ? payload : null;
+};
+
+const getSectionIcon = (icon?: string): AppIconName => {
+  if (icon?.includes('briefcase')) {
+    return 'business';
+  }
+
+  if (icon?.includes('clipboard')) {
+    return 'verificationLicense';
+  }
+
+  if (icon?.includes('file')) {
+    return 'document';
+  }
+
+  return 'listing';
+};
+
+const SectionCard = ({
+  title,
+  subtitle,
+  icon,
+  children,
+}: {
+  title: string;
+  subtitle?: string | null;
+  icon?: AppIconName;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.card}>
+    <View style={styles.sectionHeader}>
+      {icon ? (
+        <View style={styles.sectionIconBox}>
+          <AppIcon name={icon} size={14} color="#217A3C" />
+        </View>
+      ) : null}
+      <View style={styles.sectionTitleWrap}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
+      </View>
+    </View>
+    {children}
+  </View>
+);
+
+const DetailRow = ({ row, last }: { row: DemandDetailRow; last?: boolean }) => {
+  const highlighted = row.is_highlighted || row.value_color === 'green';
+
+  return (
+    <View style={[styles.detailRow, !last && styles.detailRowBorder]}>
+      <Text style={styles.detailLabel}>{row.label}</Text>
+      <Text
+        style={[
+          styles.detailValue,
+          row.key.includes('id') && styles.detailValueMono,
+          highlighted && styles.detailValueHighlight,
+        ]}
+        numberOfLines={2}
+      >
+        {row.value}
+      </Text>
+    </View>
+  );
+};
+
+const MillRow = ({ item, last }: { item: DemandMill; last?: boolean }) => (
+  <View style={[styles.millRow, !last && styles.millRowBorder]}>
+    <View style={styles.millIconBox}>
+      <AppIcon name="business" size={15} color="#217A3C" />
+    </View>
+    <View style={styles.millMiddle}>
+      <Text style={styles.millName} numberOfLines={1}>
+        {item.mill?.name ?? 'Mill'}
+      </Text>
+      <View style={styles.millLocationRow}>
+        <AppIcon name="profileCity" size={10} color="#9CA3AF" />
+        <Text style={styles.millLocation} numberOfLines={1}>
+          {item.mill?.location_label ?? 'Location not available'}
+        </Text>
+      </View>
+    </View>
+    <View style={styles.millRight}>
+      <Text style={styles.millPrice} numberOfLines={1}>
+        {item.price_display ?? 'Ask'}
+        {item.price_unit_label ? (
+          <Text style={styles.millPriceUnit}>{item.price_unit_label}</Text>
+        ) : null}
+      </Text>
+      <Text style={styles.millQuantity} numberOfLines={1}>
+        {item.requested_quantity_label ?? 'Requested'}
+      </Text>
+    </View>
+  </View>
+);
 
 const ListingDetailScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
-  const item = LISTINGS[listingId] ?? LISTINGS['L001'];
+  const [detail, setDetail] = useState<DemandDetail | null>(null);
   const [saved, setSaved] = useState(false);
-  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadDetail = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response =
+          await api.marketplace.public.DetailMarketDemandsListing(listingId);
+        const normalized = normalizeDemandDetail(response);
+
+        if (active) {
+          setDetail(normalized);
+          setSaved(Boolean(normalized?.actions?.is_favorited));
+        }
+      } catch (err) {
+        console.log('Demand detail error', err);
+        if (active) {
+          setError('Unable to load request details.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDetail();
+
+    return () => {
+      active = false;
+    };
+  }, [listingId]);
+
+  const headerStats = useMemo(() => {
+    if (detail?.header_stats?.length) {
+      return detail.header_stats;
+    }
+
+    return [
+      { key: 'quantity', label: 'QUANTITY', value: detail?.quantity_label },
+      {
+        key: 'location',
+        label: 'LOCATION',
+        value: detail?.delivery_location?.label,
+      },
+      { key: 'posted', label: 'POSTED', value: detail?.dates?.posted_label },
+    ].filter((item): item is HeaderStat => Boolean(item.value));
+  }, [detail]);
+
+  if (loading && !detail) {
+    return (
+      <View style={styles.stateScreen}>
+        <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
+        <ActivityIndicator color="#217A3C" size="large" />
+        <Text style={styles.stateText}>Loading request details...</Text>
+      </View>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <View style={styles.stateScreen}>
+        <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
+        <AppIcon name="notificationWarning" size={34} color="#D97706" />
+        <Text style={styles.stateText}>
+          {error || 'Request listing not found.'}
+        </Text>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.stateButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const heroImage =
+    detail.hero_image_url ??
+    `https://placehold.co/600x400?text=${encodeURIComponent(
+      detail.title ?? 'Demand',
+    )}`;
+  const requestRows = detail.request_details?.rows ?? [];
+  const mills = detail.mills_specified_section?.mills ?? [];
+  const hasMills =
+    Boolean(detail.mills_specified_section?.has_mills) && mills.length > 0;
+  const ctaLabel = detail.actions?.primary_cta?.label ?? 'Send Offer';
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Hero header */}
-      <View
-        className="bg-green-800 items-center justify-end pb-5 overflow-hidden"
-        style={{ height: 200 }}
-      >
-        <View
-          className="absolute rounded-full bg-green-700 opacity-30"
-          style={{ width: 200, height: 200, top: -40, right: -40 }}
+    <View style={styles.container}>
+      <View style={styles.heroShell}>
+        <MockStatusBar
+          absolute
+          backgroundColor="transparent"
+          textColor="#FFFFFF"
         />
-
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="absolute items-center justify-center"
-          style={{
-            top: 48,
-            left: 16,
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.2)',
-          }}
+        <ImageBackground
+          source={{ uri: heroImage }}
+          style={styles.heroImage}
+          resizeMode="cover"
         >
-          <Text className="text-white text-lg">←</Text>
-        </TouchableOpacity>
+          <View style={styles.heroOverlay} />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            activeOpacity={0.85}
+          >
+            <AppIcon name="back" size={19} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSaved(current => !current)}
+            style={styles.heartBtn}
+            activeOpacity={0.85}
+          >
+            <AppIcon
+              name="heart"
+              size={16}
+              color={saved ? '#EF4444' : '#FFFFFF'}
+            />
+          </TouchableOpacity>
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>
+              {detail.status_label ?? 'OPEN'}
+            </Text>
+          </View>
+          <View style={styles.heroBottom}>
+            <Text style={styles.heroCode}>{detail.code ?? detail.id}</Text>
+            <Text style={styles.heroTitle} numberOfLines={1}>
+              {detail.title ?? 'Demand Request'}
+            </Text>
+          </View>
+        </ImageBackground>
 
-        <TouchableOpacity
-          onPress={() => setSaved(s => !s)}
-          className="absolute items-center justify-center"
-          style={{
-            top: 48,
-            right: 16,
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.2)',
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>{saved ? '❤️' : '🤍'}</Text>
-        </TouchableOpacity>
-
-        <View
-          className="items-center justify-center"
-          style={{
-            width: 88,
-            height: 88,
-            borderRadius: 24,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 2,
-            borderColor: 'rgba(255,255,255,0.2)',
-          }}
-        >
-          <Text style={{ fontSize: 56 }}>{item.emoji}</Text>
-        </View>
+        {headerStats.length ? (
+          <View style={styles.statsBar}>
+            {headerStats.map((stat, index) => (
+              <View
+                key={stat.key}
+                style={[styles.statItem, index > 0 && styles.statItemBorder]}
+              >
+                <Text style={styles.statLabel}>{stat.label}</Text>
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {stat.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title row */}
-        <View className="flex-row justify-between items-start mb-4">
-          <View className="flex-1">
-            <Text className="text-gray-900 text-xl font-extrabold">
-              {item.name}
-            </Text>
-            <View className="flex-row items-center gap-2 mt-1">
-              {item.verified && (
-                <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                  <Text className="text-green-700 text-xs font-bold">
-                    ✓ {t('listing.verified')}
-                  </Text>
-                </View>
-              )}
-              <Text className="text-gray-500 text-xs">
-                ⭐ {item.rating} ({item.deals} {t('listing.deals')})
-              </Text>
-            </View>
+        <View style={styles.protectedBox}>
+          <View style={styles.protectedIconBox}>
+            <AppIcon name="shield" size={17} color="#217A3C" />
           </View>
-          <View className="items-end">
-            <Text className="text-green-700 text-lg font-extrabold">
-              {item.price}
-            </Text>
-            <Text className="text-gray-400 text-xs mt-0.5">
-              {t('listing.available', { qty: item.qty })}
-            </Text>
-          </View>
-        </View>
-
-        {/* Info grid */}
-        <View className="flex-row flex-wrap gap-2.5 mb-4">
-          {[
-            { icon: '📍', label: t('listing.location'), val: item.location },
-            { icon: '🏢', label: t('listing.seller'), val: item.seller },
-            { icon: '📦', label: t('listing.quantity'), val: item.qty },
-            { icon: '💰', label: t('listing.price'), val: item.price },
-          ].map(info => (
-            <View
-              key={info.label}
-              className="bg-white rounded-2xl p-3.5 gap-1"
-              style={{
-                flex: 1,
-                minWidth: '45%',
-                shadowColor: '#000',
-                shadowOpacity: 0.05,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ fontSize: 20 }}>{info.icon}</Text>
-              <Text
-                className="text-gray-400 text-xs font-semibold uppercase"
-                style={{ letterSpacing: 0.5 }}
-              >
-                {info.label}
-              </Text>
-              <Text className="text-gray-800 text-sm font-bold">
-                {info.val}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Description */}
-        <View
-          className="bg-white rounded-2xl p-4 mb-3.5"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.05,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
-        >
-          <Text className="text-gray-900 text-sm font-extrabold mb-2.5">
-            {t('listing.about')}
+          <Text style={styles.protectedText}>
+            <Text style={styles.protectedStrong}>Broker Protected</Text> - Buyer
+            identity is private. All offers go through Naseeb team for review
+            and negotiation.
           </Text>
-          <Text className="text-gray-600 text-sm leading-5">{item.desc}</Text>
         </View>
 
-        {/* Price breakdown */}
-        <View
-          className="bg-white rounded-2xl p-4 mb-3.5"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.05,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
+        <SectionCard
+          title={detail.request_details?.title ?? 'Request Details'}
+          icon={getSectionIcon(detail.request_details?.icon)}
         >
-          <Text className="text-gray-900 text-sm font-extrabold mb-2.5">
-            {t('listing.priceBreakdown')}
-          </Text>
-          {[
-            { label: t('listing.unitPrice'), val: item.price },
-            { label: t('listing.commission'), val: '₨38/40kg' },
-            { label: t('listing.estDelivery'), val: '₨85/40kg' },
-          ].map(row => (
-            <View
-              key={row.label}
-              className="flex-row justify-between py-2 border-b border-gray-100"
-            >
-              <Text className="text-gray-600 text-sm">{row.label}</Text>
-              <Text className="text-gray-800 text-sm font-bold">{row.val}</Text>
-            </View>
-          ))}
-          <View className="flex-row justify-between pt-3">
-            <Text className="text-gray-900 text-sm font-extrabold">
-              {t('listing.totalPer')}
+          {requestRows.length ? (
+            requestRows.map((row, index) => (
+              <DetailRow
+                key={row.key}
+                row={row}
+                last={index === requestRows.length - 1}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptySectionText}>
+              Request details are not available.
             </Text>
-            <Text className="text-green-700 text-base font-extrabold">
-              ₨3,973
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title={
+            detail.mills_specified_section?.title ?? 'Mills Specified by Buyer'
+          }
+          subtitle={
+            detail.mills_specified_section?.subtitle ??
+            detail.mills_specified_section?.total_requested_label
+          }
+          icon={getSectionIcon(detail.mills_specified_section?.icon)}
+        >
+          {hasMills ? (
+            mills.map((mill, index) => (
+              <MillRow
+                key={mill.id}
+                item={mill}
+                last={index === mills.length - 1}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptySectionText}>
+              Buyer has not specified mills for this request.
+            </Text>
+          )}
+        </SectionCard>
+
+        {detail.buyer_requirements_section?.has_content &&
+        detail.buyer_requirements_section.body ? (
+          <SectionCard
+            title={
+              detail.buyer_requirements_section.title ?? 'Buyer Requirements'
+            }
+            icon={getSectionIcon(detail.buyer_requirements_section.icon)}
+          >
+            <Text style={styles.requirementsText}>
+              {detail.buyer_requirements_section.body}
+            </Text>
+          </SectionCard>
+        ) : null}
+
+        <SectionCard title="How It Works" icon="shield">
+          <View style={styles.stepRow}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
+            </View>
+            <Text style={styles.stepText}>
+              Send your best offer for the requested commodity and quantity.
             </Text>
           </View>
-        </View>
+          <View style={styles.stepRow}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
+            </View>
+            <Text style={styles.stepText}>
+              Naseeb reviews the offer and coordinates buyer negotiation.
+            </Text>
+          </View>
+          <View style={styles.stepRow}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <Text style={styles.stepText}>
+              Once accepted, the deal proceeds through the protected workflow.
+            </Text>
+          </View>
+        </SectionCard>
 
-        <View style={{ height: 100 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Sticky action bar */}
-      <View
-        className="absolute bottom-0 left-0 right-0 flex-row gap-2.5 bg-white px-4 pt-3 pb-7 border-t border-gray-100"
-        style={{
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 12,
-          elevation: 8,
-        }}
-      >
-        <TouchableOpacity
-          className="flex-1 py-3.5 rounded-xl items-center border-2 border-green-700"
-          activeOpacity={0.85}
-        >
-          <Text className="text-green-700 text-sm font-bold">
-            {t('listing.chat')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="bg-green-700 py-3.5 rounded-xl items-center"
-          style={{ flex: 2 }}
-          activeOpacity={0.88}
-        >
-          <Text className="text-white text-sm font-bold">
-            {t('listing.sendInterest')}
-          </Text>
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.sendOfferBtn} activeOpacity={0.88}>
+          <Text style={styles.sendOfferBtnText}>{ctaLabel}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  stateScreen: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  stateText: {
+    marginTop: 12,
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  stateButton: {
+    marginTop: 18,
+    backgroundColor: '#217A3C',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  stateButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  heroShell: { flexShrink: 0, backgroundColor: '#145228' },
+  heroImage: { height: 160, width: '100%' },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.48)',
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 44,
+    left: 16,
+    zIndex: 5,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartBtn: {
+    position: 'absolute',
+    top: 44,
+    right: 82,
+    zIndex: 5,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 44,
+    right: 16,
+    zIndex: 5,
+    backgroundColor: '#F3CD03',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0D3B1F',
+  },
+  heroBottom: {
+    position: 'absolute',
+    bottom: 12,
+    left: 16,
+    right: 16,
+    zIndex: 4,
+  },
+  heroCode: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '800',
+    marginBottom: 3,
+    fontFamily: 'monospace',
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  statsBar: {
+    backgroundColor: '#145228',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+  },
+  statItem: { flex: 1 },
+  statItemBorder: {
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.14)',
+    paddingLeft: 12,
+  },
+  statLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.45)',
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 20 },
+  protectedBox: {
+    backgroundColor: '#F2FBF5',
+    borderWidth: 1,
+    borderColor: '#7FD4A0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  protectedIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  protectedText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#145228',
+    lineHeight: 18,
+  },
+  protectedStrong: { fontWeight: '900' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  sectionIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitleWrap: { flex: 1 },
+  cardTitle: { fontSize: 14, fontWeight: '800', color: '#111827' },
+  cardSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 14,
+  },
+  detailRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  detailLabel: { fontSize: 12, color: '#6B7280', flex: 1 },
+  detailValue: {
+    fontSize: 12,
+    color: '#111827',
+    fontWeight: '800',
+    textAlign: 'right',
+    flex: 1.25,
+  },
+  detailValueMono: { fontFamily: 'monospace', fontSize: 11 },
+  detailValueHighlight: { color: '#217A3C', fontSize: 13 },
+  millRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    gap: 10,
+  },
+  millRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  millIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F2FBF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  millMiddle: { flex: 1, minWidth: 0 },
+  millName: { fontSize: 13, fontWeight: '800', color: '#111827' },
+  millLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  millLocation: { flex: 1, fontSize: 10, color: '#9CA3AF' },
+  millRight: { alignItems: 'flex-end', maxWidth: 120 },
+  millPrice: { fontSize: 13, fontWeight: '900', color: '#217A3C' },
+  millPriceUnit: { fontSize: 10, color: '#6B7280', fontWeight: '700' },
+  millQuantity: { fontSize: 10, color: '#6B7280', marginTop: 3 },
+  emptySectionText: { fontSize: 12, color: '#9CA3AF', lineHeight: 18 },
+  requirementsText: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  stepNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F3CD03',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: {
+    fontSize: 11,
+    color: '#0D3B1F',
+    fontWeight: '900',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#4B5563',
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  bottomSpacer: { height: 94 },
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
+  sendOfferBtn: {
+    backgroundColor: '#F3CD03',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  sendOfferBtnText: { color: '#0D3B1F', fontSize: 14, fontWeight: '900' },
+});
 
 export default ListingDetailScreen;

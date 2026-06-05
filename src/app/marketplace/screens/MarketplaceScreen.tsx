@@ -1229,7 +1229,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
             index={index}
             onPress={() =>
               navigation.navigate(
-                isBuyer ? 'ListingDetail' : 'CommodityDetail',
+                isBuyer ? 'CommodityDetail' : 'ListingDetail',
                 {
                   listingId: item.id,
                 },

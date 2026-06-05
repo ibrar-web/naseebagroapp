@@ -81,6 +81,12 @@ export const api = {
         Get('public/market-rates/home', params),
       listMarketRatesAll: (params?: Record<string, any>) =>
         Get('public/market-rates', params),
+      listHomeCategoryListing: (params?: Record<string, any>) =>
+        Get('public/featured-categories', params),
+      listMarketSuppliesListing: (params?: Record<string, any>) =>
+        Get('public/supplies', params),
+      listMarketDemandsListing: (params?: Record<string, any>) =>
+        Get('public/demand', params),
     },
     private: {
       createSellerListing: (data: any) =>

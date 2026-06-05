@@ -1,333 +1,233 @@
-import React, { useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   FlatList,
-  TouchableOpacity,
-  TextInput,
+  Image,
   ImageBackground,
-  StyleSheet,
   Modal,
   Pressable,
-  ScrollView,
-  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import type { ViewToken } from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
 import { AppIcon } from '../../../assets/icons';
+import type { AppIconName } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import iconRegistry from '../../../assets/icons/iconRegistry';
+import api from '../../../utils/api';
 
 type SheetType = 'filter' | 'sort' | 'signup' | null;
+type PostType = 'SUPPLY' | 'DEMAND';
+type SortValue =
+  | 'newest'
+  | 'price_asc'
+  | 'price_desc'
+  | 'distance_nearest'
+  | 'most_stock';
 
-const COMMODITY_FILTERS = [
-  'All',
-  'Basmati Rice',
-  'Punjab Wheat',
-  'Yellow Maize',
-  'Corn',
-  'Barley',
-  'Desi Cotton',
-  'BT Cotton',
-  'Tomato',
-  'Onion',
-  'Potato',
-  'Garlic',
-  'Mustard Seed',
-  'Sunflower',
-  'Canola',
-  'Mango',
-  'Kinnow',
-  'Cumin',
-  'Coriander',
-  'Turmeric',
-  'Red Chilli',
-  'Sugarcane',
-  'Chickpea',
-  'Lentil',
-  'Mung Bean',
+type MarketCategory = {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  listings_count?: number;
+};
+
+type FilterOption = {
+  id: string;
+  name: string;
+};
+
+type ListingMillPrice = {
+  mill?: {
+    id?: string;
+    mill_id?: string;
+    name?: string;
+    city?: string;
+    province?: string;
+  };
+  price_display?: string;
+  available_label?: string;
+};
+
+type MarketListing = {
+  id: string;
+  code?: string;
+  post_type?: PostType;
+  badge?: string | null;
+  is_verified?: boolean;
+  commodity?: {
+    id?: string;
+    name?: string;
+    image_url?: string;
+    category?: {
+      id?: string;
+      name?: string;
+    };
+  };
+  unit?: {
+    code?: string;
+    name?: string;
+  };
+  seller?: {
+    fullName?: string;
+    is_verified?: boolean;
+    rating?: string;
+    deals_count?: number;
+  };
+  total_quantity?: number;
+  total_quantity_label?: string;
+  price_display?: string;
+  is_mill_based?: boolean;
+  mill_prices_preview?: ListingMillPrice[];
+  mill_prices_total?: number;
+  more_mills_label?: string | null;
+  location?: string | null;
+  avg_rating?: string;
+  review_count?: number;
+  rating_display?: string;
+  min_order_quantity?: number | null;
+  payment_term_type?: string | null;
+  created_at?: string;
+};
+
+type MarketplaceMeta = {
+  total?: number;
+  page?: number;
+  limit?: number;
+  total_pages?: number;
+  count_label?: string;
+  listings_found_label?: string;
+  indicative_notice?: string;
+};
+
+type MarketplacePayload = {
+  categories: MarketCategory[];
+  listings: MarketListing[];
+  filterOptions: {
+    commodities: FilterOption[];
+    locations: string[];
+    badges: string[];
+  };
+  meta: MarketplaceMeta;
+};
+
+const PAGE_SIZE = 20;
+const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
+
+const SORT_OPTIONS: Array<{
+  label: string;
+  value: SortValue;
+  icon: AppIconName;
+}> = [
+  { label: 'Newest First', value: 'newest', icon: 'profileDateOfBirth' },
+  { label: 'Price: Low to High', value: 'price_asc', icon: 'currency' },
+  { label: 'Price: High to Low', value: 'price_desc', icon: 'currency' },
+  {
+    label: 'Distance: Nearest',
+    value: 'distance_nearest',
+    icon: 'profileCity',
+  },
+  { label: 'Most Quantity', value: 'most_stock', icon: 'listing' },
 ];
 
-const LOCATION_FILTERS = [
-  'All',
-  'Lahore',
-  'Faisalabad',
-  'Multan',
-  'Gujranwala',
-  'Rawalpindi',
-  'Karachi',
-  'Okara',
-  'Sahiwal',
-  'Rahim Yar Khan',
-];
+const cleanParams = (params: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(params).filter(([, value]) => {
+      if (value === '' || value == null) {
+        return false;
+      }
+      return true;
+    }),
+  );
 
-const SORT_OPTIONS = [
-  { label: 'Newest First', icon: 'profileDateOfBirth' },
-  { label: 'Budget: Low to High', icon: 'currency' },
-  { label: 'Budget: High to Low', icon: 'currency' },
-  { label: 'Distance: Nearest', icon: 'profileCity' },
-  { label: 'Most Quantity Needed', icon: 'listing' },
-] as const;
+const normalizeMarketplacePayload = (response: any): MarketplacePayload => {
+  const root =
+    response?.status && response?.data ? response.data : response ?? {};
+  const body =
+    root?.data &&
+    (Array.isArray(root.data.categories) ||
+      Array.isArray(root.data.listings) ||
+      root.data.filter_options)
+      ? root.data
+      : root;
+  const filterOptions = body?.filter_options ?? {};
 
-const CATEGORIES = [
-  {
-    name: 'Grains',
-    count: '142',
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=75',
-    fallback: '#D8B45F',
-  },
-  {
-    name: 'Cotton',
-    count: '67',
-    image:
-      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=400&q=75',
-    fallback: '#D8D6C7',
-  },
-  {
-    name: 'Vegetables',
-    count: '89',
-    image:
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=75',
-    fallback: '#4E9A51',
-  },
-  {
-    name: 'Oilseeds',
-    count: '54',
-    image:
-      'https://images.unsplash.com/photo-1535567465397-7523840f2ae9?w=400&q=75',
-    fallback: '#D9A825',
-  },
-  {
-    name: 'Fruits',
-    count: '38',
-    image:
-      'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&q=75',
-    fallback: '#C95347',
-  },
-  {
-    name: 'Spices',
-    count: '29',
-    image:
-      'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=75',
-    fallback: '#9A5B3D',
-  },
-];
+  return {
+    categories: Array.isArray(body.categories) ? body.categories : [],
+    listings: Array.isArray(body.listings) ? body.listings : [],
+    filterOptions: {
+      commodities: Array.isArray(filterOptions.commodities)
+        ? filterOptions.commodities
+        : [],
+      locations: Array.isArray(filterOptions.locations)
+        ? filterOptions.locations
+        : [],
+      badges: Array.isArray(filterOptions.badges) ? filterOptions.badges : [],
+    },
+    meta: root?.meta ?? {},
+  };
+};
 
-const COMMODITIES = [
-  {
-    id: 'L001',
-    displayId: 'LST-2024-004',
-    name: 'Sugarcane',
-    category: 'Grains',
-    qty: '10,000 kg total',
-    location: 'Rahim Yar Khan',
-    seller: 'South Agri Corp',
-    rating: '4.8',
-    reviews: '24',
-    verified: true,
-    badge: 'FRESH',
-    image:
-      'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80',
-    fallback: '#5F8F4E',
-    mills: [
-      {
-        name: 'Rahim Yar Khan Mill A',
-        avail: '200 bags avail.',
-        price: 'PKR 280',
+const formatBadge = (badge?: string | null) =>
+  badge ? badge.replace(/_/g, ' ') : '';
+
+const formatDateLabel = (date?: string) => {
+  if (!date) {
+    return 'Recently posted';
+  }
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Recently posted';
+  }
+
+  return `Posted ${parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })}`;
+};
+
+const getListingLocation = (item: MarketListing) => {
+  if (item.location) {
+    return item.location;
+  }
+
+  const mill = item.mill_prices_preview?.[0]?.mill;
+  const parts = [mill?.city, mill?.province].filter(Boolean);
+  return parts.length ? parts.join(', ') : 'Multiple mills';
+};
+
+const getSellerName = (item: MarketListing, isBuyer: boolean) =>
+  item.seller?.fullName ?? (isBuyer ? 'Verified seller' : 'Verified buyer');
+
+const getMillRows = (item: MarketListing): ListingMillPrice[] => {
+  if (item.mill_prices_preview?.length) {
+    return item.mill_prices_preview;
+  }
+
+  return [
+    {
+      mill: {
+        id: item.id,
+        name: item.location ? `${item.location} listing` : 'Direct listing',
+        city: item.location ?? undefined,
       },
-      { name: 'Faisalabad Mill B', avail: '150 bags avail.', price: 'PKR 200' },
-      { name: 'Lahore Mill C', avail: '100 bags avail.', price: 'PKR 400' },
-    ],
-  },
-  {
-    id: 'L002',
-    displayId: 'LST-2024-002',
-    name: 'Yellow Maize',
-    category: 'Grains',
-    qty: '14,000 kg total',
-    location: 'Okara',
-    seller: 'Farm Fresh Ltd',
-    rating: '4.7',
-    reviews: '18',
-    verified: true,
-    badge: 'READY',
-    image:
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-    fallback: '#DCA640',
-    mills: [
-      { name: 'Okara Mill A', avail: '340 bags avail.', price: 'PKR 1,900' },
-      { name: 'Sahiwal Mill B', avail: '120 bags avail.', price: 'PKR 1,860' },
-    ],
-  },
-  {
-    id: 'L003',
-    displayId: 'LST-2024-001',
-    name: 'Basmati Rice',
-    category: 'Grains',
-    qty: '8,000 kg total',
-    location: 'Gujranwala',
-    seller: 'Punjab Agri Co',
-    rating: '4.9',
-    reviews: '31',
-    verified: true,
-    badge: 'FRESH',
-    image:
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-    fallback: '#8A9A5B',
-    mills: [
-      {
-        name: 'Gujranwala Mill A',
-        avail: '250 bags avail.',
-        price: 'PKR 4,200',
-      },
-      { name: 'Lahore Mill B', avail: '160 bags avail.', price: 'PKR 4,150' },
-    ],
-  },
-  {
-    id: 'L004',
-    displayId: 'LST-2024-005',
-    name: 'Punjab Wheat',
-    category: 'Grains',
-    qty: '12,000 kg total',
-    location: 'Faisalabad',
-    seller: 'Asad Traders',
-    rating: '4.6',
-    reviews: '16',
-    verified: true,
-    badge: 'VERIFIED',
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-    fallback: '#C29A4A',
-    mills: [
-      {
-        name: 'Faisalabad Mill B',
-        avail: '280 bags avail.',
-        price: 'PKR 2,800',
-      },
-      {
-        name: 'Sheikhupura Mill C',
-        avail: '110 bags avail.',
-        price: 'PKR 2,760',
-      },
-    ],
-  },
-  {
-    id: 'L005',
-    displayId: 'LST-2024-006',
-    name: 'Mustard Seed',
-    category: 'Oilseeds',
-    qty: '4,500 kg total',
-    location: 'Sahiwal',
-    seller: 'Seed Masters',
-    rating: '4.5',
-    reviews: '12',
-    verified: false,
-    badge: 'NEW',
-    image:
-      'https://images.unsplash.com/photo-1535567465397-7523840f2ae9?w=900&q=80',
-    fallback: '#D9A825',
-    mills: [
-      { name: 'Sahiwal Mill A', avail: '90 bags avail.', price: 'PKR 6,200' },
-      { name: 'Multan Mill B', avail: '70 bags avail.', price: 'PKR 6,050' },
-    ],
-  },
-  {
-    id: 'L006',
-    displayId: 'LST-2024-007',
-    name: 'Desi Cotton',
-    category: 'Cotton',
-    qty: '6,000 kg total',
-    location: 'Multan',
-    seller: 'Cotton King',
-    rating: '4.8',
-    reviews: '20',
-    verified: true,
-    badge: 'GRADE A',
-    image:
-      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-    fallback: '#D8D6C7',
-    mills: [
-      { name: 'Multan Mill A', avail: '140 bags avail.', price: 'PKR 8,500' },
-      {
-        name: 'Bahawalpur Mill C',
-        avail: '85 bags avail.',
-        price: 'PKR 8,380',
-      },
-    ],
-  },
-];
-
-const DEMANDS = [
-  {
-    id: 'D001',
-    displayId: 'REQ-2024-041',
-    name: 'Basmati Rice',
-    commodity: 'Basmati Rice',
-    qty: '150 bags',
-    qtyLabel: 'Quantity required',
-    budget: 'PKR 4,000/40kg',
-    location: 'Lahore',
-    posted: 'Posted Mar 28',
-    status: 'OPEN DEMAND',
-    mills: '2 mills specified',
-    payment: '30 days payment',
-    notes: 'Grade A preferred, dry packaging',
-    image:
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-    fallback: '#8A9A5B',
-  },
-  {
-    id: 'D002',
-    displayId: 'REQ-2024-039',
-    name: 'Punjab Wheat',
-    commodity: 'Punjab Wheat',
-    qty: '220 bags',
-    qtyLabel: 'Quantity required',
-    budget: 'PKR 2,850/40kg',
-    location: 'Faisalabad',
-    posted: 'Posted Mar 26',
-    status: 'OPEN DEMAND',
-    mills: '3 mills specified',
-    payment: '15 days payment',
-    notes: 'Clean grain, moisture below 12%',
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-    fallback: '#C29A4A',
-  },
-  {
-    id: 'D003',
-    displayId: 'REQ-2024-036',
-    name: 'Yellow Maize',
-    commodity: 'Yellow Maize',
-    qty: '180 bags',
-    qtyLabel: 'Quantity required',
-    budget: 'PKR 1,920/40kg',
-    location: 'Okara',
-    posted: 'Posted Mar 24',
-    status: 'OPEN DEMAND',
-    mills: '2 mills specified',
-    payment: 'Advance payment',
-    notes: 'Machine cleaned, delivery this week',
-    image:
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-    fallback: '#DCA640',
-  },
-];
-
-const parseAmount = (value?: string) =>
-  Number(value?.replace(/[^\d]/g, '') || 0);
-
-const parseQuantity = (value?: string) =>
-  Number(value?.replace(/[^\d]/g, '') || 0);
-
-const getListingBudget = (item: (typeof COMMODITIES)[number]) =>
-  Math.min(...item.mills.map(mill => parseAmount(mill.price)));
-
-const getItemBudget = (item: any) =>
-  'mills' in item && Array.isArray(item.mills)
-    ? getListingBudget(item)
-    : parseAmount(item.budget);
+      price_display: item.price_display,
+      available_label: item.total_quantity_label,
+    },
+  ];
+};
 
 const HeaderAction = ({
   icon,
@@ -412,7 +312,7 @@ const ChoiceChip = ({
       className="text-xs font-semibold"
       style={active ? styles.choiceChipTextActive : styles.choiceChipText}
     >
-      {label === 'All' ? 'All' : label}
+      {label}
     </Text>
   </TouchableOpacity>
 );
@@ -448,11 +348,92 @@ const NumberInput = ({
   </View>
 );
 
+const SelectDropdown = ({
+  label,
+  placeholder,
+  options,
+  selectedId,
+  onSelect,
+}: {
+  label: string;
+  placeholder: string;
+  options: FilterOption[];
+  selectedId: string;
+  onSelect: (value: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(option => option.id === selectedId);
+
+  return (
+    <SheetSection title={label}>
+      <TouchableOpacity
+        onPress={() => setOpen(current => !current)}
+        className="rounded-[10px] flex-row items-center justify-between px-3 py-3"
+        style={styles.sheetInput}
+        activeOpacity={0.84}
+      >
+        <Text
+          className="text-[13px] font-semibold flex-1"
+          style={selected ? styles.selectTextActive : styles.selectText}
+          numberOfLines={1}
+        >
+          {selected?.name ?? placeholder}
+        </Text>
+        <AppIcon name="chevronDown" size={15} color="#9CA3AF" />
+      </TouchableOpacity>
+      {open ? (
+        <View style={styles.commodityDropdown}>
+          <FlatList
+            nestedScrollEnabled
+            data={[{ id: '', name: placeholder }, ...options]}
+            keyExtractor={item => item.id || 'all'}
+            renderItem={({ item }) => {
+              const active = selectedId === item.id;
+              return (
+                <TouchableOpacity
+                  className="flex-row items-center justify-between px-3 py-2.5"
+                  onPress={() => {
+                    onSelect(item.id);
+                    setOpen(false);
+                  }}
+                  activeOpacity={0.82}
+                >
+                  <Text
+                    className="text-[13px] font-semibold flex-1"
+                    style={
+                      active
+                        ? styles.dropdownOptionTextActive
+                        : styles.dropdownOptionText
+                    }
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  {active ? (
+                    <AppIcon name="approved" size={15} color="#217A3C" />
+                  ) : null}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      ) : null}
+    </SheetSection>
+  );
+};
+
 const FilterSheet = ({
-  selectedCommodity,
-  setSelectedCommodity,
+  commodities,
+  locations,
+  badges,
+  selectedCommodityId,
+  setSelectedCommodityId,
   selectedLocation,
   setSelectedLocation,
+  selectedBadge,
+  setSelectedBadge,
+  verifiedOnly,
+  setVerifiedOnly,
   minPrice,
   setMinPrice,
   maxPrice,
@@ -461,10 +442,17 @@ const FilterSheet = ({
   setMinQuantity,
   onDone,
 }: {
-  selectedCommodity: string;
-  setSelectedCommodity: (value: string) => void;
+  commodities: FilterOption[];
+  locations: string[];
+  badges: string[];
+  selectedCommodityId: string;
+  setSelectedCommodityId: (value: string) => void;
   selectedLocation: string;
   setSelectedLocation: (value: string) => void;
+  selectedBadge: string;
+  setSelectedBadge: (value: string) => void;
+  verifiedOnly: boolean;
+  setVerifiedOnly: (value: boolean) => void;
   minPrice: string;
   setMinPrice: (value: string) => void;
   maxPrice: string;
@@ -472,133 +460,114 @@ const FilterSheet = ({
   minQuantity: string;
   setMinQuantity: (value: string) => void;
   onDone: () => void;
-}) => {
-  const [commodityOpen, setCommodityOpen] = useState(false);
-  const selectedCommodityLabel =
-    selectedCommodity === 'All' ? 'All Commodities' : selectedCommodity;
-
-  return (
-    <>
-      <View style={styles.sheetFixedHeader}>
-        <SheetHandle />
-        <View className="flex-row justify-between items-center mb-5">
-          <Text className="text-gray-900 text-[17px] font-extrabold">
-            Filters
-          </Text>
-          <TouchableOpacity
-            className="bg-green-800 rounded-lg px-3.5 py-1.5"
-            onPress={onDone}
-            activeOpacity={0.84}
-          >
-            <Text className="text-white text-xs font-bold">Done</Text>
-          </TouchableOpacity>
-        </View>
+}) => (
+  <>
+    <View style={styles.sheetFixedHeader}>
+      <SheetHandle />
+      <View className="flex-row justify-between items-center mb-5">
+        <Text className="text-gray-900 text-[17px] font-extrabold">
+          Filters
+        </Text>
+        <TouchableOpacity
+          className="bg-green-800 rounded-lg px-3.5 py-1.5"
+          onPress={onDone}
+          activeOpacity={0.84}
+        >
+          <Text className="text-white text-xs font-bold">Done</Text>
+        </TouchableOpacity>
       </View>
-      <ScrollView
-        style={styles.sheetScroll}
-        contentContainerStyle={styles.filterSheetContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <SheetSection title="COMMODITY">
-          <TouchableOpacity
-            onPress={() => setCommodityOpen(current => !current)}
-            className="rounded-[10px] flex-row items-center justify-between px-3 py-3"
-            style={styles.sheetInput}
-            activeOpacity={0.84}
-          >
-            <Text
-              className="text-[13px] font-semibold"
-              style={
-                selectedCommodity === 'All'
-                  ? styles.selectText
-                  : styles.selectTextActive
-              }
-            >
-              {selectedCommodityLabel}
-            </Text>
-            <AppIcon name="chevronDown" size={15} color="#9CA3AF" />
-          </TouchableOpacity>
-          {commodityOpen ? (
-            <View style={styles.commodityDropdown}>
-              <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
-                {COMMODITY_FILTERS.map(commodity => {
-                  const active = selectedCommodity === commodity;
-                  return (
-                    <TouchableOpacity
-                      key={commodity}
-                      className="flex-row items-center justify-between px-3 py-2.5"
-                      onPress={() => {
-                        setSelectedCommodity(commodity);
-                        setCommodityOpen(false);
-                      }}
-                      activeOpacity={0.82}
-                    >
-                      <Text
-                        className="text-[13px] font-semibold"
-                        style={
-                          active
-                            ? styles.dropdownOptionTextActive
-                            : styles.dropdownOptionText
-                        }
-                      >
-                        {commodity === 'All' ? 'All Commodities' : commodity}
-                      </Text>
-                      {active ? (
-                        <AppIcon name="approved" size={15} color="#217A3C" />
-                      ) : null}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          ) : null}
-        </SheetSection>
-
-        <SheetSection title="LOCATION">
-          <View className="flex-row flex-wrap">
-            {LOCATION_FILTERS.map(location => (
-              <ChoiceChip
-                key={location}
-                label={location}
-                active={selectedLocation === location}
-                onPress={() => setSelectedLocation(location)}
-              />
-            ))}
-          </View>
-        </SheetSection>
-
-        <SheetSection title="PRICE RANGE (per 40kg)">
-          <View className="flex-row" style={styles.priceRangeRow}>
-            <View className="flex-1">
-              <NumberInput
-                value={minPrice}
-                onChangeText={setMinPrice}
-                placeholder="Min"
-                prefix="PKR"
-              />
-            </View>
-            <View className="flex-1">
-              <NumberInput
-                value={maxPrice}
-                onChangeText={setMaxPrice}
-                placeholder="Max"
-                prefix="PKR"
-              />
-            </View>
-          </View>
-        </SheetSection>
-
-        <SheetSection title="MINIMUM QUANTITY (bags)">
-          <NumberInput
-            value={minQuantity}
-            onChangeText={setMinQuantity}
-            placeholder="e.g. 50"
+    </View>
+    <FlatList
+      data={[0]}
+      keyExtractor={item => String(item)}
+      style={styles.sheetScroll}
+      contentContainerStyle={styles.filterSheetContent}
+      showsVerticalScrollIndicator={false}
+      renderItem={() => (
+        <>
+          <SelectDropdown
+            label="COMMODITY"
+            placeholder="All Commodities"
+            options={commodities}
+            selectedId={selectedCommodityId}
+            onSelect={setSelectedCommodityId}
           />
-        </SheetSection>
-      </ScrollView>
-    </>
-  );
-};
+
+          <SheetSection title="LOCATION">
+            <View className="flex-row flex-wrap">
+              {['All', ...locations].map(location => (
+                <ChoiceChip
+                  key={location}
+                  label={location}
+                  active={
+                    selectedLocation === (location === 'All' ? '' : location)
+                  }
+                  onPress={() =>
+                    setSelectedLocation(location === 'All' ? '' : location)
+                  }
+                />
+              ))}
+            </View>
+          </SheetSection>
+
+          {badges.length ? (
+            <SheetSection title="BADGE">
+              <View className="flex-row flex-wrap">
+                {['All', ...badges].map(badge => (
+                  <ChoiceChip
+                    key={badge}
+                    label={badge === 'All' ? 'All' : formatBadge(badge)}
+                    active={selectedBadge === (badge === 'All' ? '' : badge)}
+                    onPress={() =>
+                      setSelectedBadge(badge === 'All' ? '' : badge)
+                    }
+                  />
+                ))}
+              </View>
+            </SheetSection>
+          ) : null}
+
+          <SheetSection title="PRICE RANGE">
+            <View className="flex-row" style={styles.priceRangeRow}>
+              <View className="flex-1">
+                <NumberInput
+                  value={minPrice}
+                  onChangeText={setMinPrice}
+                  placeholder="Min"
+                  prefix="PKR"
+                />
+              </View>
+              <View className="flex-1">
+                <NumberInput
+                  value={maxPrice}
+                  onChangeText={setMaxPrice}
+                  placeholder="Max"
+                  prefix="PKR"
+                />
+              </View>
+            </View>
+          </SheetSection>
+
+          <SheetSection title="MINIMUM QUANTITY">
+            <NumberInput
+              value={minQuantity}
+              onChangeText={setMinQuantity}
+              placeholder="e.g. 50"
+            />
+          </SheetSection>
+
+          <SheetSection title="VERIFICATION">
+            <ChoiceChip
+              label="Verified only"
+              active={verifiedOnly}
+              onPress={() => setVerifiedOnly(!verifiedOnly)}
+            />
+          </SheetSection>
+        </>
+      )}
+    />
+  </>
+);
 
 const SortOption = ({
   option,
@@ -642,8 +611,8 @@ const SortSheet = ({
   sortBy,
   onSelect,
 }: {
-  sortBy: string;
-  onSelect: (value: string) => void;
+  sortBy: SortValue;
+  onSelect: (value: SortValue) => void;
 }) => (
   <View style={styles.sortSheetContent}>
     <SheetHandle />
@@ -652,10 +621,10 @@ const SortSheet = ({
     </Text>
     {SORT_OPTIONS.map(option => (
       <SortOption
-        key={option.label}
+        key={option.value}
         option={option}
-        active={sortBy === option.label}
-        onPress={() => onSelect(option.label)}
+        active={sortBy === option.value}
+        onPress={() => onSelect(option.value)}
       />
     ))}
   </View>
@@ -709,10 +678,12 @@ const SignupSheet = ({
 
 const CategoryCard = ({
   item,
+  index,
   active,
   onPress,
 }: {
-  item: (typeof CATEGORIES)[number];
+  item: MarketCategory;
+  index: number;
   active: boolean;
   onPress: () => void;
 }) => (
@@ -727,16 +698,27 @@ const CategoryCard = ({
     activeOpacity={0.88}
   >
     <ImageBackground
-      source={{ uri: item.image }}
+      source={{
+        uri:
+          item.image_url ??
+          `https://placehold.co/200x200?text=${encodeURIComponent(item.name)}`,
+      }}
       resizeMode="cover"
       imageStyle={styles.categoryImage}
-      style={[styles.categoryImage, { backgroundColor: item.fallback }]}
+      style={[
+        styles.categoryImage,
+        { backgroundColor: FALLBACK_COLORS[index % FALLBACK_COLORS.length] },
+      ]}
     >
       <View style={styles.categoryOverlay} />
     </ImageBackground>
     <View className="py-1.5 px-1 items-center">
-      <Text className="text-gray-900 text-[11px] font-bold">{item.name}</Text>
-      <Text className="text-gray-400 text-[9px] mt-0.5">{item.count}</Text>
+      <Text className="text-gray-900 text-[11px] font-bold" numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Text className="text-gray-400 text-[9px] mt-0.5">
+        {item.listings_count ?? 0} listings
+      </Text>
     </View>
   </TouchableOpacity>
 );
@@ -745,69 +727,101 @@ const MillPriceRow = ({
   mill,
   featured,
 }: {
-  mill: (typeof COMMODITIES)[number]['mills'][number];
+  mill: ListingMillPrice;
   featured: boolean;
-}) => (
-  <View
-    className="flex-row items-center justify-between rounded-[9px] px-2.5 py-2 mb-1.5"
-    style={[
-      featured
-        ? { backgroundColor: '#145228' }
-        : {
-            backgroundColor: '#F9FAFB',
-            borderWidth: 1,
-            borderColor: '#F3F4F6',
-          },
-    ]}
-  >
-    <View className="flex-row items-center flex-1" style={{ gap: 7 }}>
-      <View
-        className="w-[26px] h-[26px] rounded-lg items-center justify-center"
-        style={{
-          backgroundColor: featured ? 'rgba(255,255,255,0.14)' : '#E8F7EE',
-        }}
-      >
-        <AppIcon
-          name="listing"
-          size={12}
-          color={featured ? '#FFFFFF' : '#217A3C'}
-        />
-      </View>
-      <View className="flex-1">
-        <Text
-          numberOfLines={1}
-          className="text-[11px] font-bold"
-          style={{ color: featured ? '#FFFFFF' : '#111827' }}
-        >
-          {mill.name}
-        </Text>
-        <Text
-          className="text-[10px] mt-0.5"
-          style={{ color: featured ? 'rgba(255,255,255,0.48)' : '#9CA3AF' }}
-        >
-          {mill.avail}
-        </Text>
-      </View>
-    </View>
-    <View className="items-end ml-2">
-      <Text
-        className="text-sm font-black"
-        style={{ color: featured ? '#F7DB4A' : '#1A6B34' }}
-      >
-        {mill.price}
-      </Text>
-      <Text
-        className="text-[9px]"
-        style={{ color: featured ? 'rgba(255,255,255,0.42)' : '#9CA3AF' }}
-      >
-        /40kg
-      </Text>
-    </View>
-  </View>
-);
+}) => {
+  const millName = mill.mill?.name ?? 'Direct listing';
+  const location = [mill.mill?.city, mill.mill?.province]
+    .filter(Boolean)
+    .join(', ');
 
-const CommodityCard = ({ item, onPress }: any) => {
+  return (
+    <View
+      className="flex-row items-center justify-between rounded-[9px] px-2.5 py-2 mb-1.5"
+      style={[
+        featured
+          ? { backgroundColor: '#145228' }
+          : {
+              backgroundColor: '#F9FAFB',
+              borderWidth: 1,
+              borderColor: '#F3F4F6',
+            },
+      ]}
+    >
+      <View className="flex-row items-center flex-1" style={{ gap: 7 }}>
+        <View
+          className="w-[26px] h-[26px] rounded-lg items-center justify-center"
+          style={{
+            backgroundColor: featured ? 'rgba(255,255,255,0.14)' : '#E8F7EE',
+          }}
+        >
+          <AppIcon
+            name="listing"
+            size={12}
+            color={featured ? '#FFFFFF' : '#217A3C'}
+          />
+        </View>
+        <View className="flex-1">
+          <Text
+            numberOfLines={1}
+            className="text-[11px] font-bold"
+            style={{ color: featured ? '#FFFFFF' : '#111827' }}
+          >
+            {millName}
+          </Text>
+          <Text
+            className="text-[10px] mt-0.5"
+            numberOfLines={1}
+            style={{ color: featured ? 'rgba(255,255,255,0.48)' : '#9CA3AF' }}
+          >
+            {mill.available_label ?? location}
+          </Text>
+        </View>
+      </View>
+      <View className="items-end ml-2">
+        <Text
+          className="text-sm font-black"
+          style={{ color: featured ? '#F7DB4A' : '#1A6B34' }}
+        >
+          {mill.price_display ?? 'Ask'}
+        </Text>
+        <Text
+          className="text-[9px]"
+          style={{ color: featured ? 'rgba(255,255,255,0.42)' : '#9CA3AF' }}
+        >
+          Price
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const MarketplaceListingCard = ({
+  item,
+  isBuyer,
+  index,
+  onPress,
+}: {
+  item: MarketListing;
+  isBuyer: boolean;
+  index: number;
+  onPress: () => void;
+}) => {
   const { t } = useTranslation();
+  const image = item.commodity?.image_url;
+  const fallback = FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+  const millRows = getMillRows(item);
+  const badge = item.badge
+    ? formatBadge(item.badge)
+    : isBuyer
+    ? 'SUPPLY'
+    : 'OPEN DEMAND';
+  const actionLabel = isBuyer ? t('listing.sendInterest') : 'Send Offer';
+  const millsTitle = isBuyer ? 'Mill Prices' : 'Demand Prices';
+  const category = item.commodity?.category?.name ?? 'Commodity';
+  const rating = item.rating_display ?? `${item.seller?.rating ?? '0.0'}`;
+  const location = getListingLocation(item);
+  const counterparty = getSellerName(item, isBuyer);
 
   return (
     <TouchableOpacity
@@ -817,30 +831,42 @@ const CommodityCard = ({ item, onPress }: any) => {
       activeOpacity={0.9}
     >
       <ImageBackground
-        source={{ uri: item.image }}
+        source={{
+          uri:
+            image ??
+            `https://placehold.co/600x400?text=${encodeURIComponent(
+              item.commodity?.name ?? 'Commodity',
+            )}`,
+        }}
         resizeMode="cover"
         imageStyle={styles.listingImage}
-        style={[styles.listingImage, { backgroundColor: item.fallback }]}
+        style={[styles.listingImage, { backgroundColor: fallback }]}
       >
-        <View style={styles.listingOverlay} />
+        <View style={isBuyer ? styles.listingOverlay : styles.demandOverlay} />
         <View className="absolute top-2.5 left-3 bg-yellow-400 rounded-md px-2.5 py-1">
-          <Text className="text-green-950 text-[9px] font-black">
-            {item.badge}
-          </Text>
+          <Text className="text-green-950 text-[9px] font-black">{badge}</Text>
         </View>
-        {item.verified ? (
+        {item.is_verified ? (
           <View className="absolute top-2.5 right-3 flex-row items-center rounded-md px-2 py-1 bg-black/45">
             <AppIcon name="approved" size={10} color="#7FD4A0" />
             <Text className="text-[#7FD4A0] text-[9px] font-bold ml-1">
               VERIFIED
             </Text>
           </View>
-        ) : null}
+        ) : (
+          <View className="absolute top-2.5 right-3 rounded-md px-2 py-1 bg-black/45">
+            <Text className="text-white/85 text-[9px] font-semibold">
+              {formatDateLabel(item.created_at)}
+            </Text>
+          </View>
+        )}
         <View className="absolute bottom-2.5 left-3 right-3">
           <Text className="text-white/60 text-[9px] font-mono mb-0.5">
-            {item.displayId}
+            {item.code ?? item.id}
           </Text>
-          <Text className="text-white text-base font-black">{item.name}</Text>
+          <Text className="text-white text-base font-black" numberOfLines={1}>
+            {item.commodity?.name ?? 'Commodity'}
+          </Text>
         </View>
       </ImageBackground>
 
@@ -848,29 +874,28 @@ const CommodityCard = ({ item, onPress }: any) => {
         <View className="flex-row justify-between items-center mb-2.5">
           <View className="flex-row items-center flex-1" style={{ gap: 6 }}>
             <Text className="text-gray-500 text-[11px] font-semibold">
-              {item.category}
+              {category}
             </Text>
             <Text className="text-gray-200 text-[10px]">·</Text>
             <Text
               numberOfLines={1}
               className="text-gray-700 text-[11px] font-bold flex-1"
             >
-              {item.qty}
+              {item.total_quantity_label ?? 'Quantity available'}
             </Text>
           </View>
           <View className="flex-row items-center" style={{ gap: 3 }}>
             <Text className="text-[10px]">★</Text>
             <Text className="text-gray-700 text-[11px] font-bold">
-              {item.rating}
+              {rating}
             </Text>
-            <Text className="text-gray-400 text-[10px]">({item.reviews})</Text>
           </View>
         </View>
 
         <View className="flex-row items-center mb-3" style={{ gap: 5 }}>
           <AppIcon name="profileCity" size={11} color="#9CA3AF" />
-          <Text className="text-gray-500 text-[11px]">
-            {item.location} · {item.seller}
+          <Text className="text-gray-500 text-[11px]" numberOfLines={1}>
+            {location} · {counterparty}
           </Text>
         </View>
 
@@ -881,20 +906,24 @@ const CommodityCard = ({ item, onPress }: any) => {
                 <AppIcon name="listing" size={11} color="#1A6B34" />
               </View>
               <Text className="text-green-900 text-[11px] font-bold">
-                Mill Prices
+                {millsTitle}
               </Text>
             </View>
-            {item.mills.length > 1 ? (
+            {item.mill_prices_total &&
+            item.mill_prices_total > millRows.length ? (
               <Text className="text-green-700 text-[10px] font-bold bg-green-50 rounded-full px-2 py-0.5">
-                +{item.mills.length - 1} more mill
+                {item.more_mills_label ??
+                  `+${item.mill_prices_total - millRows.length} more mill`}
               </Text>
             ) : null}
           </View>
-          {item.mills.slice(0, 3).map((mill: any, index: number) => (
+          {millRows.slice(0, 3).map((mill, millIndex) => (
             <MillPriceRow
-              key={`${item.id}-${mill.name}`}
+              key={`${item.id}-${
+                mill.mill?.id ?? mill.mill?.name ?? millIndex
+              }`}
               mill={mill}
-              featured={index === 0}
+              featured={millIndex === 0}
             />
           ))}
         </View>
@@ -914,7 +943,7 @@ const CommodityCard = ({ item, onPress }: any) => {
           >
             <AppIcon name="currency" size={14} color="#0D3B1F" />
             <Text className="text-green-950 text-[13px] font-bold ml-1.5">
-              {t('listing.sendInterest')}
+              {actionLabel}
             </Text>
           </TouchableOpacity>
         </View>
@@ -923,171 +952,175 @@ const CommodityCard = ({ item, onPress }: any) => {
   );
 };
 
-const DemandCard = ({ item }: any) => (
-  <TouchableOpacity
-    className="bg-white overflow-hidden mb-3.5"
-    style={[styles.listingCard, cardShadow.card]}
-    activeOpacity={0.88}
-  >
-    <ImageBackground
-      source={{ uri: item.image }}
-      resizeMode="cover"
-      imageStyle={styles.listingImage}
-      style={[styles.listingImage, { backgroundColor: item.fallback }]}
-    >
-      <View style={styles.demandOverlay} />
-      <View className="absolute top-2.5 left-3 bg-yellow-400 rounded-md px-2.5 py-1 flex-row items-center">
-        <View className="w-[5px] h-[5px] rounded-full bg-green-950 mr-1" />
-        <Text className="text-green-950 text-[9px] font-black">
-          {item.status}
-        </Text>
-      </View>
-      <View className="absolute top-2.5 right-3 rounded-md px-2 py-1 bg-black/45">
-        <Text className="text-white/85 text-[9px] font-semibold">
-          {item.posted}
-        </Text>
-      </View>
-      <View className="absolute bottom-2.5 left-3">
-        <Text className="text-white/55 text-[9px] font-mono mb-0.5">
-          {item.displayId}
-        </Text>
-        <Text className="text-white text-[17px] font-black">{item.name}</Text>
-      </View>
-      <View
-        className="absolute bottom-2.5 right-3 flex-row items-center"
-        style={styles.locationOverlayRow}
-      >
-        <AppIcon name="profileCity" size={10} color="rgba(255,255,255,0.85)" />
-        <Text className="text-white/85 text-[10px] font-medium">
-          {item.location}
-        </Text>
-      </View>
-    </ImageBackground>
-
-    <View className="px-3.5 pt-3 pb-3.5">
-      <View className="flex-row justify-between items-start mb-2">
-        <View>
-          <Text className="text-gray-900 text-[13px] font-extrabold">
-            {item.qty}
-          </Text>
-          <Text className="text-gray-500 text-[11px] mt-0.5">
-            {item.qtyLabel}
-          </Text>
-        </View>
-        <View className="items-end flex-1 ml-3">
-          <Text className="text-green-800 text-base font-black">
-            {item.budget}
-          </Text>
-          <Text className="text-gray-400 text-[10px]">Buyer's budget</Text>
-        </View>
-      </View>
-
-      <View style={styles.demandMetaBox}>
-        <View className="flex-row flex-wrap" style={styles.demandMetaRow}>
-          <View className="flex-row items-center" style={styles.demandMetaItem}>
-            <AppIcon name="business" size={11} color="#9CA3AF" />
-            <Text className="text-gray-600 text-[11px] font-semibold">
-              {item.mills}
-            </Text>
-          </View>
-          <View className="flex-row items-center" style={styles.demandMetaItem}>
-            <AppIcon name="bank" size={11} color="#9CA3AF" />
-            <Text className="text-gray-600 text-[11px] font-semibold">
-              {item.payment}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <Text className="text-gray-500 text-[11px] italic leading-4 mb-2.5">
-        "{item.notes}"
-      </Text>
-
-      <TouchableOpacity
-        className="bg-yellow-400 rounded-[11px] py-3 items-center"
-        style={styles.offerButton}
-        activeOpacity={0.85}
-      >
-        <Text className="text-green-950 text-[13px] font-bold">
-          Send Offer →
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-);
-
 const MarketplaceScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const { t } = useTranslation();
   const isBuyer = mode === 'buyer';
+  const postType: PostType = isBuyer ? 'SUPPLY' : 'DEMAND';
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [activeCategoryId, setActiveCategoryId] = useState('');
   const [activeSheet, setActiveSheet] = useState<SheetType>(null);
-  const [selectedCommodity, setSelectedCommodity] = useState('All');
-  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [selectedCommodityId, setSelectedCommodityId] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedBadge, setSelectedBadge] = useState('');
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [minQuantity, setMinQuantity] = useState('');
-  const [sortBy, setSortBy] = useState('Newest First');
-
-  const priceFloor = parseAmount(minPrice);
-  const priceCeiling = parseAmount(maxPrice);
-  const quantityFloor = parseQuantity(minQuantity);
-
-  const filteredSupplies = COMMODITIES.filter(item => {
-    const budget = getListingBudget(item);
-    const quantity = parseQuantity(item.qty);
-
-    return (
-      (activeCategory === 'All' || item.category === activeCategory) &&
-      (selectedCommodity === 'All' || item.name === selectedCommodity) &&
-      (selectedLocation === 'All' || item.location === selectedLocation) &&
-      (!priceFloor || budget >= priceFloor) &&
-      (!priceCeiling || budget <= priceCeiling) &&
-      (!quantityFloor || quantity >= quantityFloor) &&
-      (!search ||
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.location.toLowerCase().includes(search.toLowerCase()) ||
-        item.seller.toLowerCase().includes(search.toLowerCase()))
-    );
+  const [sortBy, setSortBy] = useState<SortValue>('newest');
+  const [categories, setCategories] = useState<MarketCategory[]>([]);
+  const [listings, setListings] = useState<MarketListing[]>([]);
+  const [filterOptions, setFilterOptions] = useState<
+    MarketplacePayload['filterOptions']
+  >({
+    commodities: [],
+    locations: [],
+    badges: [],
   });
+  const [meta, setMeta] = useState<MarketplaceMeta>({});
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [error, setError] = useState('');
 
-  const filteredDemands = DEMANDS.filter(item => {
-    const budget = parseAmount(item.budget);
-    const quantity = parseQuantity(item.qty);
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timeout);
+  }, [search]);
 
-    return (
-      (selectedCommodity === 'All' || item.name === selectedCommodity) &&
-      (selectedLocation === 'All' || item.location === selectedLocation) &&
-      (!priceFloor || budget >= priceFloor) &&
-      (!priceCeiling || budget <= priceCeiling) &&
-      (!quantityFloor || quantity >= quantityFloor) &&
-      (!search ||
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.location.toLowerCase().includes(search.toLowerCase()) ||
-        item.displayId.toLowerCase().includes(search.toLowerCase()) ||
-        item.notes.toLowerCase().includes(search.toLowerCase()))
-    );
-  });
+  const requestParams = useMemo(() => {
+    const distanceSortNeedsCoordinates = sortBy === 'distance_nearest';
 
-  const sortItems = (items: any[]) => {
-    const sorted = [...items];
+    return cleanParams({
+      limit: PAGE_SIZE,
+      search: debouncedSearch.trim(),
+      post_type: postType,
+      category_id: activeCategoryId,
+      commodity_id: selectedCommodityId,
+      location: selectedLocation,
+      min_price: minPrice,
+      max_price: maxPrice,
+      min_quantity: minQuantity,
+      badge: selectedBadge,
+      verified_only: verifiedOnly ? true : undefined,
+      sort: distanceSortNeedsCoordinates ? undefined : sortBy,
+    });
+  }, [
+    activeCategoryId,
+    debouncedSearch,
+    maxPrice,
+    minPrice,
+    minQuantity,
+    postType,
+    selectedBadge,
+    selectedCommodityId,
+    selectedLocation,
+    sortBy,
+    verifiedOnly,
+  ]);
 
-    if (sortBy === 'Budget: Low to High') {
-      sorted.sort((a, b) => getItemBudget(a) - getItemBudget(b));
-    } else if (sortBy === 'Budget: High to Low') {
-      sorted.sort((a, b) => getItemBudget(b) - getItemBudget(a));
-    } else if (sortBy === 'Most Quantity Needed') {
-      sorted.sort((a, b) => parseQuantity(b.qty) - parseQuantity(a.qty));
+  const fetchListings = useCallback(
+    async (pageToLoad = 1, append = false) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      setError('');
+
+      try {
+        const endpoint = isBuyer
+          ? api.marketplace.public.listMarketSuppliesListing
+          : api.marketplace.public.listMarketDemandsListing;
+        const response = await endpoint({
+          ...requestParams,
+          page: pageToLoad,
+        });
+        const normalized = normalizeMarketplacePayload(response);
+        const responsePage = normalized.meta.page ?? pageToLoad;
+
+        setCategories(normalized.categories);
+        setFilterOptions(normalized.filterOptions);
+        setMeta({ ...normalized.meta, page: responsePage });
+        setListings(current => {
+          if (!append) {
+            return normalized.listings;
+          }
+
+          const seen = new Set(current.map(item => item.id));
+          return [
+            ...current,
+            ...normalized.listings.filter(item => !seen.has(item.id)),
+          ];
+        });
+        setHasLoadedOnce(true);
+      } catch (err) {
+        console.log('Marketplace listings error', err);
+        setError('Unable to load marketplace listings. Pull latest again.');
+      } finally {
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [isBuyer, requestParams],
+  );
+
+  useEffect(() => {
+    setListings([]);
+    setMeta({});
+    fetchListings(1, false);
+  }, [fetchListings]);
+
+  const hasMore = (meta.page ?? 1) < (meta.total_pages ?? 1);
+
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) {
+      return;
     }
 
-    return sorted;
-  };
+    fetchListings((meta.page ?? 1) + 1, true);
+  }, [fetchListings, hasMore, loading, loadingMore, meta.page]);
 
-  const listData = sortItems(
-    isBuyer ? filteredSupplies : filteredDemands,
-  ) as any[];
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 35 });
+  const paginationRef = useRef({
+    listingsLength: 0,
+    loadMore: () => {},
+  });
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const { listingsLength, loadMore: loadNextPage } = paginationRef.current;
+      const shouldLoad = viewableItems.some(
+        viewable =>
+          typeof viewable.index === 'number' &&
+          viewable.index >= Math.max(listingsLength - 3, 0),
+      );
+
+      if (shouldLoad) {
+        loadNextPage();
+      }
+    },
+  );
+
+  useEffect(() => {
+    paginationRef.current = {
+      listingsLength: listings.length,
+      loadMore,
+    };
+  }, [listings.length, loadMore]);
+
   const closeSheet = () => setActiveSheet(null);
+  const countLabel =
+    meta.count_label ??
+    (isBuyer
+      ? `${meta.total ?? listings.length} verified supplies`
+      : t('market.activeRequests', { count: meta.total ?? listings.length }));
+  const foundLabel =
+    meta.listings_found_label ??
+    `${meta.total ?? listings.length} Listings Found`;
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -1105,11 +1138,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
             <Text className="text-white text-xl font-extrabold">
               {isBuyer ? 'Supplies' : t('market.buyerDemands')}
             </Text>
-            <Text className="text-white/55 text-xs mt-0.5">
-              {isBuyer
-                ? `${filteredSupplies.length} verified supplies`
-                : t('market.activeRequests', { count: filteredDemands.length })}
-            </Text>
+            <Text className="text-white/55 text-xs mt-0.5">{countLabel}</Text>
           </View>
           <View className="flex-row" style={{ gap: 8 }}>
             <HeaderAction
@@ -1145,73 +1174,95 @@ const MarketplaceScreen = ({ navigation }: any) => {
       </View>
 
       <FlatList
-        data={listData}
-        keyExtractor={(item: any) => item.id}
+        data={listings}
+        keyExtractor={(item: MarketListing) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.35}
+        onViewableItemsChanged={onViewableItemsChanged.current}
+        viewabilityConfig={viewabilityConfig.current}
         ListHeaderComponent={
-          isBuyer ? (
-            <>
-              <View className="mb-[18px]">
-                <Text className="text-gray-900 text-[15px] font-bold mb-3">
-                  Browse by Category
-                </Text>
-                <FlatList
-                  horizontal
-                  data={CATEGORIES}
-                  keyExtractor={item => item.name}
-                  showsHorizontalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <CategoryCard
-                      item={item}
-                      active={activeCategory === item.name}
-                      onPress={() =>
-                        setActiveCategory(current =>
-                          current === item.name ? 'All' : item.name,
-                        )
-                      }
-                    />
-                  )}
-                />
-              </View>
+          <>
+            <View className="mb-[18px]">
+              <Text className="text-gray-900 text-[15px] font-bold mb-3">
+                Browse by Category
+              </Text>
+              <FlatList
+                horizontal
+                data={categories}
+                keyExtractor={item => item.id}
+                showsHorizontalScrollIndicator={false}
+                renderItem={({ item, index }) => (
+                  <CategoryCard
+                    item={item}
+                    index={index}
+                    active={activeCategoryId === item.id}
+                    onPress={() =>
+                      setActiveCategoryId(current =>
+                        current === item.id ? '' : item.id,
+                      )
+                    }
+                  />
+                )}
+              />
+            </View>
 
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-gray-900 text-[15px] font-bold">
-                  {filteredSupplies.length} Listings Found
-                </Text>
-                {activeCategory !== 'All' ? (
-                  <TouchableOpacity onPress={() => setActiveCategory('All')}>
-                    <Text className="text-green-700 text-xs font-semibold">
-                      Show All
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-gray-900 text-[15px] font-bold">
+                {foundLabel}
+              </Text>
+              {activeCategoryId ? (
+                <TouchableOpacity onPress={() => setActiveCategoryId('')}>
+                  <Text className="text-green-700 text-xs font-semibold">
+                    Show All
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </>
+        }
+        renderItem={({ item, index }) => (
+          <MarketplaceListingCard
+            item={item}
+            isBuyer={isBuyer}
+            index={index}
+            onPress={() =>
+              navigation.navigate(
+                isBuyer ? 'ListingDetail' : 'CommodityDetail',
+                {
+                  listingId: item.id,
+                },
+              )
+            }
+          />
+        )}
+        ListFooterComponent={
+          loadingMore ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator color="#217A3C" />
+            </View>
           ) : null
         }
-        renderItem={({ item }) =>
-          isBuyer ? (
-            <CommodityCard
-              item={item}
-              onPress={() =>
-                navigation.navigate('ListingDetail', { listingId: item.id })
-              }
-            />
-          ) : (
-            <DemandCard item={item} />
-          )
-        }
         ListEmptyComponent={
-          <View className="items-center pt-16">
-            <AppIcon name="search" size={40} color="#9CA3AF" />
-            <Text className="text-gray-800 text-base font-bold mt-2">
-              {t('market.noResults')}
-            </Text>
-            <Text className="text-gray-400 text-sm mt-1">
-              {t('market.adjustSearch')}
-            </Text>
-          </View>
+          loading && !hasLoadedOnce ? (
+            <View className="items-center pt-16">
+              <ActivityIndicator color="#217A3C" />
+              <Text className="text-gray-500 text-sm mt-3">
+                Loading marketplace...
+              </Text>
+            </View>
+          ) : (
+            <View className="items-center pt-16">
+              <AppIcon name="search" size={40} color="#9CA3AF" />
+              <Text className="text-gray-800 text-base font-bold mt-2">
+                {error || t('market.noResults')}
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1">
+                {t('market.adjustSearch')}
+              </Text>
+            </View>
+          )
         }
       />
 
@@ -1230,10 +1281,17 @@ const MarketplaceScreen = ({ navigation }: any) => {
         maxHeight="88%"
       >
         <FilterSheet
-          selectedCommodity={selectedCommodity}
-          setSelectedCommodity={setSelectedCommodity}
+          commodities={filterOptions.commodities}
+          locations={filterOptions.locations}
+          badges={filterOptions.badges}
+          selectedCommodityId={selectedCommodityId}
+          setSelectedCommodityId={setSelectedCommodityId}
           selectedLocation={selectedLocation}
           setSelectedLocation={setSelectedLocation}
+          selectedBadge={selectedBadge}
+          setSelectedBadge={setSelectedBadge}
+          verifiedOnly={verifiedOnly}
+          setVerifiedOnly={setVerifiedOnly}
           minPrice={minPrice}
           setMinPrice={setMinPrice}
           maxPrice={maxPrice}
@@ -1322,34 +1380,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  demandMetaBox: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 11,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  demandMetaRow: {
-    gap: 12,
-  },
-  demandMetaItem: {
-    gap: 5,
-  },
-  locationOverlayRow: {
-    gap: 3,
-  },
   interestButton: {
     shadowColor: '#F3CD03',
     shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  offerButton: {
-    shadowColor: '#F3CD03',
-    shadowOpacity: 0.26,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,

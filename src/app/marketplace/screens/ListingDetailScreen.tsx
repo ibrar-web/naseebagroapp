@@ -450,7 +450,11 @@ const ListingDetailScreen = ({ navigation, route }: Props) => {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.sendOfferBtn} activeOpacity={0.88}>
+        <TouchableOpacity
+          style={styles.sendOfferBtn}
+          activeOpacity={0.88}
+          onPress={() => navigation.navigate('SendOffer', { listingId })}
+        >
           <Text style={styles.sendOfferBtnText}>{ctaLabel}</Text>
         </TouchableOpacity>
       </View>

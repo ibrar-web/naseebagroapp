@@ -42,6 +42,7 @@ import MarketRatesScreen from '../app/marketplace/screens/MarketRatesScreen';
 import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
 import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
+import SendOfferScreen from '../app/marketplace/screens/SendOfferScreen';
 import PostDetailScreen from '../app/posts/screens/PostDetailScreen';
 import OfferDetailScreen from '../app/posts/screens/OfferDetailScreen';
 import NegotiationScreen from '../app/posts/screens/NegotiationScreen';
@@ -200,6 +201,7 @@ export const AppNavigator = () => (
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
       <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
       <Stack.Screen name="RequestToPurchase" component={RequestToPurchaseScreen} />
+      <Stack.Screen name="SendOffer" component={SendOfferScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
       <Stack.Screen name="Negotiation" component={NegotiationScreen} />

@@ -15,58 +15,60 @@ import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'RequestToPurchase'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'SendOffer'>;
 
-type SupplyMill = {
+type DemandMill = {
   id: string;
   mill?: { name?: string; location_label?: string };
   price_display?: string;
-  available_quantity_label?: string;
-  is_cheapest?: boolean;
-  is_default_selected?: boolean;
+  price_unit_label?: string;
+  requested_quantity_label?: string;
 };
 
-type SupplyDetail = {
+type DemandDetail = {
   id: string;
   code?: string;
   title?: string;
-  badge_label?: string | null;
-  badge?: string | null;
   hero_image_url?: string;
-  available_mills_section?: { mills?: SupplyMill[] };
-  post_details?: {
-    rows?: Array<{ key: string; label: string; value: string }>;
+  header_stats?: Array<{ key: string; label: string; value: string }>;
+  quantity_label?: string;
+  delivery_location?: { label?: string };
+  mills_specified_section?: {
+    mills?: DemandMill[];
+    has_mills?: boolean;
   };
 };
 
-const normalizeSupply = (response: any): SupplyDetail | null => {
+const normalizeDemand = (response: any): DemandDetail | null => {
   const payload = response?.id ? response : response?.data ?? response;
   return payload?.id ? payload : null;
 };
 
 const PAYMENT_OPTS = ['7 Days', '15 Days', '30 Days', '45 Days', '60 Days'];
 const DELIVERY_OPTS = ['1 Day', '2 Days', '3 Days', '5 Days', '7 Days', '10 Days', '14 Days'];
-const ADDITIONAL_REQS = [
-  'Grade A (Premium) required',
-  'Dry packaging essential',
-  'Certified organic needed',
-  'Flexible on delivery date',
-  'Export quality only',
+const OFFER_CONDITIONS = [
+  'Fresh season stock',
+  'Dry packaging included',
+  'Transport arranged by seller',
+  'Available for pre-dispatch inspection',
+  'Immediate dispatch available',
+  'Grade A quality guaranteed',
+  'Price negotiable in bulk',
 ];
 
-const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
+const SendOfferScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
-  const [detail, setDetail] = useState<SupplyDetail | null>(null);
+  const [detail, setDetail] = useState<DemandDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
-  const [priceMode, setPriceMode] = useState<'original' | 'offer'>('original');
-  const [offerPrice, setOfferPrice] = useState('');
+  const [priceMode, setPriceMode] = useState<'listed' | 'counter'>('listed');
+  const [counterPrice, setCounterPrice] = useState('');
   const [paymentDays, setPaymentDays] = useState<string | null>(null);
   const [deliveryDays, setDeliveryDays] = useState<string | null>(null);
-  const [additionalReq, setAdditionalReq] = useState('');
+  const [offerCondition, setOfferCondition] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -74,18 +76,12 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       setLoading(true);
       setError('');
       try {
-        const res = await api.marketplace.public.DetailMarketSuppliesListing(listingId);
-        const normalized = normalizeSupply(res);
-        if (active) {
-          setDetail(normalized);
-          const defaultMill = normalized?.available_mills_section?.mills?.find(
-            m => m.is_default_selected || m.is_cheapest,
-          );
-          if (defaultMill) setSelectedMill(defaultMill.id);
-        }
+        const res = await api.marketplace.public.DetailMarketDemandsListing(listingId);
+        const normalized = normalizeDemand(res);
+        if (active) setDetail(normalized);
       } catch (err) {
-        console.log('RequestToPurchase load error', err);
-        if (active) setError('Unable to load listing details.');
+        console.log('SendOffer load error', err);
+        if (active) setError('Unable to load listing.');
       } finally {
         if (active) setLoading(false);
       }
@@ -117,13 +113,16 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
     );
   }
 
-  const mills = detail.available_mills_section?.mills ?? [];
-  const badge = detail.badge_label ?? detail.badge;
+  const mills = detail.mills_specified_section?.mills ?? [];
   const heroImage =
     detail.hero_image_url ??
-    `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Listing')}`;
+    `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Demand')}`;
+  const stats = (detail.header_stats ?? [
+    { key: 'qty', label: 'QUANTITY', value: detail.quantity_label ?? '' },
+    { key: 'loc', label: 'LOCATION', value: detail.delivery_location?.label ?? '' },
+  ]).filter(s => s.value);
   const selectedMillData = mills.find(m => m.id === selectedMill);
-  const canSubmit = Boolean(selectedMill && quantity && (priceMode === 'original' || offerPrice));
+  const canSubmit = Boolean(selectedMill && quantity && (priceMode === 'listed' || counterPrice));
 
   return (
     <View style={styles.container}>
@@ -133,7 +132,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
           <AppIcon name="back" size={19} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Request to Purchase</Text>
+        <Text style={styles.headerTitle}>Send Offer</Text>
         <View style={{ width: 34 }} />
       </View>
 
@@ -149,26 +148,29 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
             <View style={styles.previewOverlay} />
             <View style={styles.previewBottom}>
               <Text style={styles.previewCode}>{detail.code ?? detail.id}</Text>
-              <View style={styles.previewNameRow}>
-                <Text style={styles.previewName} numberOfLines={1}>
-                  {detail.title ?? 'Listing'}
-                </Text>
-                {badge ? (
-                  <View style={styles.previewBadge}>
-                    <Text style={styles.previewBadgeText}>{badge}</Text>
-                  </View>
-                ) : null}
-              </View>
+              <Text style={styles.previewTitle} numberOfLines={1}>
+                {detail.title ?? 'Demand Request'}
+              </Text>
             </View>
           </ImageBackground>
+          {stats.length ? (
+            <View style={styles.statsBar}>
+              {stats.map((stat, i) => (
+                <View key={stat.key} style={[styles.statItem, i > 0 && styles.statItemBorder]}>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                  <Text style={styles.statValue} numberOfLines={1}>{stat.value}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* 1. Select Mill */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            1. Select Mill <Text style={styles.required}>*</Text>
+            1. Select Your Mill <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Your request will be tied to one mill</Text>
+          <Text style={styles.sectionSubtitle}>Choose which of your mills will fulfil this order</Text>
           {mills.length ? (
             mills.map(mill => {
               const isSelected = selectedMill === mill.id;
@@ -189,96 +191,84 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.millPrice}>
                       {mill.price_display ?? 'Ask'}
-                      <Text style={styles.millUnit}>/40kg</Text>
+                      {mill.price_unit_label ? (
+                        <Text style={styles.millUnit}>{mill.price_unit_label}</Text>
+                      ) : null}
                     </Text>
-                    {mill.available_quantity_label ? (
-                      <Text style={styles.millAvail}>{mill.available_quantity_label} available</Text>
+                    {mill.requested_quantity_label ? (
+                      <Text style={styles.millAvail}>{mill.requested_quantity_label}</Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
               );
             })
           ) : (
-            <Text style={styles.emptyText}>No mills available for this listing.</Text>
+            <Text style={styles.emptyText}>No mills specified by buyer.</Text>
           )}
         </View>
 
         {/* 2. Quantity */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            2. Quantity Required (bags) <Text style={styles.required}>*</Text>
+            2. Quantity You Can Supply (bags) <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 100"
+            placeholder="e.g. 150"
             keyboardType="numeric"
             value={quantity}
             onChangeText={setQuantity}
             placeholderTextColor="#9CA3AF"
           />
-          {quantity && selectedMillData ? (
-            <View style={styles.calcBox}>
-              <View style={styles.calcRow}>
-                <Text style={styles.calcLabel}>Unit Price</Text>
-                <Text style={styles.calcValue}>{selectedMillData.price_display ?? 'Ask'} / 40kg</Text>
-              </View>
-              <View style={styles.calcRow}>
-                <Text style={styles.calcLabel}>Quantity</Text>
-                <Text style={styles.calcValue}>{quantity} bags</Text>
-              </View>
-            </View>
-          ) : null}
         </View>
 
-        {/* 3. Price Option */}
+        {/* 3. Price */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            3. Price Option <Text style={styles.required}>*</Text>
+            3. Your Price <Text style={styles.required}>*</Text>
           </Text>
           <View style={styles.priceToggleRow}>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'original' && styles.priceToggleBtnActive]}
-              onPress={() => setPriceMode('original')}
+              style={[styles.priceToggleBtn, priceMode === 'listed' && styles.priceToggleBtnActive]}
+              onPress={() => setPriceMode('listed')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'original' && styles.priceToggleLabelActive]}>
-                Use Original Price
+              <Text style={[styles.priceToggleLabel, priceMode === 'listed' && styles.priceToggleLabelActive]}>
+                Use Listed Price
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'original' && styles.priceToggleSubActive]}>
+              <Text style={[styles.priceToggleSub, priceMode === 'listed' && styles.priceToggleSubActive]}>
                 {selectedMillData?.price_display ?? 'Select mill first'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'offer' && styles.priceToggleBtnActive]}
-              onPress={() => setPriceMode('offer')}
+              style={[styles.priceToggleBtn, priceMode === 'counter' && styles.priceToggleBtnActive]}
+              onPress={() => setPriceMode('counter')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'offer' && styles.priceToggleLabelActive]}>
-                Make an Offer
+              <Text style={[styles.priceToggleLabel, priceMode === 'counter' && styles.priceToggleLabelActive]}>
+                Make a Counter
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'offer' && styles.priceToggleSubActive]}>
-                Enter your target price
+              <Text style={[styles.priceToggleSub, priceMode === 'counter' && styles.priceToggleSubActive]}>
+                Enter a different price
               </Text>
             </TouchableOpacity>
           </View>
-          {priceMode === 'offer' ? (
+          {priceMode === 'counter' ? (
             <TextInput
               style={[styles.input, { marginTop: 10 }]}
               placeholder="e.g. 4000"
-              value={offerPrice}
-              onChangeText={setOfferPrice}
+              value={counterPrice}
+              onChangeText={setCounterPrice}
               placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
             />
           ) : null}
         </View>
 
-        {/* 4. Payment Terms */}
+        {/* 4. Payment & Delivery Terms */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            4. Payment Terms <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.sectionSubtitle}>Pay full amount within how many days?</Text>
+          <Text style={styles.sectionTitle}>4. Payment & Delivery Terms</Text>
+          <Text style={styles.sectionSubtitle}>Payment within how many days?</Text>
           <View style={styles.chipRow}>
             {PAYMENT_OPTS.map(opt => (
               <TouchableOpacity
@@ -291,14 +281,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-
-        {/* 5. Delivery Terms */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            5. Delivery Terms <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.sectionSubtitle}>Require delivery within how many days?</Text>
+          <Text style={[styles.sectionSubtitle, { marginTop: 12 }]}>Delivery within how many days?</Text>
           <View style={styles.chipRow}>
             {DELIVERY_OPTS.map(opt => (
               <TouchableOpacity
@@ -313,37 +296,34 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           </View>
         </View>
 
-        {/* Additional Requirement */}
+        {/* 5. Offer Condition */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            Additional Requirement{' '}
+            5. Offer Condition{' '}
             <Text style={styles.optional}>(optional)</Text>
           </Text>
-          {ADDITIONAL_REQS.map(req => (
+          {OFFER_CONDITIONS.map(cond => (
             <TouchableOpacity
-              key={req}
-              style={[styles.conditionRow, additionalReq === req && styles.conditionRowSelected]}
-              onPress={() => setAdditionalReq(additionalReq === req ? '' : req)}
+              key={cond}
+              style={[styles.conditionRow, offerCondition === cond && styles.conditionRowSelected]}
+              onPress={() => setOfferCondition(offerCondition === cond ? '' : cond)}
               activeOpacity={0.8}
             >
-              <View style={[styles.checkOuter, additionalReq === req && styles.checkOuterSelected]}>
-                {additionalReq === req ? <AppIcon name="approved" size={10} color="#217A3C" /> : null}
+              <View style={[styles.checkOuter, offerCondition === cond && styles.checkOuterSelected]}>
+                {offerCondition === cond ? <AppIcon name="approved" size={10} color="#217A3C" /> : null}
               </View>
-              <Text style={styles.conditionText}>{req}</Text>
+              <Text style={styles.conditionText}>{cond}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Info note */}
         <View style={styles.infoNote}>
-          <AppIcon name="approved" size={13} color="#1A6B34" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.infoNoteTitle}>How it works</Text>
-            <Text style={styles.infoNoteText}>
-              1.5% Naseeb platform fee is charged at the last payment. The seller will receive your
-              request and can accept or reject it directly.
-            </Text>
-          </View>
+          <AppIcon name="shield" size={13} color="#217A3C" />
+          <Text style={styles.infoNoteText}>
+            Your offer goes directly to the buyer. They can accept, reject, or send a counter offer.{' '}
+            <Text style={{ fontWeight: '700' }}>1.5% platform fee</Text> on final payment.
+          </Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -357,7 +337,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           disabled={!canSubmit}
         >
           <Text style={styles.submitBtnText}>
-            {canSubmit ? 'Submit Request' : 'Fill all required fields'}
+            {canSubmit ? 'Send Offer' : 'Select mill, qty and price to continue'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -411,31 +391,43 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 4,
   },
-  previewImage: { height: 90 },
+  previewImage: { height: 100 },
   previewOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.52)',
   },
-  previewBottom: { position: 'absolute', bottom: 10, left: 14, zIndex: 2 },
+  previewBottom: {
+    position: 'absolute',
+    bottom: 10,
+    left: 14,
+    right: 14,
+    zIndex: 2,
+  },
   previewCode: {
     fontSize: 9,
     color: 'rgba(255,255,255,0.5)',
     fontFamily: 'monospace',
     marginBottom: 2,
   },
-  previewNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  previewName: { fontSize: 17, fontWeight: '900', color: '#FFFFFF' },
-  previewBadge: {
-    backgroundColor: '#F3CD03',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+  previewTitle: { fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
+  statsBar: {
+    backgroundColor: '#145228',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: 'row',
   },
-  previewBadgeText: { fontSize: 10, fontWeight: '800', color: '#0D3B1F' },
+  statItem: { flex: 1 },
+  statItemBorder: {
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.15)',
+    paddingLeft: 12,
+  },
+  statLabel: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '800', marginBottom: 1 },
+  statValue: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -489,18 +481,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#FAFAFA',
   },
-  calcBox: {
-    marginTop: 10,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 4,
-  },
-  calcRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  calcLabel: { fontSize: 12, color: '#6B7280' },
-  calcValue: { fontSize: 12, fontWeight: '600', color: '#111827' },
   priceToggleRow: { flexDirection: 'row', gap: 8 },
   priceToggleBtn: {
     flex: 1,
@@ -510,7 +490,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'transparent',
   },
-  priceToggleBtnActive: { borderColor: '#2E9E52', backgroundColor: '#F2FBF5' },
+  priceToggleBtnActive: {
+    borderColor: '#2E9E52',
+    backgroundColor: '#F2FBF5',
+  },
   priceToggleLabel: { fontSize: 12, fontWeight: '700', color: '#374151' },
   priceToggleLabelActive: { color: '#1A6B34' },
   priceToggleSub: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
@@ -552,14 +535,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2FBF5',
     borderWidth: 1.5,
     borderColor: '#7FD4A0',
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
     flexDirection: 'row',
-    gap: 11,
+    gap: 8,
     alignItems: 'flex-start',
   },
-  infoNoteTitle: { fontSize: 13, fontWeight: '700', color: '#1A6B34', marginBottom: 4 },
-  infoNoteText: { fontSize: 12, color: '#374151', lineHeight: 18 },
+  infoNoteText: { fontSize: 11, color: '#1A6B34', lineHeight: 17, flex: 1 },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -577,13 +559,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   submitBtn: {
-    backgroundColor: '#1A6B34',
+    backgroundColor: '#F3CD03',
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: 'center',
   },
   submitBtnDisabled: { backgroundColor: '#9CA3AF' },
-  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  submitBtnText: { fontSize: 14, fontWeight: '800', color: '#0D3B1F' },
 });
 
-export default RequestToPurchaseScreen;
+export default SendOfferScreen;

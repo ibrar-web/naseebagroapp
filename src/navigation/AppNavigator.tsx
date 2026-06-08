@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StatusBar,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -43,6 +38,7 @@ import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen'
 import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
 import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
 import SendOfferScreen from '../app/marketplace/screens/SendOfferScreen';
+import OfferSentScreen from '../app/marketplace/screens/OfferSentScreen';
 import PostDetailScreen from '../app/posts/screens/PostDetailScreen';
 import OfferDetailScreen from '../app/posts/screens/OfferDetailScreen';
 import NegotiationScreen from '../app/posts/screens/NegotiationScreen';
@@ -196,12 +192,19 @@ export const AppNavigator = () => (
       {/* Listing & deal detail */}
       <Stack.Screen name="CreatePost" component={PostScreen} />
       <Stack.Screen name="PrePost" component={PrePostScreen} />
-      <Stack.Screen name="CreatePostSeller" component={CreatePostSellerScreen} />
+      <Stack.Screen
+        name="CreatePostSeller"
+        component={CreatePostSellerScreen}
+      />
       <Stack.Screen name="CreatePostBuyer" component={CreatePostBuyerScreen} />
       <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
       <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
-      <Stack.Screen name="RequestToPurchase" component={RequestToPurchaseScreen} />
+      <Stack.Screen
+        name="RequestToPurchase"
+        component={RequestToPurchaseScreen}
+      />
       <Stack.Screen name="SendOffer" component={SendOfferScreen} />
+      <Stack.Screen name="OfferSent" component={OfferSentScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
       <Stack.Screen name="Negotiation" component={NegotiationScreen} />
@@ -249,4 +252,3 @@ export const AppNavigator = () => (
 );
 
 export default AppNavigator;
-

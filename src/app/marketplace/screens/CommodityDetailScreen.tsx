@@ -486,9 +486,6 @@ const CommodityDetailScreen = ({ navigation, route }: Props) => {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.chatBtn} activeOpacity={0.85}>
-          <Text style={styles.chatBtnText}>Chat</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.purchaseBtn}
           activeOpacity={0.88}
@@ -756,8 +753,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    gap: 10,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -769,17 +764,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  chatBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#1A6B34',
-  },
-  chatBtnText: { fontSize: 14, fontWeight: '800', color: '#1A6B34' },
   purchaseBtn: {
-    flex: 2,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',

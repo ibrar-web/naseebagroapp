@@ -18,7 +18,7 @@ class HttpService {
 
     const token = store.getState().auth.token;
     const headers: Record<string, string> = {};
-
+    console.log('token: ', token);
     if (token && this.authRequired) {
       headers.Authorization = `Bearer ${token}`;
     }

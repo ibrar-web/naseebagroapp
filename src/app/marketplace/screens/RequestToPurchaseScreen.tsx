@@ -19,7 +19,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RequestToPurchase'>;
 
 type SupplyMill = {
   id: string;
-  mill?: { name?: string; location_label?: string };
+  mill?: { id?: string; name?: string; location_label?: string };
   price_display?: string;
   available_quantity_label?: string;
   is_cheapest?: boolean;
@@ -45,7 +45,15 @@ const normalizeSupply = (response: any): SupplyDetail | null => {
 };
 
 const PAYMENT_OPTS = ['7 Days', '15 Days', '30 Days', '45 Days', '60 Days'];
-const DELIVERY_OPTS = ['1 Day', '2 Days', '3 Days', '5 Days', '7 Days', '10 Days', '14 Days'];
+const DELIVERY_OPTS = [
+  '1 Day',
+  '2 Days',
+  '3 Days',
+  '5 Days',
+  '7 Days',
+  '10 Days',
+  '14 Days',
+];
 const ADDITIONAL_REQS = [
   'Grade A (Premium) required',
   'Dry packaging essential',
@@ -54,11 +62,23 @@ const ADDITIONAL_REQS = [
   'Export quality only',
 ];
 
+const parseNumber = (value?: string | null) => {
+  const parsed = Number(String(value ?? '').replace(/[^\d.]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parseDays = (value?: string | null) => {
+  const parsed = Number(String(value ?? '').replace(/[^\d]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<SupplyDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
@@ -74,7 +94,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       setLoading(true);
       setError('');
       try {
-        const res = await api.marketplace.public.DetailMarketSuppliesListing(listingId);
+        const res = await api.marketplace.public.DetailMarketSuppliesListing(
+          listingId,
+        );
         const normalized = normalizeSupply(res);
         if (active) {
           setDetail(normalized);
@@ -91,7 +113,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       }
     };
     load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [listingId]);
 
   if (loading && !detail) {
@@ -110,7 +134,11 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
         <AppIcon name="notificationWarning" size={34} color="#D97706" />
         <Text style={styles.stateText}>{error || 'Listing not found.'}</Text>
-        <TouchableOpacity style={styles.stateButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.85}
+        >
           <Text style={styles.stateButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -121,16 +149,98 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   const badge = detail.badge_label ?? detail.badge;
   const heroImage =
     detail.hero_image_url ??
-    `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Listing')}`;
+    `https://placehold.co/600x400?text=${encodeURIComponent(
+      detail.title ?? 'Listing',
+    )}`;
   const selectedMillData = mills.find(m => m.id === selectedMill);
-  const canSubmit = Boolean(selectedMill && quantity && (priceMode === 'original' || offerPrice));
+  const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
+  const submittedPrice =
+    priceMode === 'offer'
+      ? parseNumber(offerPrice)
+      : parseNumber(selectedMillData?.price_display);
+  const canSubmit = Boolean(
+    selectedMill &&
+      quantity &&
+      paymentDays &&
+      deliveryDays &&
+      submittedPrice &&
+      (priceMode === 'original' || offerPrice),
+  );
+
+  const handleSubmit = async () => {
+    if (!canSubmit || !selectedMill) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    const payload = {
+      listing_id: listingId,
+      mill_id: selectedMillData?.mill?.id ?? selectedMill,
+      quantity: parseNumber(quantity),
+      price_option: priceMode === 'offer' ? 'MAKE_OFFER' : 'USE_LISTING_PRICE',
+      offered_price_per_unit: submittedPrice,
+      payment_terms: {
+        type: 'FIXED',
+        fixed_days: parseDays(paymentDays),
+        weekly_percent: null,
+      },
+      delivery_terms: {
+        days: parseDays(deliveryDays),
+      },
+      additional_requirement: additionalReq || null,
+    };
+
+    try {
+      await api.buyer.sendBuyrequest(listingId, payload);
+      navigation.replace('OfferSent', {
+        mode: 'buyer',
+        listingId,
+        title: detail.title,
+        code: detail.code,
+        image: heroImage,
+        primaryLabel: 'Purchase Request Sent Successfully!',
+        subtitle: 'Seller will respond with acceptance, rejection or counter.',
+        summary: [
+          { label: 'Listing ID', value: detail.code ?? listingId },
+          { label: 'Mill', value: selectedMillName },
+          { label: 'Quantity', value: `${payload.quantity}` },
+          {
+            label: 'Price Option',
+            value:
+              priceMode === 'offer'
+                ? `Offer PKR ${submittedPrice}`
+                : 'Original price',
+          },
+          {
+            label: 'Payment Terms',
+            value: `${payload.payment_terms.fixed_days} days`,
+          },
+          {
+            label: 'Delivery Terms',
+            value: `${payload.delivery_terms.days} days`,
+          },
+        ],
+      });
+    } catch (err) {
+      console.log('Submit purchase request error', err);
+      setSubmitError('Unable to submit request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.8}
+        >
           <AppIcon name="back" size={19} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Request to Purchase</Text>
@@ -145,7 +255,11 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       >
         {/* Preview card */}
         <View style={styles.previewCard}>
-          <ImageBackground source={{ uri: heroImage }} style={styles.previewImage} resizeMode="cover">
+          <ImageBackground
+            source={{ uri: heroImage }}
+            style={styles.previewImage}
+            resizeMode="cover"
+          >
             <View style={styles.previewOverlay} />
             <View style={styles.previewBottom}>
               <Text style={styles.previewCode}>{detail.code ?? detail.id}</Text>
@@ -168,7 +282,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           <Text style={styles.sectionTitle}>
             1. Select Mill <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Your request will be tied to one mill</Text>
+          <Text style={styles.sectionSubtitle}>
+            Your request will be tied to one mill
+          </Text>
           {mills.length ? (
             mills.map(mill => {
               const isSelected = selectedMill === mill.id;
@@ -179,12 +295,21 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      isSelected && styles.radioOuterSelected,
+                    ]}
+                  >
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
-                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
+                    <Text style={styles.millName}>
+                      {mill.mill?.name ?? 'Mill'}
+                    </Text>
+                    <Text style={styles.millLocation}>
+                      {mill.mill?.location_label ?? ''}
+                    </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.millPrice}>
@@ -192,14 +317,18 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                       <Text style={styles.millUnit}>/40kg</Text>
                     </Text>
                     {mill.available_quantity_label ? (
-                      <Text style={styles.millAvail}>{mill.available_quantity_label} available</Text>
+                      <Text style={styles.millAvail}>
+                        {mill.available_quantity_label} available
+                      </Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
               );
             })
           ) : (
-            <Text style={styles.emptyText}>No mills available for this listing.</Text>
+            <Text style={styles.emptyText}>
+              No mills available for this listing.
+            </Text>
           )}
         </View>
 
@@ -220,7 +349,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
             <View style={styles.calcBox}>
               <View style={styles.calcRow}>
                 <Text style={styles.calcLabel}>Unit Price</Text>
-                <Text style={styles.calcValue}>{selectedMillData.price_display ?? 'Ask'} / 40kg</Text>
+                <Text style={styles.calcValue}>
+                  {selectedMillData.price_display ?? 'Ask'} / 40kg
+                </Text>
               </View>
               <View style={styles.calcRow}>
                 <Text style={styles.calcLabel}>Quantity</Text>
@@ -237,26 +368,52 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           </Text>
           <View style={styles.priceToggleRow}>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'original' && styles.priceToggleBtnActive]}
+              style={[
+                styles.priceToggleBtn,
+                priceMode === 'original' && styles.priceToggleBtnActive,
+              ]}
               onPress={() => setPriceMode('original')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'original' && styles.priceToggleLabelActive]}>
+              <Text
+                style={[
+                  styles.priceToggleLabel,
+                  priceMode === 'original' && styles.priceToggleLabelActive,
+                ]}
+              >
                 Use Original Price
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'original' && styles.priceToggleSubActive]}>
+              <Text
+                style={[
+                  styles.priceToggleSub,
+                  priceMode === 'original' && styles.priceToggleSubActive,
+                ]}
+              >
                 {selectedMillData?.price_display ?? 'Select mill first'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'offer' && styles.priceToggleBtnActive]}
+              style={[
+                styles.priceToggleBtn,
+                priceMode === 'offer' && styles.priceToggleBtnActive,
+              ]}
               onPress={() => setPriceMode('offer')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'offer' && styles.priceToggleLabelActive]}>
+              <Text
+                style={[
+                  styles.priceToggleLabel,
+                  priceMode === 'offer' && styles.priceToggleLabelActive,
+                ]}
+              >
                 Make an Offer
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'offer' && styles.priceToggleSubActive]}>
+              <Text
+                style={[
+                  styles.priceToggleSub,
+                  priceMode === 'offer' && styles.priceToggleSubActive,
+                ]}
+              >
                 Enter your target price
               </Text>
             </TouchableOpacity>
@@ -278,16 +435,28 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           <Text style={styles.sectionTitle}>
             4. Payment Terms <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Pay full amount within how many days?</Text>
+          <Text style={styles.sectionSubtitle}>
+            Pay full amount within how many days?
+          </Text>
           <View style={styles.chipRow}>
             {PAYMENT_OPTS.map(opt => (
               <TouchableOpacity
                 key={opt}
-                style={[styles.chip, paymentDays === opt && styles.chipSelected]}
+                style={[
+                  styles.chip,
+                  paymentDays === opt && styles.chipSelected,
+                ]}
                 onPress={() => setPaymentDays(paymentDays === opt ? null : opt)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, paymentDays === opt && styles.chipTextSelected]}>{opt}</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    paymentDays === opt && styles.chipTextSelected,
+                  ]}
+                >
+                  {opt}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -298,16 +467,30 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           <Text style={styles.sectionTitle}>
             5. Delivery Terms <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Require delivery within how many days?</Text>
+          <Text style={styles.sectionSubtitle}>
+            Require delivery within how many days?
+          </Text>
           <View style={styles.chipRow}>
             {DELIVERY_OPTS.map(opt => (
               <TouchableOpacity
                 key={opt}
-                style={[styles.chip, deliveryDays === opt && styles.chipSelected]}
-                onPress={() => setDeliveryDays(deliveryDays === opt ? null : opt)}
+                style={[
+                  styles.chip,
+                  deliveryDays === opt && styles.chipSelected,
+                ]}
+                onPress={() =>
+                  setDeliveryDays(deliveryDays === opt ? null : opt)
+                }
                 activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, deliveryDays === opt && styles.chipTextSelected]}>{opt}</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    deliveryDays === opt && styles.chipTextSelected,
+                  ]}
+                >
+                  {opt}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -322,12 +505,22 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           {ADDITIONAL_REQS.map(req => (
             <TouchableOpacity
               key={req}
-              style={[styles.conditionRow, additionalReq === req && styles.conditionRowSelected]}
+              style={[
+                styles.conditionRow,
+                additionalReq === req && styles.conditionRowSelected,
+              ]}
               onPress={() => setAdditionalReq(additionalReq === req ? '' : req)}
               activeOpacity={0.8}
             >
-              <View style={[styles.checkOuter, additionalReq === req && styles.checkOuterSelected]}>
-                {additionalReq === req ? <AppIcon name="approved" size={10} color="#217A3C" /> : null}
+              <View
+                style={[
+                  styles.checkOuter,
+                  additionalReq === req && styles.checkOuterSelected,
+                ]}
+              >
+                {additionalReq === req ? (
+                  <AppIcon name="approved" size={10} color="#217A3C" />
+                ) : null}
               </View>
               <Text style={styles.conditionText}>{req}</Text>
             </TouchableOpacity>
@@ -340,11 +533,19 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           <View style={{ flex: 1 }}>
             <Text style={styles.infoNoteTitle}>How it works</Text>
             <Text style={styles.infoNoteText}>
-              1.5% Naseeb platform fee is charged at the last payment. The seller will receive your
-              request and can accept or reject it directly.
+              1.5% Naseeb platform fee is charged at the last payment. The
+              seller will receive your request and can accept or reject it
+              directly.
             </Text>
           </View>
         </View>
+
+        {submitError ? (
+          <View style={styles.errorBox}>
+            <AppIcon name="notificationWarning" size={13} color="#B45309" />
+            <Text style={styles.errorText}>{submitError}</Text>
+          </View>
+        ) : null}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -353,12 +554,16 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         <TouchableOpacity
           style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
           activeOpacity={0.88}
-          onPress={() => navigation.goBack()}
-          disabled={!canSubmit}
+          onPress={handleSubmit}
+          disabled={!canSubmit || submitting}
         >
-          <Text style={styles.submitBtnText}>
-            {canSubmit ? 'Submit Request' : 'Fill all required fields'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {canSubmit ? 'Submit Request' : 'Fill all required fields'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -446,7 +651,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 4 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
   required: { color: '#EF4444' },
   optional: { fontSize: 11, color: '#9CA3AF', fontWeight: '400' },
   sectionSubtitle: { fontSize: 11, color: '#6B7280', marginBottom: 10 },
@@ -472,7 +682,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   radioOuterSelected: { borderColor: '#1A6B34' },
-  radioInner: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#1A6B34' },
+  radioInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#1A6B34',
+  },
   millName: { fontSize: 13, fontWeight: '700', color: '#111827' },
   millLocation: { fontSize: 11, color: '#6B7280', marginTop: 1 },
   millPrice: { fontSize: 14, fontWeight: '900', color: '#1A6B34' },
@@ -558,8 +773,26 @@ const styles = StyleSheet.create({
     gap: 11,
     alignItems: 'flex-start',
   },
-  infoNoteTitle: { fontSize: 13, fontWeight: '700', color: '#1A6B34', marginBottom: 4 },
+  infoNoteTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1A6B34',
+    marginBottom: 4,
+  },
   infoNoteText: { fontSize: 12, color: '#374151', lineHeight: 18 },
+  errorBox: {
+    marginTop: 12,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: { flex: 1, fontSize: 12, color: '#92400E', fontWeight: '700' },
   bottomBar: {
     position: 'absolute',
     bottom: 0,

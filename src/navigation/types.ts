@@ -1,68 +1,90 @@
-import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 export type RootStackParamList = {
   // Auth
-  Splash:   undefined;
-  Welcome:  undefined;
-  Login:    undefined;
-  Phone:    undefined;
-  OTP:      { phone: string };
+  Splash: undefined;
+  Welcome: undefined;
+  Login: undefined;
+  Phone: undefined;
+  OTP: { phone: string };
 
   // Main tabs
   MainTabs: undefined;
 
   // Marketplace detail
-  CreatePost:         undefined;
-  PrePost:            undefined;
-  CreatePostSeller:   { category: string };
-  CreatePostBuyer:    { category: string };
-  ListingDetail:      { listingId: string };
-  CommodityDetail:    { listingId: string };
-  RequestToPurchase:  { listingId: string };
-  SendOffer:          { listingId: string };
-  PostDetail:         { postId: string };
-  OfferDetail:        { offerId: string };
-  Negotiation:        { offerId: string };
-  DealDetail:         { dealId: string };
-  Notifications:      undefined;
+  CreatePost: undefined;
+  PrePost: undefined;
+  CreatePostSeller: { category: string };
+  CreatePostBuyer: { category: string };
+  ListingDetail: { listingId: string };
+  CommodityDetail: { listingId: string };
+  RequestToPurchase: { listingId: string };
+  SendOffer: { listingId: string };
+  OfferSent: {
+    mode: 'buyer' | 'seller';
+    listingId: string;
+    title?: string;
+    code?: string;
+    image?: string;
+    primaryLabel?: string;
+    subtitle?: string;
+    summary?: Array<{ label: string; value: string }>;
+  };
+  PostDetail: { postId: string };
+  OfferDetail: { offerId: string };
+  Negotiation: { offerId: string };
+  DealDetail: { dealId: string };
+  Notifications: undefined;
 
   // Onboarding
-  Location:      undefined;
-  BasicInfo:     undefined;
-  BizInfo:       undefined;
-  IdVerify:      undefined;
-  PaymentSetup:  undefined;
+  Location: undefined;
+  BasicInfo: undefined;
+  BizInfo: undefined;
+  IdVerify: undefined;
+  PaymentSetup: undefined;
   VerifyPending: undefined;
   VerifyApproved: undefined;
 
   // Market rates
-  MarketRates:           undefined;
+  MarketRates: undefined;
 
   // Profile sub-screens
-  PersonalInfo:          undefined;
-  BusinessProfile:       undefined;
-  PaymentMethods:        undefined;
-  VerificationStatus:    undefined;
-  SavedListings:         undefined;
+  PersonalInfo: undefined;
+  BusinessProfile: undefined;
+  PaymentMethods: undefined;
+  VerificationStatus: undefined;
+  SavedListings: undefined;
   NotificationsSettings: undefined;
-  AppSettings:           undefined;
-  Support:               undefined;
-  Terms:                 undefined;
+  AppSettings: undefined;
+  Support: undefined;
+  Terms: undefined;
 };
 
 export type TabParamList = {
-  Home:    undefined;
-  Market:  undefined;
-  Deals:   undefined;
-  Post:    undefined;
+  Home: undefined;
+  Market: undefined;
+  Deals: undefined;
+  Post: { initialTab?: 'My Demands' | 'My Offers' } | undefined;
   Profile: undefined;
 };
 
 export type RootStackNavProp = NativeStackNavigationProp<RootStackParamList>;
 export type TabNavProp = BottomTabNavigationProp<TabParamList>;
 
-export type SplashScreenProps  = NativeStackScreenProps<RootStackParamList, 'Splash'>;
-export type WelcomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
-export type PhoneScreenProps   = NativeStackScreenProps<RootStackParamList, 'Phone'>;
-export type OTPScreenProps     = NativeStackScreenProps<RootStackParamList, 'OTP'>;
+export type SplashScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'Splash'
+>;
+export type WelcomeScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'Welcome'
+>;
+export type PhoneScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'Phone'
+>;
+export type OTPScreenProps = NativeStackScreenProps<RootStackParamList, 'OTP'>;

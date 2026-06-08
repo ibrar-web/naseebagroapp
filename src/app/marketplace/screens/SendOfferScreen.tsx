@@ -19,7 +19,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SendOffer'>;
 
 type DemandMill = {
   id: string;
-  mill?: { name?: string; location_label?: string };
+  mill?: { id?: string; name?: string; location_label?: string };
   price_display?: string;
   price_unit_label?: string;
   requested_quantity_label?: string;
@@ -45,7 +45,15 @@ const normalizeDemand = (response: any): DemandDetail | null => {
 };
 
 const PAYMENT_OPTS = ['7 Days', '15 Days', '30 Days', '45 Days', '60 Days'];
-const DELIVERY_OPTS = ['1 Day', '2 Days', '3 Days', '5 Days', '7 Days', '10 Days', '14 Days'];
+const DELIVERY_OPTS = [
+  '1 Day',
+  '2 Days',
+  '3 Days',
+  '5 Days',
+  '7 Days',
+  '10 Days',
+  '14 Days',
+];
 const OFFER_CONDITIONS = [
   'Fresh season stock',
   'Dry packaging included',
@@ -56,11 +64,23 @@ const OFFER_CONDITIONS = [
   'Price negotiable in bulk',
 ];
 
+const parseNumber = (value?: string | null) => {
+  const parsed = Number(String(value ?? '').replace(/[^\d.]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parseDays = (value?: string | null) => {
+  const parsed = Number(String(value ?? '').replace(/[^\d]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const SendOfferScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<DemandDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
@@ -69,6 +89,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
   const [paymentDays, setPaymentDays] = useState<string | null>(null);
   const [deliveryDays, setDeliveryDays] = useState<string | null>(null);
   const [offerCondition, setOfferCondition] = useState('');
+  const [conditionOpen, setConditionOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -76,9 +97,17 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       setLoading(true);
       setError('');
       try {
-        const res = await api.marketplace.public.DetailMarketDemandsListing(listingId);
+        const res = await api.marketplace.public.DetailMarketDemandsListing(
+          listingId,
+        );
         const normalized = normalizeDemand(res);
-        if (active) setDetail(normalized);
+        if (active) {
+          setDetail(normalized);
+          const firstMill = normalized?.mills_specified_section?.mills?.[0];
+          if (firstMill) {
+            setSelectedMill(firstMill.id);
+          }
+        }
       } catch (err) {
         console.log('SendOffer load error', err);
         if (active) setError('Unable to load listing.');
@@ -87,7 +116,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       }
     };
     load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [listingId]);
 
   if (loading && !detail) {
@@ -106,7 +137,11 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
         <AppIcon name="notificationWarning" size={34} color="#D97706" />
         <Text style={styles.stateText}>{error || 'Listing not found.'}</Text>
-        <TouchableOpacity style={styles.stateButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.85}
+        >
           <Text style={styles.stateButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -116,20 +151,109 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
   const mills = detail.mills_specified_section?.mills ?? [];
   const heroImage =
     detail.hero_image_url ??
-    `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Demand')}`;
-  const stats = (detail.header_stats ?? [
-    { key: 'qty', label: 'QUANTITY', value: detail.quantity_label ?? '' },
-    { key: 'loc', label: 'LOCATION', value: detail.delivery_location?.label ?? '' },
-  ]).filter(s => s.value);
+    `https://placehold.co/600x400?text=${encodeURIComponent(
+      detail.title ?? 'Demand',
+    )}`;
+  const stats = (
+    detail.header_stats ?? [
+      { key: 'qty', label: 'QUANTITY', value: detail.quantity_label ?? '' },
+      {
+        key: 'loc',
+        label: 'LOCATION',
+        value: detail.delivery_location?.label ?? '',
+      },
+    ]
+  ).filter(s => s.value);
   const selectedMillData = mills.find(m => m.id === selectedMill);
-  const canSubmit = Boolean(selectedMill && quantity && (priceMode === 'listed' || counterPrice));
+  const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
+  const submittedPrice =
+    priceMode === 'counter'
+      ? parseNumber(counterPrice)
+      : parseNumber(selectedMillData?.price_display);
+  const canSubmit = Boolean(
+    selectedMill &&
+      quantity &&
+      paymentDays &&
+      deliveryDays &&
+      submittedPrice &&
+      (priceMode === 'listed' || counterPrice),
+  );
+
+  const handleSubmit = async () => {
+    if (!canSubmit || !selectedMill) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    const payload = {
+      demand_id: listingId,
+      mill_id: selectedMillData?.mill?.id ?? selectedMill,
+      supply_quantity: parseNumber(quantity),
+      price_option:
+        priceMode === 'listed' ? 'USE_BUYER_BUDGET' : 'COUNTER_PRICE',
+      counter_price_per_unit: submittedPrice,
+      counter_payment_terms: {
+        type: 'FIXED',
+        fixed_days: parseDays(paymentDays),
+        weekly_percent: null,
+      },
+      counter_delivery_terms: {
+        days: parseDays(deliveryDays),
+      },
+      offer_condition: offerCondition || null,
+    };
+
+    try {
+      await api.seller.sendDemandOffer(listingId, payload);
+      navigation.replace('OfferSent', {
+        mode: 'seller',
+        listingId,
+        title: detail.title,
+        code: detail.code,
+        image: heroImage,
+        primaryLabel: 'Offer Sent Successfully!',
+        subtitle: 'Buyer will respond with acceptance, rejection or counter.',
+        summary: [
+          { label: 'Demand ID', value: detail.code ?? listingId },
+          { label: 'Mill', value: selectedMillName },
+          { label: 'Supply Quantity', value: `${payload.supply_quantity}` },
+          {
+            label: 'Price Option',
+            value:
+              priceMode === 'counter'
+                ? `Counter PKR ${submittedPrice}`
+                : 'Buyer budget',
+          },
+          {
+            label: 'Payment Terms',
+            value: `${payload.counter_payment_terms.fixed_days} days`,
+          },
+          {
+            label: 'Delivery Terms',
+            value: `${payload.counter_delivery_terms.days} days`,
+          },
+        ],
+      });
+    } catch (err) {
+      console.log('Submit demand offer error', err);
+      setSubmitError('Unable to send offer. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.8}
+        >
           <AppIcon name="back" size={19} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Send Offer</Text>
@@ -144,7 +268,11 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       >
         {/* Preview card */}
         <View style={styles.previewCard}>
-          <ImageBackground source={{ uri: heroImage }} style={styles.previewImage} resizeMode="cover">
+          <ImageBackground
+            source={{ uri: heroImage }}
+            style={styles.previewImage}
+            resizeMode="cover"
+          >
             <View style={styles.previewOverlay} />
             <View style={styles.previewBottom}>
               <Text style={styles.previewCode}>{detail.code ?? detail.id}</Text>
@@ -156,9 +284,14 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           {stats.length ? (
             <View style={styles.statsBar}>
               {stats.map((stat, i) => (
-                <View key={stat.key} style={[styles.statItem, i > 0 && styles.statItemBorder]}>
+                <View
+                  key={stat.key}
+                  style={[styles.statItem, i > 0 && styles.statItemBorder]}
+                >
                   <Text style={styles.statLabel}>{stat.label}</Text>
-                  <Text style={styles.statValue} numberOfLines={1}>{stat.value}</Text>
+                  <Text style={styles.statValue} numberOfLines={1}>
+                    {stat.value}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -170,7 +303,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           <Text style={styles.sectionTitle}>
             1. Select Your Mill <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.sectionSubtitle}>Choose which of your mills will fulfil this order</Text>
+          <Text style={styles.sectionSubtitle}>
+            Choose which of your mills will fulfil this order
+          </Text>
           {mills.length ? (
             mills.map(mill => {
               const isSelected = selectedMill === mill.id;
@@ -181,22 +316,35 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      isSelected && styles.radioOuterSelected,
+                    ]}
+                  >
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
-                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
+                    <Text style={styles.millName}>
+                      {mill.mill?.name ?? 'Mill'}
+                    </Text>
+                    <Text style={styles.millLocation}>
+                      {mill.mill?.location_label ?? ''}
+                    </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.millPrice}>
                       {mill.price_display ?? 'Ask'}
                       {mill.price_unit_label ? (
-                        <Text style={styles.millUnit}>{mill.price_unit_label}</Text>
+                        <Text style={styles.millUnit}>
+                          {mill.price_unit_label}
+                        </Text>
                       ) : null}
                     </Text>
                     {mill.requested_quantity_label ? (
-                      <Text style={styles.millAvail}>{mill.requested_quantity_label}</Text>
+                      <Text style={styles.millAvail}>
+                        {mill.requested_quantity_label}
+                      </Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
@@ -210,7 +358,8 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         {/* 2. Quantity */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            2. Quantity You Can Supply (bags) <Text style={styles.required}>*</Text>
+            2. Quantity You Can Supply (bags){' '}
+            <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={styles.input}
@@ -229,26 +378,52 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           </Text>
           <View style={styles.priceToggleRow}>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'listed' && styles.priceToggleBtnActive]}
+              style={[
+                styles.priceToggleBtn,
+                priceMode === 'listed' && styles.priceToggleBtnActive,
+              ]}
               onPress={() => setPriceMode('listed')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'listed' && styles.priceToggleLabelActive]}>
+              <Text
+                style={[
+                  styles.priceToggleLabel,
+                  priceMode === 'listed' && styles.priceToggleLabelActive,
+                ]}
+              >
                 Use Listed Price
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'listed' && styles.priceToggleSubActive]}>
+              <Text
+                style={[
+                  styles.priceToggleSub,
+                  priceMode === 'listed' && styles.priceToggleSubActive,
+                ]}
+              >
                 {selectedMillData?.price_display ?? 'Select mill first'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.priceToggleBtn, priceMode === 'counter' && styles.priceToggleBtnActive]}
+              style={[
+                styles.priceToggleBtn,
+                priceMode === 'counter' && styles.priceToggleBtnActive,
+              ]}
               onPress={() => setPriceMode('counter')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.priceToggleLabel, priceMode === 'counter' && styles.priceToggleLabelActive]}>
+              <Text
+                style={[
+                  styles.priceToggleLabel,
+                  priceMode === 'counter' && styles.priceToggleLabelActive,
+                ]}
+              >
                 Make a Counter
               </Text>
-              <Text style={[styles.priceToggleSub, priceMode === 'counter' && styles.priceToggleSubActive]}>
+              <Text
+                style={[
+                  styles.priceToggleSub,
+                  priceMode === 'counter' && styles.priceToggleSubActive,
+                ]}
+              >
                 Enter a different price
               </Text>
             </TouchableOpacity>
@@ -268,29 +443,55 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         {/* 4. Payment & Delivery Terms */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>4. Payment & Delivery Terms</Text>
-          <Text style={styles.sectionSubtitle}>Payment within how many days?</Text>
+          <Text style={styles.sectionSubtitle}>
+            Payment within how many days?
+          </Text>
           <View style={styles.chipRow}>
             {PAYMENT_OPTS.map(opt => (
               <TouchableOpacity
                 key={opt}
-                style={[styles.chip, paymentDays === opt && styles.chipSelected]}
+                style={[
+                  styles.chip,
+                  paymentDays === opt && styles.chipSelected,
+                ]}
                 onPress={() => setPaymentDays(paymentDays === opt ? null : opt)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, paymentDays === opt && styles.chipTextSelected]}>{opt}</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    paymentDays === opt && styles.chipTextSelected,
+                  ]}
+                >
+                  {opt}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={[styles.sectionSubtitle, { marginTop: 12 }]}>Delivery within how many days?</Text>
+          <Text style={[styles.sectionSubtitle, { marginTop: 12 }]}>
+            Delivery within how many days?
+          </Text>
           <View style={styles.chipRow}>
             {DELIVERY_OPTS.map(opt => (
               <TouchableOpacity
                 key={opt}
-                style={[styles.chip, deliveryDays === opt && styles.chipSelected]}
-                onPress={() => setDeliveryDays(deliveryDays === opt ? null : opt)}
+                style={[
+                  styles.chip,
+                  deliveryDays === opt && styles.chipSelected,
+                ]}
+                onPress={() =>
+                  setDeliveryDays(deliveryDays === opt ? null : opt)
+                }
                 activeOpacity={0.8}
               >
-                <Text style={[styles.chipText, deliveryDays === opt && styles.chipTextSelected]}>{opt}</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    deliveryDays === opt && styles.chipTextSelected,
+                  ]}
+                >
+                  {opt}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -299,32 +500,77 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         {/* 5. Offer Condition */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            5. Offer Condition{' '}
-            <Text style={styles.optional}>(optional)</Text>
+            5. Offer Condition <Text style={styles.optional}>(optional)</Text>
           </Text>
-          {OFFER_CONDITIONS.map(cond => (
-            <TouchableOpacity
-              key={cond}
-              style={[styles.conditionRow, offerCondition === cond && styles.conditionRowSelected]}
-              onPress={() => setOfferCondition(offerCondition === cond ? '' : cond)}
-              activeOpacity={0.8}
+          <TouchableOpacity
+            style={styles.dropdownBtn}
+            onPress={() => setConditionOpen(current => !current)}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[
+                styles.dropdownText,
+                !offerCondition && styles.dropdownPlaceholder,
+              ]}
+              numberOfLines={1}
             >
-              <View style={[styles.checkOuter, offerCondition === cond && styles.checkOuterSelected]}>
-                {offerCondition === cond ? <AppIcon name="approved" size={10} color="#217A3C" /> : null}
-              </View>
-              <Text style={styles.conditionText}>{cond}</Text>
-            </TouchableOpacity>
-          ))}
+              {offerCondition || 'Select offer condition'}
+            </Text>
+            <AppIcon
+              name={conditionOpen ? 'chevronDown' : 'chevronRight'}
+              size={15}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+          {conditionOpen ? (
+            <View style={styles.dropdownMenu}>
+              {OFFER_CONDITIONS.map(cond => (
+                <TouchableOpacity
+                  key={cond}
+                  style={[
+                    styles.conditionRow,
+                    offerCondition === cond && styles.conditionRowSelected,
+                  ]}
+                  onPress={() => {
+                    setOfferCondition(offerCondition === cond ? '' : cond);
+                    setConditionOpen(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.checkOuter,
+                      offerCondition === cond && styles.checkOuterSelected,
+                    ]}
+                  >
+                    {offerCondition === cond ? (
+                      <AppIcon name="approved" size={10} color="#217A3C" />
+                    ) : null}
+                  </View>
+                  <Text style={styles.conditionText}>{cond}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* Info note */}
         <View style={styles.infoNote}>
           <AppIcon name="shield" size={13} color="#217A3C" />
           <Text style={styles.infoNoteText}>
-            Your offer goes directly to the buyer. They can accept, reject, or send a counter offer.{' '}
-            <Text style={{ fontWeight: '700' }}>1.5% platform fee</Text> on final payment.
+            Your offer goes directly to the buyer. They can accept, reject, or
+            send a counter offer.{' '}
+            <Text style={{ fontWeight: '700' }}>1.5% platform fee</Text> on
+            final payment.
           </Text>
         </View>
+
+        {submitError ? (
+          <View style={styles.errorBox}>
+            <AppIcon name="notificationWarning" size={13} color="#B45309" />
+            <Text style={styles.errorText}>{submitError}</Text>
+          </View>
+        ) : null}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -333,12 +579,18 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         <TouchableOpacity
           style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
           activeOpacity={0.88}
-          onPress={() => navigation.goBack()}
-          disabled={!canSubmit}
+          onPress={handleSubmit}
+          disabled={!canSubmit || submitting}
         >
-          <Text style={styles.submitBtnText}>
-            {canSubmit ? 'Send Offer' : 'Select mill, qty and price to continue'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator color="#0D3B1F" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {canSubmit
+                ? 'Send Offer'
+                : 'Select mill, qty, terms and price to continue'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -426,7 +678,12 @@ const styles = StyleSheet.create({
     borderLeftColor: 'rgba(255,255,255,0.15)',
     paddingLeft: 12,
   },
-  statLabel: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '800', marginBottom: 1 },
+  statLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.45)',
+    fontWeight: '800',
+    marginBottom: 1,
+  },
   statValue: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   card: {
     backgroundColor: '#FFFFFF',
@@ -438,7 +695,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 4 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
   required: { color: '#EF4444' },
   optional: { fontSize: 11, color: '#9CA3AF', fontWeight: '400' },
   sectionSubtitle: { fontSize: 11, color: '#6B7280', marginBottom: 10 },
@@ -464,7 +726,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   radioOuterSelected: { borderColor: '#1A6B34' },
-  radioInner: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#1A6B34' },
+  radioInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#1A6B34',
+  },
   millName: { fontSize: 13, fontWeight: '700', color: '#111827' },
   millLocation: { fontSize: 11, color: '#6B7280', marginTop: 1 },
   millPrice: { fontSize: 14, fontWeight: '900', color: '#1A6B34' },
@@ -510,6 +777,32 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: '#1A6B34', backgroundColor: '#F2FBF5' },
   chipText: { fontSize: 12, fontWeight: '500', color: '#374151' },
   chipTextSelected: { color: '#1A6B34', fontWeight: '700' },
+  dropdownBtn: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: '#FAFAFA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#111827',
+    fontWeight: '700',
+  },
+  dropdownPlaceholder: { color: '#9CA3AF', fontWeight: '500' },
+  dropdownMenu: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+  },
   conditionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -542,6 +835,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   infoNoteText: { fontSize: 11, color: '#1A6B34', lineHeight: 17, flex: 1 },
+  errorBox: {
+    marginTop: 12,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: { flex: 1, fontSize: 12, color: '#92400E', fontWeight: '700' },
   bottomBar: {
     position: 'absolute',
     bottom: 0,

@@ -125,11 +125,15 @@ export const api = {
     requests: createCrudApi('buyer/buyrequest', true),
     deals: createCrudApi('buyer/buydeals', true),
     payments: createCrudApi('buyer/buypayment', true),
+    sendBuyrequest: (id: string | number, data?: any) =>
+      Post('buyer/supplies/make-request',  data, protectedRequest),
   },
 
   seller: {
     payments: createCrudApi('seller/sellpayment', true),
     analytics: createCrudApi('seller/analytics', true),
+    sendDemandOffer: (id: string | number, data?: any) =>
+      Post('seller/demands/send-offer',  data, protectedRequest),
   },
 };
 

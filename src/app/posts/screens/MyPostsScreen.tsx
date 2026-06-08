@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -427,8 +427,16 @@ const OfferCard = ({
   );
 };
 
-const MyPostsScreen = ({ navigation }: any) => {
+const MyPostsScreen = ({ navigation, route }: any) => {
   const [activeTab, setActiveTab] = useState<TabType>('My Demands');
+  const initialTab = route?.params?.initialTab;
+
+  useEffect(() => {
+    if (initialTab && TABS.includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const isOffersTab = activeTab === 'My Offers';
   const data: Array<PostItem | OfferItem> = isOffersTab
     ? MY_OFFERS

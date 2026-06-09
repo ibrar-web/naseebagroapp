@@ -298,9 +298,11 @@ const ListingDetailScreen = ({ navigation, route }: Props) => {
         >
           <View style={styles.heroOverlay} />
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              console.log('clicking')
+              navigation.goBack()}}
             style={styles.backBtn}
-            activeOpacity={0.85}
+            
           >
             <AppIcon name="back" size={19} color="#FFFFFF" />
           </TouchableOpacity>

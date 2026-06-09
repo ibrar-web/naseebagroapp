@@ -129,6 +129,14 @@ export const api = {
       Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
     createBuyDemandPost: (data?: any) =>
       Post('buyer/my-posts/create', data, protectedRequest),
+    markFavouriteSupply: (id: string | number) =>
+      Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
+    removeFavouriteSupply: (id: string | number) =>
+      Delete(
+        byId('buyer/supplies/favourites', id),
+        undefined,
+        protectedRequest,
+      ),
   },
 
   seller: {

@@ -16,6 +16,7 @@ import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SendOffer'>;
+type PriceOption = 'USE_ORIGINAL' | 'MAKE_OFFER';
 
 type DemandMill = {
   id: string;
@@ -63,6 +64,22 @@ const OFFER_CONDITIONS = [
   'Grade A quality guaranteed',
   'Price negotiable in bulk',
 ];
+const PRICE_OPTIONS: Array<{
+  label: string;
+  subLabel: string;
+  value: PriceOption;
+}> = [
+  {
+    label: 'Use Original Price',
+    subLabel: 'Use the buyer listed price',
+    value: 'USE_ORIGINAL',
+  },
+  {
+    label: 'Make an Offer',
+    subLabel: 'Enter a different price',
+    value: 'MAKE_OFFER',
+  },
+];
 
 const parseNumber = (value?: string | null) => {
   const parsed = Number(String(value ?? '').replace(/[^\d.]/g, ''));
@@ -84,7 +101,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
-  const [priceMode, setPriceMode] = useState<'listed' | 'counter'>('listed');
+  const [priceMode, setPriceMode] = useState<PriceOption>('USE_ORIGINAL');
   const [counterPrice, setCounterPrice] = useState('');
   const [paymentDays, setPaymentDays] = useState<string | null>(null);
   const [deliveryDays, setDeliveryDays] = useState<string | null>(null);
@@ -167,7 +184,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
   const selectedMillData = mills.find(m => m.id === selectedMill);
   const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
   const submittedPrice =
-    priceMode === 'counter'
+    priceMode === 'MAKE_OFFER'
       ? parseNumber(counterPrice)
       : parseNumber(selectedMillData?.price_display);
   const canSubmit = Boolean(
@@ -176,7 +193,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       paymentDays &&
       deliveryDays &&
       submittedPrice &&
-      (priceMode === 'listed' || counterPrice),
+      (priceMode === 'USE_ORIGINAL' || counterPrice),
   );
 
   const handleSubmit = async () => {
@@ -191,8 +208,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       demand_id: listingId,
       mill_id: selectedMillData?.mill?.id ?? selectedMill,
       supply_quantity: parseNumber(quantity),
-      price_option:
-        priceMode === 'listed' ? 'USE_BUYER_BUDGET' : 'COUNTER_PRICE',
+      price_option: priceMode,
       counter_price_per_unit: submittedPrice,
       counter_payment_terms: {
         type: 'FIXED',
@@ -222,9 +238,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           {
             label: 'Price Option',
             value:
-              priceMode === 'counter'
-                ? `Counter PKR ${submittedPrice}`
-                : 'Buyer budget',
+              priceMode === 'MAKE_OFFER'
+                ? `Offer PKR ${submittedPrice}`
+                : 'Original price',
           },
           {
             label: 'Payment Terms',
@@ -379,58 +395,41 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
             3. Your Price <Text style={styles.required}>*</Text>
           </Text>
           <View style={styles.priceToggleRow}>
-            <TouchableOpacity
-              style={[
-                styles.priceToggleBtn,
-                priceMode === 'listed' && styles.priceToggleBtnActive,
-              ]}
-              onPress={() => setPriceMode('listed')}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.priceToggleLabel,
-                  priceMode === 'listed' && styles.priceToggleLabelActive,
-                ]}
-              >
-                Use Listed Price
-              </Text>
-              <Text
-                style={[
-                  styles.priceToggleSub,
-                  priceMode === 'listed' && styles.priceToggleSubActive,
-                ]}
-              >
-                {selectedMillData?.price_display ?? 'Select mill first'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.priceToggleBtn,
-                priceMode === 'counter' && styles.priceToggleBtnActive,
-              ]}
-              onPress={() => setPriceMode('counter')}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.priceToggleLabel,
-                  priceMode === 'counter' && styles.priceToggleLabelActive,
-                ]}
-              >
-                Make a Counter
-              </Text>
-              <Text
-                style={[
-                  styles.priceToggleSub,
-                  priceMode === 'counter' && styles.priceToggleSubActive,
-                ]}
-              >
-                Enter a different price
-              </Text>
-            </TouchableOpacity>
+            {PRICE_OPTIONS.map(option => {
+              const selected = priceMode === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.priceToggleBtn,
+                    selected && styles.priceToggleBtnActive,
+                  ]}
+                  onPress={() => setPriceMode(option.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.priceToggleLabel,
+                      selected && styles.priceToggleLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.priceToggleSub,
+                      selected && styles.priceToggleSubActive,
+                    ]}
+                  >
+                    {option.value === 'USE_ORIGINAL'
+                      ? selectedMillData?.price_display ?? 'Select mill first'
+                      : option.subLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          {priceMode === 'counter' ? (
+          {priceMode === 'MAKE_OFFER' ? (
             <TextInput
               style={[styles.input, { marginTop: 10 }]}
               placeholder="e.g. 4000"

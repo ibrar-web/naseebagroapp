@@ -332,9 +332,10 @@ const CommodityDetailScreen = ({ navigation, route }: Props) => {
         >
           <View style={styles.heroOverlay} />
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              console.log('clicking')
+              navigation.goBack()}}
             style={styles.backBtn}
-            activeOpacity={0.85}
           >
             <AppIcon name="back" size={20} color="#111827" />
           </TouchableOpacity>
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: 44,
+    top: 50,
     left: 16,
     zIndex: 10,
     backgroundColor: 'rgba(255,255,255,0.88)',
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
   },
   heartBtn: {
     position: 'absolute',
-    top: 44,
+    top: 50,
     right: 16,
     zIndex: 10,
     backgroundColor: 'rgba(255,255,255,0.88)',

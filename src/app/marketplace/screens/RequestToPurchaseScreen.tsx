@@ -16,6 +16,7 @@ import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RequestToPurchase'>;
+type PriceOption = 'USE_ORIGINAL' | 'MAKE_OFFER';
 
 type SupplyMill = {
   id: string;
@@ -61,6 +62,22 @@ const ADDITIONAL_REQS = [
   'Flexible on delivery date',
   'Export quality only',
 ];
+const PRICE_OPTIONS: Array<{
+  label: string;
+  subLabel: string;
+  value: PriceOption;
+}> = [
+  {
+    label: 'Use Original Price',
+    subLabel: 'Use the listed mill price',
+    value: 'USE_ORIGINAL',
+  },
+  {
+    label: 'Make an Offer',
+    subLabel: 'Enter your target price',
+    value: 'MAKE_OFFER',
+  },
+];
 
 const parseNumber = (value?: string | null) => {
   const parsed = Number(String(value ?? '').replace(/[^\d.]/g, ''));
@@ -82,11 +99,12 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
-  const [priceMode, setPriceMode] = useState<'original' | 'offer'>('original');
+  const [priceMode, setPriceMode] = useState<PriceOption>('USE_ORIGINAL');
   const [offerPrice, setOfferPrice] = useState('');
   const [paymentDays, setPaymentDays] = useState<string | null>(null);
   const [deliveryDays, setDeliveryDays] = useState<string | null>(null);
   const [additionalReq, setAdditionalReq] = useState('');
+  const [additionalReqOpen, setAdditionalReqOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -155,7 +173,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   const selectedMillData = mills.find(m => m.id === selectedMill);
   const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
   const submittedPrice =
-    priceMode === 'offer'
+    priceMode === 'MAKE_OFFER'
       ? parseNumber(offerPrice)
       : parseNumber(selectedMillData?.price_display);
   const canSubmit = Boolean(
@@ -164,7 +182,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       paymentDays &&
       deliveryDays &&
       submittedPrice &&
-      (priceMode === 'original' || offerPrice),
+      (priceMode === 'USE_ORIGINAL' || offerPrice),
   );
 
   const handleSubmit = async () => {
@@ -179,7 +197,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       listing_id: listingId,
       mill_id: selectedMillData?.mill?.id ?? selectedMill,
       quantity: parseNumber(quantity),
-      price_option: priceMode === 'offer' ? 'MAKE_OFFER' : 'USE_LISTING_PRICE',
+      price_option: priceMode,
       offered_price_per_unit: submittedPrice,
       payment_terms: {
         type: 'FIXED',
@@ -209,7 +227,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           {
             label: 'Price Option',
             value:
-              priceMode === 'offer'
+              priceMode === 'MAKE_OFFER'
                 ? `Offer PKR ${submittedPrice}`
                 : 'Original price',
           },
@@ -369,58 +387,41 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
             3. Price Option <Text style={styles.required}>*</Text>
           </Text>
           <View style={styles.priceToggleRow}>
-            <TouchableOpacity
-              style={[
-                styles.priceToggleBtn,
-                priceMode === 'original' && styles.priceToggleBtnActive,
-              ]}
-              onPress={() => setPriceMode('original')}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.priceToggleLabel,
-                  priceMode === 'original' && styles.priceToggleLabelActive,
-                ]}
-              >
-                Use Original Price
-              </Text>
-              <Text
-                style={[
-                  styles.priceToggleSub,
-                  priceMode === 'original' && styles.priceToggleSubActive,
-                ]}
-              >
-                {selectedMillData?.price_display ?? 'Select mill first'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.priceToggleBtn,
-                priceMode === 'offer' && styles.priceToggleBtnActive,
-              ]}
-              onPress={() => setPriceMode('offer')}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.priceToggleLabel,
-                  priceMode === 'offer' && styles.priceToggleLabelActive,
-                ]}
-              >
-                Make an Offer
-              </Text>
-              <Text
-                style={[
-                  styles.priceToggleSub,
-                  priceMode === 'offer' && styles.priceToggleSubActive,
-                ]}
-              >
-                Enter your target price
-              </Text>
-            </TouchableOpacity>
+            {PRICE_OPTIONS.map(option => {
+              const selected = priceMode === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.priceToggleBtn,
+                    selected && styles.priceToggleBtnActive,
+                  ]}
+                  onPress={() => setPriceMode(option.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.priceToggleLabel,
+                      selected && styles.priceToggleLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.priceToggleSub,
+                      selected && styles.priceToggleSubActive,
+                    ]}
+                  >
+                    {option.value === 'USE_ORIGINAL'
+                      ? selectedMillData?.price_display ?? 'Select mill first'
+                      : option.subLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          {priceMode === 'offer' ? (
+          {priceMode === 'MAKE_OFFER' ? (
             <TextInput
               style={[styles.input, { marginTop: 10 }]}
               placeholder="e.g. 4000"
@@ -504,29 +505,56 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
             Additional Requirement{' '}
             <Text style={styles.optional}>(optional)</Text>
           </Text>
-          {ADDITIONAL_REQS.map(req => (
-            <TouchableOpacity
-              key={req}
+          <TouchableOpacity
+            style={styles.dropdownBtn}
+            onPress={() => setAdditionalReqOpen(current => !current)}
+            activeOpacity={0.85}
+          >
+            <Text
               style={[
-                styles.conditionRow,
-                additionalReq === req && styles.conditionRowSelected,
+                styles.dropdownText,
+                !additionalReq && styles.dropdownPlaceholder,
               ]}
-              onPress={() => setAdditionalReq(additionalReq === req ? '' : req)}
-              activeOpacity={0.8}
+              numberOfLines={1}
             >
-              <View
-                style={[
-                  styles.checkOuter,
-                  additionalReq === req && styles.checkOuterSelected,
-                ]}
-              >
-                {additionalReq === req ? (
-                  <AppIcon name="approved" size={10} color="#217A3C" />
-                ) : null}
-              </View>
-              <Text style={styles.conditionText}>{req}</Text>
-            </TouchableOpacity>
-          ))}
+              {additionalReq || 'Select additional requirement'}
+            </Text>
+            <AppIcon
+              name={additionalReqOpen ? 'chevronDown' : 'chevronRight'}
+              size={15}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+          {additionalReqOpen ? (
+            <View style={styles.dropdownMenu}>
+              {ADDITIONAL_REQS.map(req => (
+                <TouchableOpacity
+                  key={req}
+                  style={[
+                    styles.conditionRow,
+                    additionalReq === req && styles.conditionRowSelected,
+                  ]}
+                  onPress={() => {
+                    setAdditionalReq(additionalReq === req ? '' : req);
+                    setAdditionalReqOpen(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.checkOuter,
+                      additionalReq === req && styles.checkOuterSelected,
+                    ]}
+                  >
+                    {additionalReq === req ? (
+                      <AppIcon name="approved" size={10} color="#217A3C" />
+                    ) : null}
+                  </View>
+                  <Text style={styles.conditionText}>{req}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* Info note */}
@@ -744,6 +772,32 @@ const styles = StyleSheet.create({
   chipSelected: { borderColor: '#1A6B34', backgroundColor: '#F2FBF5' },
   chipText: { fontSize: 12, fontWeight: '500', color: '#374151' },
   chipTextSelected: { color: '#1A6B34', fontWeight: '700' },
+  dropdownBtn: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: '#FAFAFA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#111827',
+    fontWeight: '700',
+  },
+  dropdownPlaceholder: { color: '#9CA3AF', fontWeight: '500' },
+  dropdownMenu: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+  },
   conditionRow: {
     flexDirection: 'row',
     alignItems: 'center',

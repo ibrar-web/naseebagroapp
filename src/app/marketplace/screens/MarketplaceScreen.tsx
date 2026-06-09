@@ -122,8 +122,27 @@ type MarketplacePayload = {
   meta: MarketplaceMeta;
 };
 
+type MarketplaceFilters = {
+  selectedCommodityId: string;
+  selectedLocation: string;
+  selectedBadge: string;
+  verifiedOnly: boolean;
+  minPrice: string;
+  maxPrice: string;
+  minQuantity: string;
+};
+
 const PAGE_SIZE = 20;
 const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
+const EMPTY_FILTERS: MarketplaceFilters = {
+  selectedCommodityId: '',
+  selectedLocation: '',
+  selectedBadge: '',
+  verifiedOnly: false,
+  minPrice: '',
+  maxPrice: '',
+  minQuantity: '',
+};
 
 const SORT_OPTIONS: Array<{
   label: string;
@@ -440,6 +459,7 @@ const FilterSheet = ({
   setMaxPrice,
   minQuantity,
   setMinQuantity,
+  onClear,
   onDone,
 }: {
   commodities: FilterOption[];
@@ -459,6 +479,7 @@ const FilterSheet = ({
   setMaxPrice: (value: string) => void;
   minQuantity: string;
   setMinQuantity: (value: string) => void;
+  onClear: () => void;
   onDone: () => void;
 }) => (
   <>
@@ -468,13 +489,24 @@ const FilterSheet = ({
         <Text className="text-gray-900 text-[17px] font-extrabold">
           Filters
         </Text>
-        <TouchableOpacity
-          className="bg-green-800 rounded-lg px-3.5 py-1.5"
-          onPress={onDone}
-          activeOpacity={0.84}
-        >
-          <Text className="text-white text-xs font-bold">Done</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center" style={{ gap: 8 }}>
+          <TouchableOpacity
+            className="rounded-lg px-3.5 py-1.5 border border-gray-200"
+            onPress={onClear}
+            activeOpacity={0.84}
+          >
+            <Text className="text-gray-600 text-xs font-bold">
+              Clear Filters
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-green-800 rounded-lg px-3.5 py-1.5"
+            onPress={onDone}
+            activeOpacity={0.84}
+          >
+            <Text className="text-white text-xs font-bold">Done</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
     <FlatList
@@ -968,6 +1000,8 @@ const MarketplaceScreen = ({ navigation }: any) => {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [minQuantity, setMinQuantity] = useState('');
+  const [appliedFilters, setAppliedFilters] =
+    useState<MarketplaceFilters>(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState<SortValue>('newest');
   const [categories, setCategories] = useState<MarketCategory[]>([]);
   const [listings, setListings] = useState<MarketListing[]>([]);
@@ -997,27 +1031,21 @@ const MarketplaceScreen = ({ navigation }: any) => {
       search: debouncedSearch.trim(),
       post_type: postType,
       category_id: activeCategoryId,
-      commodity_id: selectedCommodityId,
-      location: selectedLocation,
-      min_price: minPrice,
-      max_price: maxPrice,
-      min_quantity: minQuantity,
-      badge: selectedBadge,
-      verified_only: verifiedOnly ? true : undefined,
+      commodity_id: appliedFilters.selectedCommodityId,
+      location: appliedFilters.selectedLocation,
+      min_price: appliedFilters.minPrice,
+      max_price: appliedFilters.maxPrice,
+      min_quantity: appliedFilters.minQuantity,
+      badge: appliedFilters.selectedBadge,
+      verified_only: appliedFilters.verifiedOnly ? true : undefined,
       sort: distanceSortNeedsCoordinates ? undefined : sortBy,
     });
   }, [
     activeCategoryId,
+    appliedFilters,
     debouncedSearch,
-    maxPrice,
-    minPrice,
-    minQuantity,
     postType,
-    selectedBadge,
-    selectedCommodityId,
-    selectedLocation,
     sortBy,
-    verifiedOnly,
   ]);
 
   const fetchListings = useCallback(
@@ -1112,7 +1140,41 @@ const MarketplaceScreen = ({ navigation }: any) => {
     };
   }, [listings.length, loadMore]);
 
-  const closeSheet = () => setActiveSheet(null);
+  const syncDraftFilters = (filters: MarketplaceFilters) => {
+    setSelectedCommodityId(filters.selectedCommodityId);
+    setSelectedLocation(filters.selectedLocation);
+    setSelectedBadge(filters.selectedBadge);
+    setVerifiedOnly(filters.verifiedOnly);
+    setMinPrice(filters.minPrice);
+    setMaxPrice(filters.maxPrice);
+    setMinQuantity(filters.minQuantity);
+  };
+  const getDraftFilters = (): MarketplaceFilters => ({
+    selectedCommodityId,
+    selectedLocation,
+    selectedBadge,
+    verifiedOnly,
+    minPrice,
+    maxPrice,
+    minQuantity,
+  });
+  const openFilterSheet = () => {
+    syncDraftFilters(appliedFilters);
+    setActiveSheet('filter');
+  };
+  const applyFilters = () => {
+    setAppliedFilters(getDraftFilters());
+    setActiveSheet(null);
+  };
+  const clearDraftFilters = () => {
+    syncDraftFilters(EMPTY_FILTERS);
+  };
+  const closeSheet = () => {
+    if (activeSheet === 'filter') {
+      syncDraftFilters(appliedFilters);
+    }
+    setActiveSheet(null);
+  };
   const countLabel =
     meta.count_label ??
     (isBuyer
@@ -1144,7 +1206,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
             <HeaderAction
               icon="filter"
               label={t('market.filter')}
-              onPress={() => setActiveSheet('filter')}
+              onPress={openFilterSheet}
             />
             <HeaderAction
               icon="sort"
@@ -1298,7 +1360,8 @@ const MarketplaceScreen = ({ navigation }: any) => {
           setMaxPrice={setMaxPrice}
           minQuantity={minQuantity}
           setMinQuantity={setMinQuantity}
-          onDone={closeSheet}
+          onClear={clearDraftFilters}
+          onDone={applyFilters}
         />
       </BottomSheet>
 

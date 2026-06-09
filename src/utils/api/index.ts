@@ -3,21 +3,6 @@ import { Get, Post, Patch, Delete } from '../http';
 const byId = (basePath: string, id: string | number) => `${basePath}/${id}`;
 const protectedRequest = { authRequired: true };
 
-const createCrudApi = (basePath: string, authRequired = false) => {
-  const options = authRequired ? protectedRequest : undefined;
-
-  return {
-    list: (params?: Record<string, any>) => Get(basePath, params, options),
-    getById: (id: string | number) =>
-      Get(byId(basePath, id), undefined, options),
-    create: (data?: any) => Post(basePath, data, options),
-    update: (id: string | number, data?: any) =>
-      Patch(byId(basePath, id), data, options),
-    remove: (id: string | number) =>
-      Delete(byId(basePath, id), undefined, options),
-  };
-};
-
 export const api = {
   auth: {
     register: (data: any) => Post('auth/register', data),
@@ -122,18 +107,33 @@ export const api = {
       Get(byId('seller/listings', id), undefined, protectedRequest),
   },
   buyer: {
-    requests: createCrudApi('buyer/buyrequest', true),
-    deals: createCrudApi('buyer/buydeals', true),
-    payments: createCrudApi('buyer/buypayment', true),
     sendBuyrequest: (id: string | number, data?: any) =>
-      Post('buyer/supplies/make-request',  data, protectedRequest),
+      Post('buyer/supplies/make-request', data, protectedRequest),
+    listMyDemands: () =>
+      Get('buyer/my-posts/demands', undefined, protectedRequest),
+    myDemandDetails: (id: string | number) =>
+      Get(byId('buyer/my-posts/demands', id), undefined, protectedRequest),
+    ListDemandOffers: () =>
+      Get('buyer/my-posts/offers', undefined, protectedRequest),
+    myDemandOfferDetails: (id: string | number) =>
+      Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
+    createBuyDemandPost: (data?: any) =>
+      Post('buyer/my-posts/create', data, protectedRequest),
   },
 
   seller: {
-    payments: createCrudApi('seller/sellpayment', true),
-    analytics: createCrudApi('seller/analytics', true),
     sendDemandOffer: (id: string | number, data?: any) =>
-      Post('seller/demands/send-offer',  data, protectedRequest),
+      Post('seller/demands/send-offer', data, protectedRequest),
+    ListMyPosts: () =>
+      Get('seller/my-posts/supplies', undefined, protectedRequest),
+    myPostDetails: (id: string | number) =>
+      Get(byId('seller/my-posts/supplies', id), undefined, protectedRequest),
+    ListMyPostsOffers: () =>
+      Get('seller/my-posts/offers', undefined, protectedRequest),
+    myPostOffersDetails: (id: string | number) =>
+      Get(byId('seller/my-posts/offers', id), undefined, protectedRequest),
+    createSupplyPost: (data?: any) =>
+      Post('seller/my-posts/create', data, protectedRequest),
   },
 };
 

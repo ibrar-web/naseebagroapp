@@ -191,7 +191,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       },
       additional_requirement: additionalReq || null,
     };
-
+ console.log('payload :',payload)
     try {
       await api.buyer.sendBuyrequest(listingId, payload);
       navigation.replace('OfferSent', {

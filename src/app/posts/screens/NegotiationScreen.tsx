@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { AppIcon } from '../../../assets/icons';
@@ -217,6 +218,24 @@ const MessageBubble = ({ message }: { message: NegotiationMessage }) => {
 const NegotiationScreen = ({ navigation, route }: Props) => {
   const { offerId } = route.params;
   const negotiation = NEGOTIATIONS[offerId] ?? NEGOTIATIONS.PO001;
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'offers' } },
+          },
+        ],
+      }),
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -225,7 +244,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={goBack}
             style={styles.backBtn}
             activeOpacity={0.8}
           >
@@ -288,7 +307,6 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EEF2EE' },
   header: {
-    background: 'transparent',
     paddingHorizontal: 14,
     paddingBottom: 14,
     backgroundColor: '#0D3B1F',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
@@ -7,9 +8,11 @@ import {
   TextInput,
   StyleSheet,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreatePostBuyer'>;
 
@@ -27,6 +30,11 @@ const COMMODITIES: Record<string, string[]> = {
 const CITIES = ['Lahore', 'Karachi', 'Faisalabad', 'Multan', 'Gujranwala', 'Rawalpindi', 'Peshawar', 'Quetta', 'Okara', 'Sahiwal'];
 const PAYMENT_OPTIONS = ['Full advance', '30% advance', '50% advance', 'On delivery', 'Net 15 days', 'Net 30 days'];
 
+const parseNumber = (value: string) => {
+  const parsed = Number(value.replace(/[^\d.]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
   const { category } = route.params;
   const commodityList = COMMODITIES[category] ?? COMMODITIES['Grains'];
@@ -42,11 +50,78 @@ const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
   const [paymentTerm, setPaymentTerm] = useState('');
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const isValid = !!commodity && !!quantity && !!deliveryCity;
 
-  const handleSubmit = () => {
-    navigation.navigate('MainTabs');
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'posts' } },
+          },
+        ],
+      }),
+    );
+  };
+
+  const goPosts = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'posts' } },
+          },
+        ],
+      }),
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!isValid || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    const payload = {
+      category,
+      commodity_name: commodity,
+      commodity,
+      quantity: parseNumber(quantity),
+      min_price: minPrice ? parseNumber(minPrice) : null,
+      max_price: maxPrice ? parseNumber(maxPrice) : null,
+      delivery_city: deliveryCity,
+      required_by: deliveryDate || null,
+      delivery_date: deliveryDate || null,
+      payment_terms: paymentTerm || null,
+      notes: notes || null,
+      additional_notes: notes || null,
+    };
+
+    try {
+      await api.buyer.createBuyDemandPost(payload);
+      goPosts();
+    } catch (err) {
+      console.log('Create buyer demand error', err);
+      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+        setSubmitError('Unable to create demand. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -55,7 +130,7 @@ const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           style={styles.backBtn}
           activeOpacity={0.8}
         >
@@ -247,20 +322,33 @@ const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
           </View>
         </View>
 
+        {submitError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{submitError}</Text>
+          </View>
+        ) : null}
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Sticky submit */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.submitBtn, !isValid && styles.submitBtnDisabled]}
-          disabled={!isValid}
+          style={[
+            styles.submitBtn,
+            (!isValid || submitting) && styles.submitBtnDisabled,
+          ]}
+          disabled={!isValid || submitting}
           activeOpacity={0.88}
           onPress={handleSubmit}
         >
-          <Text style={styles.submitBtnText}>
-            {isValid ? 'Post Demand →' : 'Fill required fields to continue'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {isValid ? 'Post Demand' : 'Fill required fields to continue'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -374,6 +462,15 @@ const styles = StyleSheet.create({
   infoIcon: { fontSize: 18 },
   infoTitle: { fontSize: 13, fontWeight: '700', color: '#92400E', marginBottom: 3 },
   infoText: { fontSize: 12, color: '#78350F', lineHeight: 18 },
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  errorText: { color: '#B91C1C', fontSize: 12, fontWeight: '600' },
   bottomBar: {
     position: 'absolute',
     bottom: 0,

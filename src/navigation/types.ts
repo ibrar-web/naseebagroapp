@@ -3,6 +3,23 @@ import {
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
+export type AppModeParam = 'buyer' | 'seller';
+export type PostsTabRouteParam =
+  | 'posts'
+  | 'offers'
+  | 'My Demands'
+  | 'My Supplies'
+  | 'My Offers';
+
+export type TabParamList = {
+  Home: undefined;
+  Market: undefined;
+  Deals: undefined;
+  Post: { initialTab?: PostsTabRouteParam } | undefined;
+  Profile: undefined;
+};
 
 export type RootStackParamList = {
   // Auth
@@ -13,7 +30,7 @@ export type RootStackParamList = {
   OTP: { phone: string };
 
   // Main tabs
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<TabParamList> | undefined;
 
   // Marketplace detail
   CreatePost: undefined;
@@ -34,8 +51,8 @@ export type RootStackParamList = {
     subtitle?: string;
     summary?: Array<{ label: string; value: string }>;
   };
-  PostDetail: { postId: string };
-  OfferDetail: { offerId: string };
+  PostDetail: { postId: string; mode?: AppModeParam };
+  OfferDetail: { offerId: string; mode?: AppModeParam };
   Negotiation: { offerId: string };
   DealDetail: { dealId: string };
   Notifications: undefined;
@@ -62,14 +79,6 @@ export type RootStackParamList = {
   AppSettings: undefined;
   Support: undefined;
   Terms: undefined;
-};
-
-export type TabParamList = {
-  Home: undefined;
-  Market: undefined;
-  Deals: undefined;
-  Post: { initialTab?: 'My Demands' | 'My Offers' } | undefined;
-  Profile: undefined;
 };
 
 export type RootStackNavProp = NativeStackNavigationProp<RootStackParamList>;

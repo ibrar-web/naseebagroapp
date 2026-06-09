@@ -1,130 +1,354 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
   ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
+import { useAppSelector } from '../../../store';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OfferDetail'>;
+type AppMode = 'buyer' | 'seller';
 
-const OFFER_DETAILS: Record<string, any> = {
-  PO001: {
-    id: 'OFF-001',
-    title: 'Punjab Wheat',
-    image:
-      'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-    fallback: '#C29A4A',
-    myOffer: 'PKR 2,750/40kg',
-    qty: '300 bags',
-    mill: 'Faisalabad Mill A',
-    payment: '30 days',
-    alert: 'Counter Received — Respond Now',
-    history: [
+type OfferHistoryEvent = {
+  actor: string;
+  badge?: string;
+  title: string;
+  time: string;
+  price: string;
+};
+
+type OfferDetail = {
+  id: string;
+  code: string;
+  title: string;
+  image: string;
+  fallback: string;
+  myOffer: string;
+  qty: string;
+  mill: string;
+  payment: string;
+  alert: string;
+  history: OfferHistoryEvent[];
+};
+
+const firstValue = (...values: any[]) =>
+  values.find(value => value !== undefined && value !== null && value !== '');
+
+const stringify = (value: any, fallback = '') => {
+  const resolved = firstValue(value);
+  if (resolved === undefined) {
+    return fallback;
+  }
+  return String(resolved);
+};
+
+const titleCaseStatus = (status?: string) => {
+  const raw = stringify(status, 'Pending').replace(/_/g, ' ').trim();
+  if (!raw) {
+    return 'Pending';
+  }
+  return raw
+    .split(' ')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const formatDateLabel = (value?: string) => {
+  if (!value) {
+    return 'Recently';
+  }
+  if (value.includes('ago')) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const priceDisplay = (item: any) => {
+  const explicit = firstValue(
+    item.price_display,
+    item.offer_price_display,
+    item.counter_price_display,
+    item.latest_price_display,
+    item.budget_display,
+  );
+  if (explicit) {
+    return String(explicit);
+  }
+
+  const price = firstValue(
+    item.offered_price_per_unit,
+    item.counter_price_per_unit,
+    item.price,
+  );
+  if (price) {
+    return `PKR ${price}`;
+  }
+  return 'Ask';
+};
+
+const findArray = (body: any, keys: string[]) => {
+  if (Array.isArray(body)) {
+    return body;
+  }
+
+  for (const key of keys) {
+    if (Array.isArray(body?.[key])) {
+      return body[key];
+    }
+  }
+
+  if (body?.data && typeof body.data === 'object') {
+    for (const key of keys) {
+      if (Array.isArray(body.data?.[key])) {
+        return body.data[key];
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizeHistory = (
+  payload: any,
+  mode: AppMode,
+): OfferHistoryEvent[] => {
+  const events = findArray(payload, [
+    'history',
+    'offer_history',
+    'timeline',
+    'events',
+    'negotiations',
+  ]);
+
+  if (!events.length) {
+    return [
       {
-        actor: '🛒 BYR-4821',
+        actor: mode === 'buyer' ? 'Buyer' : 'Seller',
         badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 27 · 10:15 AM',
-        price: 'PKR 2,750',
+        title: titleCaseStatus(firstValue(payload.status_label, payload.status)),
+        time: formatDateLabel(firstValue(payload.created_at, payload.sent_at)),
+        price: priceDisplay(payload),
       },
-      {
-        actor: '📦 SLR-7634',
-        title: 'Counter Offer',
-        time: 'Mar 27 · 02:30 PM',
-        price: 'PKR 2,900',
-      },
-    ],
-  },
-  PO002: {
-    id: 'OFF-002',
-    title: 'Basmati Rice',
+    ];
+  }
+
+  return events.map((event: any, index: number) => ({
+    actor: stringify(
+      firstValue(
+        event.actor_label,
+        event.actor,
+        event.user?.fullName,
+        event.seller?.fullName,
+        event.buyer?.fullName,
+      ),
+      index === 0 ? (mode === 'buyer' ? 'Buyer' : 'Seller') : 'Counterparty',
+    ),
+    badge:
+      event.is_mine || event.is_current_user || event.badge === 'YOU'
+        ? 'YOU'
+        : event.badge,
+    title: stringify(
+      firstValue(event.title, event.type_label, event.action, event.status_label),
+      'Offer Update',
+    ),
+    time: formatDateLabel(firstValue(event.time_label, event.created_at, event.time)),
+    price: priceDisplay(event),
+  }));
+};
+
+const normalizeOfferDetail = (
+  response: any,
+  id: string,
+  mode: AppMode,
+): OfferDetail | null => {
+  const root =
+    response?.status && response?.data ? response.data : response ?? {};
+  const payload = root?.id ? root : root?.data ?? root;
+
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const title = stringify(
+    firstValue(
+      payload.title,
+      payload.post?.title,
+      payload.demand?.title,
+      payload.supply?.title,
+      payload.commodity?.name,
+      payload.commodity_name,
+    ),
+    'Offer',
+  );
+  const status = titleCaseStatus(firstValue(payload.status_label, payload.status));
+
+  return {
+    id: stringify(firstValue(payload.id, payload.offer_id, payload.uuid), id),
+    code: stringify(firstValue(payload.code, payload.offer_code), id),
+    title,
     image:
-      'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
+      firstValue(
+        payload.hero_image_url,
+        payload.image_url,
+        payload.image,
+        payload.commodity?.image_url,
+        payload.post?.hero_image_url,
+        payload.demand?.hero_image_url,
+        payload.supply?.hero_image_url,
+      ) ?? `https://placehold.co/600x400?text=${encodeURIComponent(title)}`,
     fallback: '#8A9A5B',
-    myOffer: 'PKR 4,100/40kg',
-    qty: '100 bags',
-    mill: 'Gujranwala Mill B',
-    payment: '30 days',
-    alert: 'Pending seller response',
-    history: [
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 25 · 11:20 AM',
-        price: 'PKR 4,100',
-      },
-    ],
-  },
-  PO003: {
-    id: 'OFF-003',
-    title: 'Desi Cotton',
-    image:
-      'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-    fallback: '#D8D6C7',
-    myOffer: 'PKR 8,400/40kg',
-    qty: '30 bales',
-    mill: 'Multan Mill C',
-    payment: '30 days',
-    alert: 'Accepted offer',
-    history: [
-      {
-        actor: '📦 SLR-5521',
-        title: 'Seller Offer',
-        time: 'Mar 22 · 09:05 AM',
-        price: 'PKR 8,400',
-      },
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Accepted',
-        time: 'Mar 22 · 02:10 PM',
-        price: 'PKR 8,400',
-      },
-    ],
-  },
-  PO004: {
-    id: 'OFF-004',
-    title: 'Yellow Maize',
-    image:
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-    fallback: '#DCA640',
-    myOffer: 'PKR 1,850/40kg',
-    qty: '150 bags',
-    mill: 'Okara Mill D',
-    payment: '30 days',
-    alert: 'Offer rejected',
-    history: [
-      {
-        actor: '🛒 BYR-4821',
-        badge: 'YOU',
-        title: 'Initial Offer',
-        time: 'Mar 20 · 01:40 PM',
-        price: 'PKR 1,850',
-      },
-    ],
-  },
+    myOffer: priceDisplay(payload),
+    qty: stringify(
+      firstValue(
+        payload.quantity_label,
+        payload.supply_quantity_label,
+        payload.requested_quantity_label,
+        payload.quantity,
+        payload.supply_quantity,
+      ),
+      'Quantity not set',
+    ),
+    mill: stringify(
+      firstValue(
+        payload.mill?.name,
+        payload.seller?.business_name,
+        payload.seller?.fullName,
+        payload.buyer?.business_name,
+        payload.buyer?.fullName,
+        payload.counterparty_name,
+      ),
+      mode === 'buyer' ? 'Seller' : 'Buyer',
+    ),
+    payment: stringify(
+      firstValue(
+        payload.payment_terms_label,
+        payload.counter_payment_terms?.label,
+        payload.payment_terms?.label,
+        payload.payment_days ? `${payload.payment_days} days` : undefined,
+      ),
+      'Payment not set',
+    ),
+    alert: stringify(firstValue(payload.alert_label, payload.action_label), status),
+    history: normalizeHistory(payload, mode),
+  };
 };
 
 const OfferDetailScreen = ({ navigation, route }: Props) => {
+  const currentMode = useAppSelector(s => s.app.mode) as AppMode;
+  const mode = route.params.mode ?? currentMode;
+  const isBuyer = mode === 'buyer';
   const { offerId } = route.params;
-  const offerDetail = OFFER_DETAILS[offerId];
+  const [offerDetail, setOfferDetail] = useState<OfferDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  if (!offerDetail) return null;
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'offers' } },
+          },
+        ],
+      }),
+    );
+  };
+
+  useEffect(() => {
+    let active = true;
+    const loadDetail = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = isBuyer
+          ? await api.buyer.myDemandOfferDetails(offerId)
+          : await api.seller.myPostOffersDetails(offerId);
+        const normalized = normalizeOfferDetail(response, offerId, mode);
+        if (active) {
+          setOfferDetail(normalized);
+        }
+      } catch (err) {
+        console.log('Offer detail load error', err);
+        if (active && (err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+          setError('Unable to load offer details.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDetail();
+    return () => {
+      active = false;
+    };
+  }, [isBuyer, mode, offerId]);
+
+  if (loading && !offerDetail) {
+    return (
+      <View style={styles.stateScreen}>
+        <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
+        <ActivityIndicator color="#217A3C" size="large" />
+        <Text style={styles.stateText}>Loading offer details...</Text>
+      </View>
+    );
+  }
+
+  if (!offerDetail) {
+    return (
+      <View style={styles.stateScreen}>
+        <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
+        <AppIcon name="notificationWarning" size={34} color="#D97706" />
+        <Text style={styles.stateText}>
+          {error || 'Offer details not found.'}
+        </Text>
+        <TouchableOpacity
+          style={styles.stateButton}
+          onPress={goBack}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.stateButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           style={styles.backBtn}
           activeOpacity={0.8}
         >
@@ -148,20 +372,20 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
           >
             <View style={styles.heroOverlay} />
             <View style={styles.heroBottom}>
-              <Text style={styles.heroId}>{offerDetail.id}</Text>
+              <Text style={styles.heroId}>{offerDetail.code}</Text>
               <Text style={styles.heroTitle}>{offerDetail.title}</Text>
             </View>
             <View style={styles.anonymousPill}>
               <AppIcon name="shield" size={10} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.anonymousText}>Anonymous</Text>
+              <Text style={styles.anonymousText}>Protected</Text>
             </View>
           </ImageBackground>
 
           <View style={styles.summaryBar}>
             {[
-              ['YOUR OFFER', offerDetail.myOffer],
+              [isBuyer ? 'OFFER' : 'OFFER', offerDetail.myOffer],
               ['QTY', offerDetail.qty],
-              ['MILL', offerDetail.mill],
+              [isBuyer ? 'SELLER' : 'BUYER', offerDetail.mill],
               ['PAYMENT', offerDetail.payment],
             ].map(([label, value], index) => (
               <View
@@ -187,7 +411,7 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
 
         <View style={styles.historyCard}>
           <Text style={styles.historyTitle}>Offer History</Text>
-          {offerDetail.history.map((event: any, index: number) => (
+          {offerDetail.history.map((event, index) => (
             <View
               key={`${event.title}-${index}`}
               style={[
@@ -234,6 +458,28 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
+  stateScreen: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 12,
+  },
+  stateText: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  stateButton: {
+    marginTop: 4,
+    backgroundColor: '#217A3C',
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  stateButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   scroll: { flex: 1 },
   header: {
     backgroundColor: '#FFFFFF',

@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store';
@@ -28,6 +29,25 @@ const PrePostScreen = ({ navigation }: Props) => {
   const mode = useAppSelector(s => s.app.mode);
   const isBuyer = mode === 'buyer';
 
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'posts' } },
+          },
+        ],
+      }),
+    );
+  };
+
   const handleCategorySelect = (category: string) => {
     if (isBuyer) {
       navigation.navigate('CreatePostBuyer', { category });
@@ -42,7 +62,7 @@ const PrePostScreen = ({ navigation }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           style={styles.backBtn}
           activeOpacity={0.8}
         >

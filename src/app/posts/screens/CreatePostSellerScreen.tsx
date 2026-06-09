@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
@@ -7,9 +8,11 @@ import {
   TextInput,
   StyleSheet,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreatePostSeller'>;
 
@@ -29,6 +32,11 @@ const PAYMENT_DAYS = ['3', '7', '15', '30'];
 const DELIVERY_DAYS = ['1', '2', '3', '5', '7', '10', '14'];
 const GRADES = ['Grade A', 'Grade B', 'Grade C', 'Export Quality', 'Organic'];
 
+const parseNumber = (value: string) => {
+  const parsed = Number(value.replace(/[^\d.]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const CreatePostSellerScreen = ({ navigation, route }: Props) => {
   const { category } = route.params;
   const commodityList = COMMODITIES[category] ?? COMMODITIES['Grains'];
@@ -45,6 +53,8 @@ const CreatePostSellerScreen = ({ navigation, route }: Props) => {
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [moisture, setMoisture] = useState('');
   const [condition, setCondition] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const toggleGrade = (g: string) =>
     setSelectedGrades(prev =>
@@ -53,8 +63,83 @@ const CreatePostSellerScreen = ({ navigation, route }: Props) => {
 
   const isValid = !!commodity && !!price && !!quantity && !!location;
 
-  const handleSubmit = () => {
-    navigation.navigate('MainTabs');
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'posts' } },
+          },
+        ],
+      }),
+    );
+  };
+
+  const goPosts = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            params: { screen: 'Post', params: { initialTab: 'posts' } },
+          },
+        ],
+      }),
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!isValid || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    const payload = {
+      category,
+      commodity_name: commodity,
+      commodity,
+      price_per_unit: parseNumber(price),
+      price: parseNumber(price),
+      quantity: parseNumber(quantity),
+      total_quantity: parseNumber(quantity),
+      pickup_location: location,
+      location,
+      payment_terms: {
+        type: paymentType === 'fixed' ? 'FIXED' : 'WEEKLY',
+        fixed_days: paymentType === 'fixed' ? parseNumber(paymentDays) : null,
+        weekly_percent: paymentType === 'weekly' ? parseNumber(paymentDays) : null,
+      },
+      delivery_terms: {
+        days: parseNumber(deliveryDays),
+      },
+      grades: selectedGrades,
+      quality: selectedGrades,
+      moisture: moisture ? parseNumber(moisture) : null,
+      condition: condition || null,
+      notes: condition || null,
+    };
+
+    try {
+      await api.seller.createSupplyPost(payload);
+      goPosts();
+    } catch (err) {
+      console.log('Create seller supply error', err);
+      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+        setSubmitError('Unable to create supply. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -63,7 +148,7 @@ const CreatePostSellerScreen = ({ navigation, route }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           style={styles.backBtn}
           activeOpacity={0.8}
         >
@@ -285,20 +370,33 @@ const CreatePostSellerScreen = ({ navigation, route }: Props) => {
           </View>
         </View>
 
+        {submitError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{submitError}</Text>
+          </View>
+        ) : null}
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Sticky submit */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.submitBtn, !isValid && styles.submitBtnDisabled]}
-          disabled={!isValid}
+          style={[
+            styles.submitBtn,
+            (!isValid || submitting) && styles.submitBtnDisabled,
+          ]}
+          disabled={!isValid || submitting}
           activeOpacity={0.88}
           onPress={handleSubmit}
         >
-          <Text style={styles.submitBtnText}>
-            {isValid ? 'Post Supply →' : 'Fill the form above to continue'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {isValid ? 'Post Supply' : 'Fill the form above to continue'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -421,6 +519,16 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, color: '#6B7280' },
   chipTextActive: { color: '#1A6B34', fontWeight: '700' },
   successHint: { marginTop: 6, fontSize: 11, color: '#1A6B34', fontWeight: '600' },
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 14,
+  },
+  errorText: { color: '#B91C1C', fontSize: 12, fontWeight: '600' },
   bottomBar: {
     position: 'absolute',
     bottom: 0,

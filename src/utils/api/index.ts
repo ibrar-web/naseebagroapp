@@ -3,6 +3,16 @@ import { Get, Post, Patch, Delete } from '../http';
 const byId = (basePath: string, id: string | number) => `${basePath}/${id}`;
 const protectedRequest = { authRequired: true };
 
+type MyPostsListParams = {
+  status?: string;
+  search?: string;
+  category_id?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  [key: string]: any;
+};
+
 export const api = {
   auth: {
     register: (data: any) => Post('auth/register', data),
@@ -109,12 +119,12 @@ export const api = {
   buyer: {
     sendBuyrequest: (id: string | number, data?: any) =>
       Post('buyer/supplies/make-request', data, protectedRequest),
-    listMyDemands: () =>
-      Get('buyer/my-posts/demands', undefined, protectedRequest),
+    listMyDemands: (params?: MyPostsListParams) =>
+      Get('buyer/my-posts/demands', params, protectedRequest),
     myDemandDetails: (id: string | number) =>
       Get(byId('buyer/my-posts/demands', id), undefined, protectedRequest),
-    ListDemandOffers: () =>
-      Get('buyer/my-posts/offers', undefined, protectedRequest),
+    ListDemandOffers: (params?: MyPostsListParams) =>
+      Get('buyer/my-posts/offers', params, protectedRequest),
     myDemandOfferDetails: (id: string | number) =>
       Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
     createBuyDemandPost: (data?: any) =>
@@ -124,12 +134,12 @@ export const api = {
   seller: {
     sendDemandOffer: (id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
-    ListMyPosts: () =>
-      Get('seller/my-posts/supplies', undefined, protectedRequest),
+    ListMyPosts: (params?: MyPostsListParams) =>
+      Get('seller/my-posts/supplies', params, protectedRequest),
     myPostDetails: (id: string | number) =>
       Get(byId('seller/my-posts/supplies', id), undefined, protectedRequest),
-    ListMyPostsOffers: () =>
-      Get('seller/my-posts/offers', undefined, protectedRequest),
+    ListMyPostsOffers: (params?: MyPostsListParams) =>
+      Get('seller/my-posts/offers', params, protectedRequest),
     myPostOffersDetails: (id: string | number) =>
       Get(byId('seller/my-posts/offers', id), undefined, protectedRequest),
     createSupplyPost: (data?: any) =>

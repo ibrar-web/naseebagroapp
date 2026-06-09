@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  createNavigationContainerRef,
+  NavigationContainer,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -62,9 +65,12 @@ import { useTranslation } from '../localization';
 import type { TranslationKey } from '../localization';
 import { AppIcon } from '../assets/icons';
 import type { AppIconName } from '../assets/icons';
+import LoginRequiredSheet from '../app/auth/components/LoginRequiredSheet';
+import { subscribeAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
 const TAB_CONFIG: Record<
@@ -173,82 +179,123 @@ const MainTabs = () => (
   </>
 );
 
-export const AppNavigator = () => (
-  <NavigationContainer>
-    <Stack.Navigator
-      initialRouteName="Splash"
-      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
-    >
-      {/* Main tabs */}
-      <Stack.Screen
-        name="MainTabs"
-        component={MainTabs}
-        options={{ animation: 'fade' }}
-      />
+export const AppNavigator = () => {
+  const [loginSheetVisible, setLoginSheetVisible] = useState(false);
 
-      {/* Market rates */}
-      <Stack.Screen name="MarketRates" component={MarketRatesScreen} />
+  useEffect(
+    () => subscribeAuthRequiredSheet(() => setLoginSheetVisible(true)),
+    [],
+  );
 
-      {/* Listing & deal detail */}
-      <Stack.Screen name="CreatePost" component={PostScreen} />
-      <Stack.Screen name="PrePost" component={PrePostScreen} />
-      <Stack.Screen
-        name="CreatePostSeller"
-        component={CreatePostSellerScreen}
-      />
-      <Stack.Screen name="CreatePostBuyer" component={CreatePostBuyerScreen} />
-      <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
-      <Stack.Screen name="CommodityDetail" component={CommodityDetailScreen} />
-      <Stack.Screen
-        name="RequestToPurchase"
-        component={RequestToPurchaseScreen}
-      />
-      <Stack.Screen name="SendOffer" component={SendOfferScreen} />
-      <Stack.Screen name="OfferSent" component={OfferSentScreen} />
-      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
-      <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
-      <Stack.Screen name="Negotiation" component={NegotiationScreen} />
-      <Stack.Screen name="DealDetail" component={DealDetailScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+  const closeLoginSheet = () => setLoginSheetVisible(false);
 
-      {/* Profile sub-screens */}
-      <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-      <Stack.Screen name="BusinessProfile" component={BusinessProfileScreen} />
-      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
-      <Stack.Screen
-        name="VerificationStatus"
-        component={VerificationStatusScreen}
-      />
-      <Stack.Screen name="SavedListings" component={SavedListingsScreen} />
-      <Stack.Screen
-        name="NotificationsSettings"
-        component={NotificationsSettingsScreen}
-      />
-      <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
-      <Stack.Screen name="Support" component={SupportScreen} />
-      <Stack.Screen name="Terms" component={TermsScreen} />
+  const openLogin = () => {
+    closeLoginSheet();
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('Login');
+    }
+  };
 
-      {/* Auth */}
-      <Stack.Screen
-        name="Splash"
-        component={SplashScreen}
-        options={{ animation: 'none' }}
-      />
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Phone" component={PhoneScreen} />
-      <Stack.Screen name="OTP" component={OTPScreen} />
+  return (
+    <>
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+        >
+          {/* Main tabs */}
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabs}
+            options={{ animation: 'fade' }}
+          />
 
-      {/* Onboarding */}
-      <Stack.Screen name="Location" component={LocationScreen} />
-      <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
-      <Stack.Screen name="BizInfo" component={BizInfoScreen} />
-      <Stack.Screen name="IdVerify" component={IdVerifyScreen} />
-      <Stack.Screen name="PaymentSetup" component={PaymentSetupScreen} />
-      <Stack.Screen name="VerifyPending" component={VerifyPendingScreen} />
-      <Stack.Screen name="VerifyApproved" component={VerifyApprovedScreen} />
-    </Stack.Navigator>
-  </NavigationContainer>
-);
+          {/* Market rates */}
+          <Stack.Screen name="MarketRates" component={MarketRatesScreen} />
+
+          {/* Listing & deal detail */}
+          <Stack.Screen name="CreatePost" component={PostScreen} />
+          <Stack.Screen name="PrePost" component={PrePostScreen} />
+          <Stack.Screen
+            name="CreatePostSeller"
+            component={CreatePostSellerScreen}
+          />
+          <Stack.Screen
+            name="CreatePostBuyer"
+            component={CreatePostBuyerScreen}
+          />
+          <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
+          <Stack.Screen
+            name="CommodityDetail"
+            component={CommodityDetailScreen}
+          />
+          <Stack.Screen
+            name="RequestToPurchase"
+            component={RequestToPurchaseScreen}
+          />
+          <Stack.Screen name="SendOffer" component={SendOfferScreen} />
+          <Stack.Screen name="OfferSent" component={OfferSentScreen} />
+          <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+          <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
+          <Stack.Screen name="Negotiation" component={NegotiationScreen} />
+          <Stack.Screen name="DealDetail" component={DealDetailScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+
+          {/* Profile sub-screens */}
+          <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+          <Stack.Screen
+            name="BusinessProfile"
+            component={BusinessProfileScreen}
+          />
+          <Stack.Screen
+            name="PaymentMethods"
+            component={PaymentMethodsScreen}
+          />
+          <Stack.Screen
+            name="VerificationStatus"
+            component={VerificationStatusScreen}
+          />
+          <Stack.Screen name="SavedListings" component={SavedListingsScreen} />
+          <Stack.Screen
+            name="NotificationsSettings"
+            component={NotificationsSettingsScreen}
+          />
+          <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
+          <Stack.Screen name="Support" component={SupportScreen} />
+          <Stack.Screen name="Terms" component={TermsScreen} />
+
+          {/* Auth */}
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={{ animation: 'none' }}
+          />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Phone" component={PhoneScreen} />
+          <Stack.Screen name="OTP" component={OTPScreen} />
+
+          {/* Onboarding */}
+          <Stack.Screen name="Location" component={LocationScreen} />
+          <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
+          <Stack.Screen name="BizInfo" component={BizInfoScreen} />
+          <Stack.Screen name="IdVerify" component={IdVerifyScreen} />
+          <Stack.Screen name="PaymentSetup" component={PaymentSetupScreen} />
+          <Stack.Screen name="VerifyPending" component={VerifyPendingScreen} />
+          <Stack.Screen
+            name="VerifyApproved"
+            component={VerifyApprovedScreen}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      <LoginRequiredSheet
+        visible={loginSheetVisible}
+        onClose={closeLoginSheet}
+        onLogin={openLogin}
+      />
+    </>
+  );
+};
 
 export default AppNavigator;

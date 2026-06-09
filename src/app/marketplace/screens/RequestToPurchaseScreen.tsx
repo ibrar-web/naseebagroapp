@@ -225,7 +225,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       });
     } catch (err) {
       console.log('Submit purchase request error', err);
-      setSubmitError('Unable to submit request. Please try again.');
+      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+        setSubmitError('Unable to submit request. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

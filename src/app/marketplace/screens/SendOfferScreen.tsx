@@ -238,7 +238,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       });
     } catch (err) {
       console.log('Submit demand offer error', err);
-      setSubmitError('Unable to send offer. Please try again.');
+      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+        setSubmitError('Unable to send offer. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

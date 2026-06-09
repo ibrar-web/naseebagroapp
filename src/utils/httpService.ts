@@ -4,6 +4,7 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 import { store } from '../store';
 import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
+import { showAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 
 type HttpServiceOptions = {
   authRequired?: boolean;
@@ -18,7 +19,6 @@ class HttpService {
 
     const token = store.getState().auth.token;
     const headers: Record<string, string> = {};
-    console.log('token: ', token);
     if (token && this.authRequired) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -62,9 +62,9 @@ class HttpService {
           Alert.alert('Error', errorMessage);
           break;
         case 401:
-          Alert.alert('Session Expired', 'Please log in again.');
           store.dispatch(resetAllReduxStates());
           EncryptedStorage.removeItem('session').catch(() => undefined);
+          showAuthRequiredSheet();
           break;
         case 403:
           Alert.alert(
@@ -112,7 +112,7 @@ class HttpService {
 
     const error = new Error('Login required') as Error & { code: string };
     error.code = 'AUTH_REQUIRED';
-    Alert.alert('Login Required', 'Please log in to continue.');
+    showAuthRequiredSheet();
     return Promise.reject(error);
   }
 

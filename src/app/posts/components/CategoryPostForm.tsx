@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -173,6 +174,43 @@ const CategoryPostForm = ({
   const canSubmit = Boolean(categoryId && form && formIsValid && !submitting);
 
   useEffect(() => {
+    if (!loadError) {
+      return;
+    }
+
+    Alert.alert(
+      'Form Unavailable',
+      loadError,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      params: {
+                        screen: 'Post',
+                        params: { initialTab: 'posts' },
+                      },
+                    },
+                  ],
+                }),
+              );
+            }
+          },
+        },
+      ],
+      { cancelable: false },
+    );
+  }, [loadError, navigation]);
+
+  useEffect(() => {
     let mounted = true;
 
     const loadForm = async () => {
@@ -190,7 +228,7 @@ const CategoryPostForm = ({
           ? await api.buyer.getBuyerCategoryform(categoryData.id)
           : await api.seller.getSellerCategoryform(categoryData.id);
         const nextForm = normalizeForm(response);
-
+        console.log('response: form data', response);
         if (!mounted) {
           return;
         }
@@ -229,20 +267,6 @@ const CategoryPostForm = ({
       return;
     }
 
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            params: { screen: 'Post', params: { initialTab: 'posts' } },
-          },
-        ],
-      }),
-    );
-  };
-
-  const goPosts = () => {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -297,8 +321,7 @@ const CategoryPostForm = ({
     if (paymentField) {
       payload.payment_terms = {
         type: paymentMode,
-        fixed_days:
-          paymentMode === 'FIXED' ? parseNumber(paymentValue) : null,
+        fixed_days: paymentMode === 'FIXED' ? parseNumber(paymentValue) : null,
         weekly_percent:
           paymentMode === 'WEEKLY' ? parseNumber(paymentValue) : null,
       };
@@ -316,13 +339,15 @@ const CategoryPostForm = ({
     setSubmitError('');
 
     try {
-      if (isBuyer) {
-        await api.buyer.createBuyDemandPost(buildPayload());
-      } else {
-        await api.seller.createSupplyPost(buildPayload());
-      }
+      const response = isBuyer
+        ? await api.buyer.createBuyDemandPost(buildPayload())
+        : await api.seller.createSupplyPost(buildPayload());
 
-      goPosts();
+      navigation.navigate('PostCreated', {
+        mode: isBuyer ? 'buyer' : 'seller',
+        postData: response,
+        categoryName,
+      });
     } catch (err) {
       if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') {
         setSubmitError(
@@ -364,12 +389,11 @@ const CategoryPostForm = ({
           activeOpacity={0.8}
         >
           <Text
-            style={[
-              styles.pickerText,
-              !selectedOption && styles.placeholder,
-            ]}
+            style={[styles.pickerText, !selectedOption && styles.placeholder]}
           >
-            {selectedOption ? optionLabel(selectedOption) : `Select ${field.label.toLowerCase()}`}
+            {selectedOption
+              ? optionLabel(selectedOption)
+              : `Select ${field.label.toLowerCase()}`}
           </Text>
           <Text style={styles.chevron}>v</Text>
         </TouchableOpacity>
@@ -401,7 +425,9 @@ const CategoryPostForm = ({
                     >
                       {optionLabel(option)}
                     </Text>
-                    {meta ? <Text style={styles.optionMeta}>{meta}</Text> : null}
+                    {meta ? (
+                      <Text style={styles.optionMeta}>{meta}</Text>
+                    ) : null}
                   </TouchableOpacity>
                 );
               })
@@ -529,16 +555,19 @@ const CategoryPostForm = ({
   const renderInputField = (field: CategoryFormField) => {
     const fieldType = field.field_type?.toLowerCase();
     const isNumber = fieldType === 'number';
-    const value = typeof values[field.field_key] === 'string'
-      ? (values[field.field_key] as string)
-      : '';
+    const value =
+      typeof values[field.field_key] === 'string'
+        ? (values[field.field_key] as string)
+        : '';
 
     return (
       <View key={field.id} style={styles.field}>
         {renderFieldLabel(field)}
         <TextInput
           style={styles.input}
-          placeholder={isNumber ? 'Enter amount' : `Enter ${field.label.toLowerCase()}`}
+          placeholder={
+            isNumber ? 'Enter amount' : `Enter ${field.label.toLowerCase()}`
+          }
           keyboardType={isNumber ? 'numeric' : 'default'}
           value={value}
           onChangeText={text => setFieldValue(field.field_key, text)}
@@ -593,16 +622,7 @@ const CategoryPostForm = ({
           <Text style={styles.stateText}>Loading form...</Text>
         </View>
       ) : loadError ? (
-        <View style={styles.centerState}>
-          <Text style={styles.errorTitle}>{loadError}</Text>
-          <TouchableOpacity
-            onPress={goBack}
-            style={styles.secondaryButton}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryButtonText}>Choose Category</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.centerState} />
       ) : (
         <ScrollView
           style={styles.scroll}
@@ -810,26 +830,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   stateText: { marginTop: 10, color: '#6B7280', fontSize: 13 },
-  errorTitle: {
-    color: '#991B1B',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  secondaryButton: {
-    minHeight: 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: '#217A3C',
-  },
-  secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
   submitError: {
     marginTop: 14,
     color: '#DC2626',

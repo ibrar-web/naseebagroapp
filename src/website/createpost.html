@@ -1,0 +1,2627 @@
+<!-- buyer create demand -->
+<div
+  style="
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+    background: rgb(249, 250, 251);
+    display: flex;
+    flex-direction: column;
+  "
+>
+  <div
+    style="
+      flex: 1 1 0%;
+      overflow: hidden;
+      height: calc(100% - 64px);
+      max-height: calc(100% - 64px);
+    "
+  >
+    <div
+      style="
+        height: 100%;
+        background: rgb(249, 250, 251);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 20px;
+          position: relative;
+          background: rgb(255, 255, 255);
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <button
+          style="
+            background: none;
+            border-width: medium;
+            border-style: none;
+            border-color: currentcolor;
+            border-image: initial;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+          "
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#111827"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12,19 5,12 12,5"></polyline>
+          </svg></button
+        ><span
+          style="
+            font-size: 16px;
+            font-weight: 700;
+            color: rgb(17, 24, 39);
+            font-family: 'IBM Plex Sans', sans-serif;
+          "
+          >Create Demand</span
+        >
+        <div style="display: flex; gap: 8px">
+          <div
+            style="
+              background: rgb(232, 247, 238);
+              border-radius: 8px;
+              padding: 4px 10px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+            "
+          >
+            <span style="font-size: 14px">🌿</span
+            ><span
+              style="font-size: 11px; font-weight: 700; color: rgb(26, 107, 52)"
+              >Cotton</span
+            >
+          </div>
+        </div>
+      </div>
+      <div style="flex: 1 1 0%; overflow-y: auto; padding: 14px 16px 100px">
+        <div
+          style="
+            margin-bottom: 12px;
+            background: rgb(255, 255, 255);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 10px;
+            border: 1.5px solid rgb(243, 244, 246);
+          "
+        >
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 800;
+              color: rgb(17, 24, 39);
+              margin-bottom: 14px;
+            "
+          >
+            Post Details
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 7px;
+              "
+              >Commodity <span style="color: rgb(239, 68, 68)">*</span></label
+            >
+            <div style="position: relative">
+              <select
+                style="
+                  width: 100%;
+                  padding: 11px 32px 11px 12px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 10px;
+                  font-size: 13px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  color: rgb(156, 163, 175);
+                  background: rgb(255, 255, 255);
+                  outline: none;
+                  appearance: none;
+                  box-sizing: border-box;
+                "
+              >
+                <option value="">Select commodity...</option>
+                <option value="Desi Cotton">Desi Cotton</option>
+                <option value="BT Cotton">BT Cotton</option>
+                <option value="American Cotton">American Cotton</option></select
+              ><span
+                style="
+                  position: absolute;
+                  right: 10px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                "
+                ><svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline></svg
+              ></span>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 7px;
+              "
+              >Delivery Option
+              <span style="color: rgb(239, 68, 68)">*</span></label
+            >
+            <div style="display: flex; gap: 8px">
+              <button
+                style="
+                  flex: 1 1 0%;
+                  padding: 12px 8px;
+                  border: 1.5px solid rgb(46, 158, 82);
+                  border-radius: 12px;
+                  background: rgb(242, 251, 245);
+                  cursor: pointer;
+                  text-align: left;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-bottom: 4px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 24px;
+                      height: 24px;
+                      background: rgb(33, 122, 60);
+                      border-radius: 6px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="1" y="3" width="15" height="13"></rect>
+                      <polygon
+                        points="16,8 20,8 23,11 23,16 16,16 16,8"
+                      ></polygon>
+                      <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                      <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                    </svg>
+                  </div>
+                  <span
+                    style="
+                      font-size: 12px;
+                      font-weight: 700;
+                      color: rgb(26, 107, 52);
+                    "
+                    >Delivered</span
+                  >
+                </div>
+                <span style="font-size: 10px; color: rgb(156, 163, 175)"
+                  >You arrange delivery to buyer</span
+                ></button
+              ><button
+                style="
+                  flex: 1 1 0%;
+                  padding: 12px 8px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 12px;
+                  background: rgb(255, 255, 255);
+                  cursor: pointer;
+                  text-align: left;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-bottom: 4px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 24px;
+                      height: 24px;
+                      background: rgb(243, 244, 246);
+                      border-radius: 6px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#9CA3AF"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                      <path
+                        d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"
+                      ></path>
+                      <polyline
+                        points="3.27,6.96 12,12.01 20.73,6.96"
+                      ></polyline>
+                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                  </div>
+                  <span
+                    style="
+                      font-size: 12px;
+                      font-weight: 700;
+                      color: rgb(55, 65, 81);
+                    "
+                    >EX Load</span
+                  >
+                </div>
+                <span style="font-size: 10px; color: rgb(156, 163, 175)"
+                  >Buyer picks up from your location</span
+                >
+              </button>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 7px;
+              "
+            >
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(55, 65, 81);
+                "
+                >Mills
+                <span
+                  style="
+                    font-size: 11px;
+                    color: rgb(156, 163, 175);
+                    font-weight: 400;
+                  "
+                  >(optional — price &amp; qty auto-fill)</span
+                ></label
+              ><span
+                style="
+                  font-size: 11px;
+                  color: rgb(33, 122, 60);
+                  font-weight: 700;
+                "
+                >1 added</span
+              >
+            </div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: rgb(242, 251, 245);
+                border-radius: 11px;
+                padding: 10px 13px;
+                margin-bottom: 8px;
+              "
+            >
+              <div
+                style="
+                  width: 34px;
+                  height: 34px;
+                  background: rgb(232, 247, 238);
+                  border-radius: 9px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                "
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#217A3C"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="7" width="20" height="14" rx="1"></rect>
+                  <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+                </svg>
+              </div>
+              <div style="flex: 1 1 0%">
+                <div
+                  style="
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: rgb(17, 24, 39);
+                  "
+                >
+                  Gujranwala Mill A
+                </div>
+                <div
+                  style="
+                    font-size: 11px;
+                    color: rgb(107, 114, 128);
+                    margin-top: 2px;
+                    display: flex;
+                    gap: 8px;
+                  "
+                >
+                  <span style="display: flex; align-items: center; gap: 3px"
+                    ><svg
+                      width="9"
+                      height="9"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#9CA3AF"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                      ></path>
+                      <circle cx="12" cy="10" r="3"></circle></svg
+                    >Gujranwala</span
+                  ><span style="color: rgb(26, 107, 52); font-weight: 700"
+                    >₨10000/40kg</span
+                  >
+                </div>
+              </div>
+              <button
+                style="
+                  width: 28px;
+                  height: 28px;
+                  background: rgb(254, 226, 226);
+                  border-width: medium;
+                  border-style: none;
+                  border-color: currentcolor;
+                  border-image: initial;
+                  border-radius: 7px;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#EF4444"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div
+              style="
+                background: rgb(249, 250, 251);
+                border: 1.5px dashed rgb(209, 213, 219);
+                border-radius: 12px;
+                padding: 12px;
+                box-sizing: border-box;
+              "
+            >
+              <div
+                style="
+                  font-size: 11px;
+                  font-weight: 700;
+                  color: rgb(107, 114, 128);
+                  margin-bottom: 10px;
+                  letter-spacing: 0.3px;
+                "
+              >
+                ADD A MILL
+              </div>
+              <div style="position: relative; margin-bottom: 6px">
+                <select
+                  style="
+                    width: 100%;
+                    padding: 9px 30px 9px 11px;
+                    border: 1.5px solid rgb(229, 231, 235);
+                    border-radius: 9px;
+                    font-size: 12px;
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    color: rgb(156, 163, 175);
+                    background: rgb(255, 255, 255);
+                    outline: none;
+                    appearance: none;
+                    box-sizing: border-box;
+                  "
+                >
+                  <option value="">Select mill...</option>
+                  <option value="Gujranwala Mill A">Gujranwala Mill A</option>
+                  <option value="Gujranwala Mill B">Gujranwala Mill B</option>
+                  <option value="Faisalabad Mill A">Faisalabad Mill A</option>
+                  <option value="Faisalabad Mill B">Faisalabad Mill B</option>
+                  <option value="Lahore Mill A">Lahore Mill A</option>
+                  <option value="Lahore Mill B">Lahore Mill B</option>
+                  <option value="Multan Mill A">Multan Mill A</option>
+                  <option value="Sahiwal Mill A">Sahiwal Mill A</option>
+                  <option value="Okara Mill A">Okara Mill A</option>
+                  <option value="Rawalpindi Mill A">Rawalpindi Mill A</option>
+                  <option value="other">Other (enter manually)</option></select
+                ><span
+                  style="
+                    position: absolute;
+                    right: 9px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                  "
+                  ><svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9CA3AF"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6,9 12,15 18,9"></polyline></svg
+                ></span>
+              </div>
+              <div style="position: relative; margin-bottom: 6px">
+                <span
+                  style="
+                    position: absolute;
+                    left: 9px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                  "
+                  ><svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9CA3AF"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle></svg></span
+                ><input
+                  placeholder="Location (auto-filled)"
+                  readonly=""
+                  value=""
+                  style="
+                    width: 100%;
+                    padding: 9px 11px 9px 28px;
+                    border: 1.5px solid rgb(229, 231, 235);
+                    border-radius: 9px;
+                    font-size: 12px;
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    outline: none;
+                    box-sizing: border-box;
+                    background: rgb(255, 255, 255);
+                    color: rgb(55, 65, 81);
+                  "
+                />
+              </div>
+              <div style="position: relative; margin-bottom: 6px">
+                <span
+                  style="
+                    position: absolute;
+                    left: 10px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: rgb(156, 163, 175);
+                  "
+                  >₨</span
+                ><input
+                  type="number"
+                  placeholder="Price per 40kg"
+                  value=""
+                  style="
+                    width: 100%;
+                    padding: 9px 11px 9px 24px;
+                    border: 1.5px solid rgb(229, 231, 235);
+                    border-radius: 9px;
+                    font-size: 12px;
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    outline: none;
+                    box-sizing: border-box;
+                    background: rgb(255, 255, 255);
+                  "
+                />
+              </div>
+              <button
+                style="
+                  width: 100%;
+                  padding: 9px;
+                  background: rgb(243, 244, 246);
+                  border-width: medium;
+                  border-style: none;
+                  border-color: currentcolor;
+                  border-image: initial;
+                  border-radius: 9px;
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(156, 163, 175);
+                  cursor: not-allowed;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 5px;
+                "
+                disabled=""
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Mill
+              </button>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 7px;
+              "
+              >Delivery Location</label
+            >
+            <div style="position: relative">
+              <select
+                style="
+                  width: 100%;
+                  padding: 11px 32px 11px 12px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 10px;
+                  font-size: 13px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  color: rgb(156, 163, 175);
+                  background: rgb(255, 255, 255);
+                  outline: none;
+                  appearance: none;
+                  box-sizing: border-box;
+                "
+              >
+                <option value="">Select location...</option>
+                <option value="Lahore">Lahore</option>
+                <option value="Faisalabad">Faisalabad</option>
+                <option value="Multan">Multan</option>
+                <option value="Gujranwala">Gujranwala</option>
+                <option value="Rawalpindi">Rawalpindi</option>
+                <option value="Karachi">Karachi</option>
+                <option value="Okara">Okara</option>
+                <option value="Sahiwal">Sahiwal</option>
+                <option value="Rahim Yar Khan">Rahim Yar Khan</option></select
+              ><span
+                style="
+                  position: absolute;
+                  right: 10px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                "
+                ><svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline></svg
+              ></span>
+            </div>
+          </div>
+          <div>
+            <div style="margin-bottom: 14px">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(55, 65, 81);
+                  display: block;
+                  margin-bottom: 6px;
+                "
+                >Payment Term
+                <span style="color: rgb(239, 68, 68)">*</span></label
+              >
+              <div
+                style="
+                  font-size: 11px;
+                  color: rgb(156, 163, 175);
+                  margin-bottom: 8px;
+                "
+              >
+                Payment is made after delivery is confirmed
+              </div>
+              <div
+                style="
+                  display: flex;
+                  background: rgb(243, 244, 246);
+                  border-radius: 10px;
+                  padding: 3px;
+                  margin-bottom: 10px;
+                "
+              >
+                <button
+                  style="
+                    flex: 1 1 0%;
+                    padding: 9px 0px;
+                    border-width: medium;
+                    border-style: none;
+                    border-color: currentcolor;
+                    border-image: initial;
+                    border-radius: 8px;
+                    background: rgb(255, 255, 255);
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: rgb(17, 24, 39);
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 4px;
+                  "
+                >
+                  Fixed Days</button
+                ><button
+                  style="
+                    flex: 1 1 0%;
+                    padding: 9px 0px;
+                    border-width: medium;
+                    border-style: none;
+                    border-color: currentcolor;
+                    border-image: initial;
+                    border-radius: 8px;
+                    background: transparent;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: rgb(107, 114, 128);
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    box-shadow: none;
+                  "
+                >
+                  Weekly %
+                </button>
+              </div>
+              <div style="position: relative">
+                <select
+                  style="
+                    width: 100%;
+                    padding: 11px 32px 11px 12px;
+                    border: 1.5px solid rgb(46, 158, 82);
+                    border-radius: 10px;
+                    font-size: 13px;
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    color: rgb(17, 24, 39);
+                    background: rgb(255, 255, 255);
+                    outline: none;
+                    appearance: none;
+                    box-sizing: border-box;
+                  "
+                >
+                  <option value="">Pay within how many days?</option>
+                  <option value="full_3">Full payment in 3 days</option>
+                  <option value="full_7">Full payment in 7 days</option>
+                  <option value="full_15">Full payment in 15 days</option>
+                  <option value="full_30">
+                    Full payment in 30 days
+                  </option></select
+                ><span
+                  style="
+                    position: absolute;
+                    right: 10px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                  "
+                  ><svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9CA3AF"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6,9 12,15 18,9"></polyline></svg
+                ></span>
+              </div>
+            </div>
+            <div style="margin-bottom: 14px">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(55, 65, 81);
+                  display: block;
+                  margin-bottom: 4px;
+                "
+                >Delivery Terms
+                <span style="color: rgb(239, 68, 68)">*</span></label
+              >
+              <div
+                style="
+                  font-size: 11px;
+                  color: rgb(156, 163, 175);
+                  margin-bottom: 8px;
+                "
+              >
+                Committed delivery window from deal confirmation. Late delivery
+                triggers a dispute.
+              </div>
+              <div style="position: relative">
+                <select
+                  style="
+                    width: 100%;
+                    padding: 11px 32px 11px 12px;
+                    border: 1.5px solid rgb(46, 158, 82);
+                    border-radius: 10px;
+                    font-size: 13px;
+                    font-family: 'IBM Plex Sans', sans-serif;
+                    color: rgb(17, 24, 39);
+                    background: rgb(255, 255, 255);
+                    outline: none;
+                    appearance: none;
+                    box-sizing: border-box;
+                  "
+                >
+                  <option value="1">1 day</option>
+                  <option value="2">2 days</option>
+                  <option value="3">3 days</option>
+                  <option value="5">5 days</option>
+                  <option value="7">7 days</option>
+                  <option value="10">10 days</option>
+                  <option value="14">14 days</option>
+                  <option value="custom">Custom…</option></select
+                ><span
+                  style="
+                    position: absolute;
+                    right: 10px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                  "
+                  ><svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9CA3AF"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6,9 12,15 18,9"></polyline></svg
+                ></span>
+              </div>
+              <div
+                style="
+                  margin-top: 6px;
+                  font-size: 11px;
+                  color: rgb(26, 107, 52);
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                "
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#217A3C"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+                  <polyline points="22,4 12,14.01 9,11.01"></polyline></svg
+                >Committed to deliver within 5 days of deal creation
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 7px;
+              "
+              >Grade / Quality
+              <span
+                style="
+                  font-size: 11px;
+                  color: rgb(156, 163, 175);
+                  font-weight: 400;
+                "
+                >(multi-select)</span
+              ></label
+            >
+            <div style="display: flex; gap: 7px; flex-wrap: wrap">
+              <button
+                style="
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  background: rgb(255, 255, 255);
+                  color: rgb(75, 85, 99);
+                  font-size: 11px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                Grade A</button
+              ><button
+                style="
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  background: rgb(255, 255, 255);
+                  color: rgb(75, 85, 99);
+                  font-size: 11px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                Grade B</button
+              ><button
+                style="
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  background: rgb(255, 255, 255);
+                  color: rgb(75, 85, 99);
+                  font-size: 11px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                Grade C</button
+              ><button
+                style="
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  background: rgb(255, 255, 255);
+                  color: rgb(75, 85, 99);
+                  font-size: 11px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                Export Quality</button
+              ><button
+                style="
+                  padding: 6px 12px;
+                  border-radius: 20px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  background: rgb(255, 255, 255);
+                  color: rgb(75, 85, 99);
+                  font-size: 11px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                "
+              >
+                Organic
+              </button>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 7px;
+              "
+              >Min Staple Length (mm)</label
+            ><input
+              type="number"
+              placeholder="e.g. 12"
+              value=""
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border: 1.5px solid rgb(229, 231, 235);
+                border-radius: 10px;
+                font-size: 13px;
+                font-family: 'IBM Plex Sans', sans-serif;
+                outline: none;
+                box-sizing: border-box;
+              "
+            />
+          </div>
+          <button
+            disabled=""
+            style="
+              width: 100%;
+              padding: 11px;
+              background: rgb(229, 231, 235);
+              border-width: medium;
+              border-style: none;
+              border-color: currentcolor;
+              border-image: initial;
+              border-radius: 10px;
+              font-size: 13px;
+              font-weight: 700;
+              color: rgb(156, 163, 175);
+              cursor: not-allowed;
+              font-family: 'IBM Plex Sans', sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+            "
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9CA3AF"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line></svg
+            >Save &amp; Add Another
+          </button>
+        </div>
+      </div>
+      <div
+        style="
+          padding: 12px 16px 16px;
+          background: rgb(255, 255, 255);
+          box-shadow: rgba(0, 0, 0, 0.08) 0px -4px 16px;
+        "
+      >
+        <button
+          disabled=""
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: transparent;
+            color: rgb(75, 85, 99);
+            border: 1.5px solid rgb(209, 213, 219);
+            border-radius: 12px;
+            padding: 13px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: not-allowed;
+            width: 100%;
+            box-shadow: none;
+            font-family: 'IBM Plex Sans', sans-serif;
+            letter-spacing: 0.01em;
+            opacity: 0.6;
+            transition: opacity 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+          "
+        >
+          Fill the form above to continue
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    style="
+      height: 64px;
+      flex-shrink: 0;
+      background: rgb(255, 255, 255);
+      border-top: 1px solid rgb(243, 244, 246);
+      display: flex;
+      align-items: center;
+      padding: 0px 0px 8px;
+      box-shadow: rgba(0, 0, 0, 0.08) 0px -4px 20px;
+      z-index: 100;
+    "
+  >
+    <button
+      style="
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        background: none;
+        cursor: pointer;
+        padding: 6px 0px 0px;
+      "
+    >
+      <div
+        style="
+          width: 36px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: transparent;
+          transition: background 0.2s;
+        "
+      >
+        <svg
+          width="19"
+          height="19"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9CA3AF"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+          <polyline points="9,22 9,12 15,12 15,22"></polyline>
+        </svg>
+      </div>
+      <span style="font-size: 10px; font-weight: 500; color: rgb(156, 163, 175)"
+        >Home</span
+      ></button
+    ><button
+      style="
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        background: none;
+        cursor: pointer;
+        padding: 6px 0px 0px;
+      "
+    >
+      <div
+        style="
+          width: 36px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: transparent;
+          transition: background 0.2s;
+        "
+      >
+        <svg
+          width="19"
+          height="19"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9CA3AF"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 01-8 0"></path>
+        </svg>
+      </div>
+      <span style="font-size: 10px; font-weight: 500; color: rgb(156, 163, 175)"
+        >Market</span
+      ></button
+    ><button
+      style="
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        background: none;
+        cursor: pointer;
+        padding: 6px 0px 0px;
+      "
+    >
+      <div
+        style="
+          width: 36px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: transparent;
+          transition: background 0.2s;
+        "
+      >
+        <svg
+          width="19"
+          height="19"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9CA3AF"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <path d="M8 21h8"></path>
+          <path d="M12 17v4"></path>
+          <path d="M7 10l3 3 4-4"></path>
+        </svg>
+      </div>
+      <span style="font-size: 10px; font-weight: 500; color: rgb(156, 163, 175)"
+        >Deals</span
+      ></button
+    ><button
+      style="
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        background: none;
+        cursor: pointer;
+        padding: 6px 0px 0px;
+      "
+    >
+      <div
+        style="
+          width: 36px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: transparent;
+          transition: background 0.2s;
+        "
+      >
+        <svg
+          width="19"
+          height="19"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9CA3AF"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+      </div>
+      <span style="font-size: 10px; font-weight: 500; color: rgb(156, 163, 175)"
+        >Posts</span
+      ></button
+    ><button
+      style="
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        background: none;
+        cursor: pointer;
+        padding: 6px 0px 0px;
+      "
+    >
+      <div
+        style="
+          width: 36px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: transparent;
+          transition: background 0.2s;
+        "
+      >
+        <svg
+          width="19"
+          height="19"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9CA3AF"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <span style="font-size: 10px; font-weight: 500; color: rgb(156, 163, 175)"
+        >Profile</span
+      >
+    </button>
+  </div>
+</div>
+
+<!-- seller create supply -->
+<div
+  style="
+    flex: 1 1 0%;
+    overflow: hidden;
+    height: calc(100% - 64px);
+    max-height: calc(100% - 64px);
+  "
+>
+  <div
+    style="
+      height: 100%;
+      background: rgb(249, 250, 251);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    "
+  >
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        position: relative;
+        background: rgb(255, 255, 255);
+        border-bottom: 1px solid rgb(243, 244, 246);
+      "
+    >
+      <button
+        style="
+          background: none;
+          border-width: medium;
+          border-style: none;
+          border-color: currentcolor;
+          border-image: initial;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+        "
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#111827"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12,19 5,12 12,5"></polyline>
+        </svg></button
+      ><span
+        style="
+          font-size: 16px;
+          font-weight: 700;
+          color: rgb(17, 24, 39);
+          font-family: 'IBM Plex Sans', sans-serif;
+        "
+        >Create Supply</span
+      >
+      <div style="display: flex; gap: 8px">
+        <div
+          style="
+            background: rgb(232, 247, 238);
+            border-radius: 8px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          "
+        >
+          <span style="font-size: 14px">🌿</span
+          ><span
+            style="font-size: 11px; font-weight: 700; color: rgb(26, 107, 52)"
+            >Cotton</span
+          >
+        </div>
+      </div>
+    </div>
+    <div style="flex: 1 1 0%; overflow-y: auto; padding: 14px 16px 100px">
+      <div
+        style="
+          margin-bottom: 12px;
+          background: rgb(255, 255, 255);
+          border-radius: 16px;
+          padding: 16px;
+          box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 10px;
+          border: 1.5px solid rgb(243, 244, 246);
+        "
+      >
+        <div
+          style="
+            font-size: 13px;
+            font-weight: 800;
+            color: rgb(17, 24, 39);
+            margin-bottom: 14px;
+          "
+        >
+          Listing Details
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Commodity <span style="color: rgb(239, 68, 68)">*</span></label
+          >
+          <div style="position: relative">
+            <select
+              style="
+                width: 100%;
+                padding: 11px 32px 11px 12px;
+                border: 1.5px solid rgb(229, 231, 235);
+                border-radius: 10px;
+                font-size: 13px;
+                font-family: 'IBM Plex Sans', sans-serif;
+                color: rgb(156, 163, 175);
+                background: rgb(255, 255, 255);
+                outline: none;
+                appearance: none;
+                box-sizing: border-box;
+              "
+            >
+              <option value="">Select commodity...</option>
+              <option value="Desi Cotton">Desi Cotton</option>
+              <option value="BT Cotton">BT Cotton</option>
+              <option value="American Cotton">American Cotton</option></select
+            ><span
+              style="
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                pointer-events: none;
+              "
+              ><svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9CA3AF"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6,9 12,15 18,9"></polyline></svg
+            ></span>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 7px;
+            "
+          >
+            <label
+              style="font-size: 12px; font-weight: 700; color: rgb(55, 65, 81)"
+              >Mills
+              <span
+                style="
+                  font-size: 11px;
+                  color: rgb(156, 163, 175);
+                  font-weight: 400;
+                "
+                >(optional — price &amp; qty auto-fill)</span
+              ></label
+            >
+          </div>
+          <div
+            style="
+              background: rgb(249, 250, 251);
+              border: 1.5px dashed rgb(209, 213, 219);
+              border-radius: 12px;
+              padding: 12px;
+              box-sizing: border-box;
+            "
+          >
+            <div
+              style="
+                font-size: 11px;
+                font-weight: 700;
+                color: rgb(107, 114, 128);
+                margin-bottom: 10px;
+                letter-spacing: 0.3px;
+              "
+            >
+              ADD A MILL
+            </div>
+            <div style="position: relative; margin-bottom: 6px">
+              <select
+                style="
+                  width: 100%;
+                  padding: 9px 30px 9px 11px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 9px;
+                  font-size: 12px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  color: rgb(156, 163, 175);
+                  background: rgb(255, 255, 255);
+                  outline: none;
+                  appearance: none;
+                  box-sizing: border-box;
+                "
+              >
+                <option value="">Select mill...</option>
+                <option value="Gujranwala Mill A">Gujranwala Mill A</option>
+                <option value="Gujranwala Mill B">Gujranwala Mill B</option>
+                <option value="Faisalabad Mill A">Faisalabad Mill A</option>
+                <option value="Faisalabad Mill B">Faisalabad Mill B</option>
+                <option value="Lahore Mill A">Lahore Mill A</option>
+                <option value="Lahore Mill B">Lahore Mill B</option>
+                <option value="Multan Mill A">Multan Mill A</option>
+                <option value="Sahiwal Mill A">Sahiwal Mill A</option>
+                <option value="Okara Mill A">Okara Mill A</option>
+                <option value="Rawalpindi Mill A">Rawalpindi Mill A</option>
+                <option value="other">Other (enter manually)</option></select
+              ><span
+                style="
+                  position: absolute;
+                  right: 9px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                "
+                ><svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline></svg
+              ></span>
+            </div>
+            <div style="position: relative; margin-bottom: 6px">
+              <span
+                style="
+                  position: absolute;
+                  left: 9px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                "
+                ><svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle></svg></span
+              ><input
+                placeholder="Location (auto-filled)"
+                readonly=""
+                value=""
+                style="
+                  width: 100%;
+                  padding: 9px 11px 9px 28px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 9px;
+                  font-size: 12px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  outline: none;
+                  box-sizing: border-box;
+                  background: rgb(255, 255, 255);
+                  color: rgb(55, 65, 81);
+                "
+              />
+            </div>
+            <div style="position: relative; margin-bottom: 6px">
+              <span
+                style="
+                  position: absolute;
+                  left: 10px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(156, 163, 175);
+                "
+                >₨</span
+              ><input
+                type="number"
+                placeholder="Price per 40kg"
+                value=""
+                style="
+                  width: 100%;
+                  padding: 9px 11px 9px 24px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 9px;
+                  font-size: 12px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  outline: none;
+                  box-sizing: border-box;
+                  background: rgb(255, 255, 255);
+                "
+              />
+            </div>
+            <button
+              disabled=""
+              style="
+                width: 100%;
+                padding: 9px;
+                background: rgb(243, 244, 246);
+                border-width: medium;
+                border-style: none;
+                border-color: currentcolor;
+                border-image: initial;
+                border-radius: 9px;
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(156, 163, 175);
+                cursor: not-allowed;
+                font-family: 'IBM Plex Sans', sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+              "
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9CA3AF"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Mill
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Price per 40kg (PKR)
+            <span style="color: rgb(239, 68, 68)">*</span></label
+          >
+          <div style="position: relative">
+            <span
+              style="
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 13px;
+                font-weight: 700;
+                color: rgb(156, 163, 175);
+              "
+              >₨</span
+            ><input
+              type="number"
+              placeholder="e.g. 4200"
+              value=""
+              style="
+                width: 100%;
+                padding: 11px 12px 11px 28px;
+                border: 1.5px solid rgb(229, 231, 235);
+                border-radius: 10px;
+                font-size: 13px;
+                font-family: 'IBM Plex Sans', sans-serif;
+                color: rgb(17, 24, 39);
+                outline: none;
+                box-sizing: border-box;
+              "
+            />
+          </div>
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Available Quantity (bags)
+            <span style="color: rgb(239, 68, 68)">*</span></label
+          ><input
+            type="number"
+            placeholder="e.g. 500"
+            value=""
+            style="
+              width: 100%;
+              padding: 11px 12px;
+              border: 1.5px solid rgb(229, 231, 235);
+              border-radius: 10px;
+              font-size: 13px;
+              font-family: 'IBM Plex Sans', sans-serif;
+              color: rgb(17, 24, 39);
+              outline: none;
+              box-sizing: border-box;
+            "
+          />
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Pickup Location
+            <span style="color: rgb(239, 68, 68)">*</span></label
+          >
+          <div style="position: relative">
+            <select
+              style="
+                width: 100%;
+                padding: 11px 32px 11px 12px;
+                border: 1.5px solid rgb(229, 231, 235);
+                border-radius: 10px;
+                font-size: 13px;
+                font-family: 'IBM Plex Sans', sans-serif;
+                color: rgb(156, 163, 175);
+                background: rgb(255, 255, 255);
+                outline: none;
+                appearance: none;
+                box-sizing: border-box;
+              "
+            >
+              <option value="">Select location...</option>
+              <option value="Lahore">Lahore</option>
+              <option value="Faisalabad">Faisalabad</option>
+              <option value="Multan">Multan</option>
+              <option value="Gujranwala">Gujranwala</option>
+              <option value="Rawalpindi">Rawalpindi</option>
+              <option value="Karachi">Karachi</option>
+              <option value="Okara">Okara</option>
+              <option value="Sahiwal">Sahiwal</option>
+              <option value="Rahim Yar Khan">Rahim Yar Khan</option></select
+            ><span
+              style="
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                pointer-events: none;
+              "
+              ><svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9CA3AF"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6,9 12,15 18,9"></polyline></svg
+            ></span>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 6px;
+              "
+              >Payment Term
+              <span style="color: rgb(239, 68, 68)">*</span></label
+            >
+            <div
+              style="
+                font-size: 11px;
+                color: rgb(156, 163, 175);
+                margin-bottom: 8px;
+              "
+            >
+              Payment is made after delivery is confirmed
+            </div>
+            <div
+              style="
+                display: flex;
+                background: rgb(243, 244, 246);
+                border-radius: 10px;
+                padding: 3px;
+                margin-bottom: 10px;
+              "
+            >
+              <button
+                style="
+                  flex: 1 1 0%;
+                  padding: 9px 0px;
+                  border-width: medium;
+                  border-style: none;
+                  border-color: currentcolor;
+                  border-image: initial;
+                  border-radius: 8px;
+                  background: rgb(255, 255, 255);
+                  cursor: pointer;
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(17, 24, 39);
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 4px;
+                "
+              >
+                Fixed Days</button
+              ><button
+                style="
+                  flex: 1 1 0%;
+                  padding: 9px 0px;
+                  border-width: medium;
+                  border-style: none;
+                  border-color: currentcolor;
+                  border-image: initial;
+                  border-radius: 8px;
+                  background: transparent;
+                  cursor: pointer;
+                  font-size: 12px;
+                  font-weight: 500;
+                  color: rgb(107, 114, 128);
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  box-shadow: none;
+                "
+              >
+                Weekly %
+              </button>
+            </div>
+            <div style="position: relative">
+              <select
+                style="
+                  width: 100%;
+                  padding: 11px 32px 11px 12px;
+                  border: 1.5px solid rgb(229, 231, 235);
+                  border-radius: 10px;
+                  font-size: 13px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  color: rgb(156, 163, 175);
+                  background: rgb(255, 255, 255);
+                  outline: none;
+                  appearance: none;
+                  box-sizing: border-box;
+                "
+              >
+                <option value="">Pay within how many days?</option>
+                <option value="full_3">Full payment in 3 days</option>
+                <option value="full_7">Full payment in 7 days</option>
+                <option value="full_15">Full payment in 15 days</option>
+                <option value="full_30">Full payment in 30 days</option></select
+              ><span
+                style="
+                  position: absolute;
+                  right: 10px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                "
+                ><svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline></svg
+              ></span>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(55, 65, 81);
+                display: block;
+                margin-bottom: 4px;
+              "
+              >Delivery Terms
+              <span style="color: rgb(239, 68, 68)">*</span></label
+            >
+            <div
+              style="
+                font-size: 11px;
+                color: rgb(156, 163, 175);
+                margin-bottom: 8px;
+              "
+            >
+              Committed delivery window from deal confirmation. Late delivery
+              triggers a dispute.
+            </div>
+            <div style="position: relative">
+              <select
+                style="
+                  width: 100%;
+                  padding: 11px 32px 11px 12px;
+                  border: 1.5px solid rgb(46, 158, 82);
+                  border-radius: 10px;
+                  font-size: 13px;
+                  font-family: 'IBM Plex Sans', sans-serif;
+                  color: rgb(17, 24, 39);
+                  background: rgb(255, 255, 255);
+                  outline: none;
+                  appearance: none;
+                  box-sizing: border-box;
+                "
+              >
+                <option value="1">1 day</option>
+                <option value="2">2 days</option>
+                <option value="3">3 days</option>
+                <option value="5">5 days</option>
+                <option value="7">7 days</option>
+                <option value="10">10 days</option>
+                <option value="14">14 days</option>
+                <option value="custom">Custom…</option></select
+              ><span
+                style="
+                  position: absolute;
+                  right: 10px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                "
+                ><svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline></svg
+              ></span>
+            </div>
+            <div
+              style="
+                margin-top: 6px;
+                font-size: 11px;
+                color: rgb(26, 107, 52);
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              "
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#217A3C"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+                <polyline points="22,4 12,14.01 9,11.01"></polyline></svg
+              >Committed to deliver within 1 day of deal creation
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Grade / Quality
+            <span
+              style="
+                font-size: 11px;
+                color: rgb(156, 163, 175);
+                font-weight: 400;
+              "
+              >(multi-select)</span
+            ></label
+          >
+          <div style="display: flex; gap: 7px; flex-wrap: wrap">
+            <button
+              style="
+                padding: 6px 12px;
+                border-radius: 20px;
+                border: 1.5px solid rgb(229, 231, 235);
+                background: rgb(255, 255, 255);
+                color: rgb(75, 85, 99);
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'IBM Plex Sans', sans-serif;
+              "
+            >
+              Grade A</button
+            ><button
+              style="
+                padding: 6px 12px;
+                border-radius: 20px;
+                border: 1.5px solid rgb(229, 231, 235);
+                background: rgb(255, 255, 255);
+                color: rgb(75, 85, 99);
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'IBM Plex Sans', sans-serif;
+              "
+            >
+              Grade B</button
+            ><button
+              style="
+                padding: 6px 12px;
+                border-radius: 20px;
+                border: 1.5px solid rgb(229, 231, 235);
+                background: rgb(255, 255, 255);
+                color: rgb(75, 85, 99);
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'IBM Plex Sans', sans-serif;
+              "
+            >
+              Grade C</button
+            ><button
+              style="
+                padding: 6px 12px;
+                border-radius: 20px;
+                border: 1.5px solid rgb(229, 231, 235);
+                background: rgb(255, 255, 255);
+                color: rgb(75, 85, 99);
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'IBM Plex Sans', sans-serif;
+              "
+            >
+              Export Quality</button
+            ><button
+              style="
+                padding: 6px 12px;
+                border-radius: 20px;
+                border: 1.5px solid rgb(229, 231, 235);
+                background: rgb(255, 255, 255);
+                color: rgb(75, 85, 99);
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: 'IBM Plex Sans', sans-serif;
+              "
+            >
+              Organic
+            </button>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Staple Length (mm)</label
+          ><input
+            type="number"
+            placeholder="e.g. 12"
+            value=""
+            style="
+              width: 100%;
+              padding: 10px 12px;
+              border: 1.5px solid rgb(229, 231, 235);
+              border-radius: 10px;
+              font-size: 13px;
+              font-family: 'IBM Plex Sans', sans-serif;
+              outline: none;
+              box-sizing: border-box;
+            "
+          />
+        </div>
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 7px;
+            "
+            >Supply Condition
+            <span
+              style="
+                font-size: 11px;
+                color: rgb(156, 163, 175);
+                font-weight: 400;
+              "
+              >(optional)</span
+            ></label
+          ><select
+            style="
+              width: 100%;
+              padding: 11px 12px;
+              border: 1.5px solid rgb(229, 231, 235);
+              border-radius: 10px;
+              font-size: 13px;
+              font-family: 'IBM Plex Sans', sans-serif;
+              color: rgb(156, 163, 175);
+              background: rgb(255, 255, 255);
+              outline: none;
+              appearance: none;
+              box-sizing: border-box;
+            "
+          >
+            <option value="">Select condition...</option>
+            <option>Fresh season stock — just harvested</option>
+            <option>Dry-stored · Warehouse verified</option>
+            <option>Government grade standard</option>
+            <option>Export quality certified</option>
+            <option>Organic / pesticide-free</option>
+          </select>
+        </div>
+        <button
+          disabled=""
+          style="
+            width: 100%;
+            padding: 11px;
+            background: rgb(229, 231, 235);
+            border-width: medium;
+            border-style: none;
+            border-color: currentcolor;
+            border-image: initial;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: rgb(156, 163, 175);
+            cursor: not-allowed;
+            font-family: 'IBM Plex Sans', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+          "
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#9CA3AF"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line></svg
+          >Save &amp; Add Another
+        </button>
+      </div>
+    </div>
+    <div
+      style="
+        padding: 12px 16px 16px;
+        background: rgb(255, 255, 255);
+        box-shadow: rgba(0, 0, 0, 0.08) 0px -4px 16px;
+      "
+    >
+      <button
+        disabled=""
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background: transparent;
+          color: rgb(75, 85, 99);
+          border: 1.5px solid rgb(209, 213, 219);
+          border-radius: 12px;
+          padding: 13px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: not-allowed;
+          width: 100%;
+          box-shadow: none;
+          font-family: 'IBM Plex Sans', sans-serif;
+          letter-spacing: 0.01em;
+          opacity: 0.6;
+          transition: opacity 0.15s, transform 0.1s;
+          -webkit-tap-highlight-color: transparent;
+        "
+      >
+        Fill the form above to continue
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- post success screen Title for buyer and selleer af rdifferent for this page fo sleer Supply Submitted and for buyer REquest Submited -->
+
+<div
+  style="
+    flex: 1 1 0%;
+    overflow: hidden;
+    height: calc(100% - 64px);
+    max-height: calc(100% - 64px);
+  "
+>
+  <div
+    style="
+      height: 100%;
+      background: rgb(255, 255, 255);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    "
+  >
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        position: relative;
+        background: rgb(255, 255, 255);
+        border-bottom: 1px solid rgb(243, 244, 246);
+      "
+    >
+      <button
+        style="
+          background: none;
+          border-width: medium;
+          border-style: none;
+          border-color: currentcolor;
+          border-image: initial;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+        "
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#111827"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12,19 5,12 12,5"></polyline>
+        </svg></button
+      ><span
+        style="
+          font-size: 16px;
+          font-weight: 700;
+          color: rgb(17, 24, 39);
+          font-family: 'IBM Plex Sans', sans-serif;
+        "
+        >Demand Submitted</span
+      >
+      <div style="display: flex; gap: 8px"><div style="width: 30px"></div></div>
+    </div>
+    <div
+      style="
+        flex: 1 1 0%;
+        overflow-y: auto;
+        padding: 16px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          width: 88px;
+          height: 88px;
+          background: rgb(232, 247, 238);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 12px 0px 16px;
+          box-shadow: rgb(242, 251, 245) 0px 0px 0px 14px;
+        "
+      >
+        <svg
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#2E9E52"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+          <polyline points="22,4 12,14.01 9,11.01"></polyline>
+        </svg>
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: rgb(17, 24, 39)">
+        Request Submitted!(seller) Demand submitted(for buyer)
+      </div>
+      <div
+        style="
+          font-size: 13px;
+          color: rgb(107, 114, 128);
+          text-align: center;
+          line-height: 1.6;
+          margin-top: 8px;
+        "
+      >
+        The Naseeb team will review and respond within
+        <strong>2–4 hours</strong>.
+      </div>
+      <div
+        style="
+          width: 100%;
+          background: rgb(249, 250, 251);
+          border-radius: 14px;
+          padding: 16px;
+          margin-top: 18px;
+          margin-bottom: 18px;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)"
+            >Request ID</span
+          ><span
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+            >REQ-2024-089</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)"
+            >Listing Ref.</span
+          ><span
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+            >LST-2024-001</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)"
+            >Commodity</span
+          ><span
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+            >Basmati Rice</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)"
+            >Quantity</span
+          ><span
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+            >100 bags</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)">Status</span
+          ><span
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 5px;
+              background: rgb(243, 244, 246);
+              color: rgb(75, 85, 99);
+              border-radius: 20px;
+              padding: 2px 8px;
+              font-size: 11px;
+              font-weight: 600;
+            "
+            ><span
+              style="
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: rgb(156, 163, 175);
+                flex-shrink: 0;
+              "
+            ></span
+            >Submitted</span
+          >
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0px;
+            border-bottom: 1px solid rgb(229, 231, 235);
+          "
+        >
+          <span style="font-size: 13px; color: rgb(107, 114, 128)"
+            >Submitted</span
+          ><span
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+            >Just now</span
+          >
+        </div>
+      </div>
+      <div
+        style="width: 100%; display: flex; flex-direction: column; gap: 10px"
+      >
+        <button
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(
+              135deg,
+              rgb(33, 122, 60),
+              rgb(26, 107, 52)
+            );
+            color: rgb(255, 255, 255);
+            border-width: medium;
+            border-style: none;
+            border-color: currentcolor;
+            border-image: initial;
+            border-radius: 12px;
+            padding: 13px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: rgba(46, 158, 82, 0.267) 0px 4px 12px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            letter-spacing: 0.01em;
+            opacity: 1;
+            transition: opacity 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+          "
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line></svg
+          >Track My Request</button
+        ><button
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: transparent;
+            color: rgb(26, 107, 52);
+            border: 1.5px solid rgb(46, 158, 82);
+            border-radius: 12px;
+            padding: 13px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: none;
+            font-family: 'IBM Plex Sans', sans-serif;
+            letter-spacing: 0.01em;
+            opacity: 1;
+            transition: opacity 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+          "
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#1A6B34"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 01-8 0"></path></svg
+          >Browse More Listings</button
+        ><button
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: transparent;
+            color: rgb(75, 85, 99);
+            border: 1.5px solid rgb(209, 213, 219);
+            border-radius: 12px;
+            padding: 13px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: none;
+            font-family: 'IBM Plex Sans', sans-serif;
+            letter-spacing: 0.01em;
+            opacity: 1;
+            transition: opacity 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+          "
+        >
+          Back to Home
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

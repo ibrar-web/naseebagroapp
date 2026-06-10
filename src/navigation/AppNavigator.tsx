@@ -47,6 +47,7 @@ import NegotiationScreen from '../app/posts/screens/NegotiationScreen';
 import PrePostScreen from '../app/posts/screens/PrePostScreen';
 import CreatePostSellerScreen from '../app/posts/screens/CreatePostSellerScreen';
 import CreateBuyerDemandScreen from '../app/posts/screens/CreateBuyerDemandScreen';
+import PostCreatedScreen from '../app/posts/screens/PostCreatedScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
@@ -222,6 +223,7 @@ export const AppNavigator = () => {
             name="CreateBuyerDemand"
             component={CreateBuyerDemandScreen}
           />
+          <Stack.Screen name="PostCreated" component={PostCreatedScreen} />
           <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
           <Stack.Screen
             name="CommodityDetail"

@@ -117,7 +117,7 @@ export const api = {
       Get(byId('public/buyer/form', id), undefined),
     // submit demand request
     createBuyDemandPost: (data?: any) =>
-      Post('buyer/demand/create', data, protectedRequest),
+      Post('buyer/demands/create', data, protectedRequest),
   },
 
   seller: {

@@ -151,11 +151,7 @@ const findArray = (body: any, keys: string[]) => {
   return [];
 };
 
-const rowValue = (
-  rows: any[],
-  keys: string[],
-  fallback: any,
-): string => {
+const rowValue = (rows: any[], keys: string[], fallback: any): string => {
   const match = rows.find(row =>
     keys.some(key =>
       String(firstValue(row.key, row.label, row.name) ?? '')
@@ -274,7 +270,12 @@ const normalizePostDetail = (
 
   return {
     id: stringify(
-      firstValue(payload.id, payload.post_id, payload.demand_id, payload.supply_id),
+      firstValue(
+        payload.id,
+        payload.post_id,
+        payload.demand_id,
+        payload.supply_id,
+      ),
       id,
     ),
     code: stringify(
@@ -311,15 +312,26 @@ const normalizePostDetail = (
       ) ?? `https://placehold.co/600x400?text=${encodeURIComponent(title)}`,
     fallback: FALLBACK_COLORS[0],
     details: {
-      commodity: stringify(firstValue(payload.commodity?.name, payload.commodity_name, title), title),
+      commodity: stringify(
+        firstValue(payload.commodity?.name, payload.commodity_name, title),
+        title,
+      ),
       category: stringify(
-        firstValue(payload.commodity?.category?.name, payload.category?.name, payload.category_name),
+        firstValue(
+          payload.commodity?.category?.name,
+          payload.category?.name,
+          payload.category_name,
+        ),
         'Not provided',
       ),
       quantity: rowValue(
         rows,
         ['quantity', 'stock', 'available'],
-        firstValue(payload.quantity_label, payload.total_quantity_label, payload.quantity),
+        firstValue(
+          payload.quantity_label,
+          payload.total_quantity_label,
+          payload.quantity,
+        ),
       ),
       priceRange: rowValue(rows, ['price', 'budget'], priceDisplay(payload)),
       deliveryCity: rowValue(
@@ -461,11 +473,15 @@ const SellerOfferCard = ({
       onPress={onPress}
     >
       <View style={[styles.sellerOfferHeader, { backgroundColor: config.bg }]}>
-        <View style={[styles.sellerOfferDot, { backgroundColor: config.dot }]} />
+        <View
+          style={[styles.sellerOfferDot, { backgroundColor: config.dot }]}
+        />
         <Text style={[styles.sellerOfferStatus, { color: config.text }]}>
           {offer.status}
         </Text>
-        <Text style={styles.sellerOfferTime}>{formatDateLabel(offer.time)}</Text>
+        <Text style={styles.sellerOfferTime}>
+          {formatDateLabel(offer.time)}
+        </Text>
       </View>
 
       <View style={styles.sellerOfferBody}>
@@ -553,6 +569,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           ? await api.buyer.myDemandDetails(postId)
           : await api.seller.myPostDetails(postId);
         const normalized = normalizePostDetail(response, postId, mode);
+        console.log('post detail response ;', response);
         if (active) {
           setPost(normalized);
         }
@@ -635,7 +652,10 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
         <DetailRow label="Category" value={post.details.category} />
         <DetailRow label="Quantity" value={post.details.quantity} />
         <DetailRow label="Price Range" value={post.details.priceRange} />
-        <DetailRow label={isBuyer ? 'Delivery City' : 'Pickup City'} value={post.details.deliveryCity} />
+        <DetailRow
+          label={isBuyer ? 'Delivery City' : 'Pickup City'}
+          value={post.details.deliveryCity}
+        />
         <DetailRow label="Delivery Date" value={post.details.deliveryDate} />
         <DetailRow label="Payment Terms" value={post.details.paymentTerms} />
         <DetailRow label="Quality" value={post.details.quality} />
@@ -654,10 +674,30 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   const renderOffers = () => (
     <View>
       <View style={styles.offerStatsRow}>
-        <OfferStat value={offerStats.total} label="TOTAL" bg="#F9FAFB" color="#374151" />
-        <OfferStat value={offerStats.new} label="NEW" bg="#EEF6FF" color="#3B82F6" />
-        <OfferStat value={offerStats.accepted} label="ACCEPTED" bg="#E8F7EE" color="#1A6B34" />
-        <OfferStat value={offerStats.rejected} label="REJECTED" bg="#FEE2E2" color="#EF4444" />
+        <OfferStat
+          value={offerStats.total}
+          label="TOTAL"
+          bg="#F9FAFB"
+          color="#374151"
+        />
+        <OfferStat
+          value={offerStats.new}
+          label="NEW"
+          bg="#EEF6FF"
+          color="#3B82F6"
+        />
+        <OfferStat
+          value={offerStats.accepted}
+          label="ACCEPTED"
+          bg="#E8F7EE"
+          color="#1A6B34"
+        />
+        <OfferStat
+          value={offerStats.rejected}
+          label="REJECTED"
+          bg="#FEE2E2"
+          color="#EF4444"
+        />
       </View>
 
       {post.offers.length === 0 ? (
@@ -687,7 +727,11 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <MockStatusBar absolute backgroundColor="transparent" textColor="#FFFFFF" />
+        <MockStatusBar
+          absolute
+          backgroundColor="transparent"
+          textColor="#FFFFFF"
+        />
         <ImageBackground
           source={{ uri: post.image }}
           style={styles.heroImage}
@@ -705,8 +749,12 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           </TouchableOpacity>
 
           <View style={styles.heroRightActions}>
-            <View style={[styles.heroStatusBadge, { backgroundColor: status.bg }]}>
-              <View style={[styles.heroStatusDot, { backgroundColor: status.dot }]} />
+            <View
+              style={[styles.heroStatusBadge, { backgroundColor: status.bg }]}
+            >
+              <View
+                style={[styles.heroStatusDot, { backgroundColor: status.dot }]}
+              />
               <Text style={[styles.heroStatusText, { color: status.text }]}>
                 {post.status}
               </Text>
@@ -733,7 +781,9 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
               style={[styles.tabItem, isActive && styles.tabItemActive]}
               activeOpacity={0.75}
             >
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+              <Text
+                style={[styles.tabLabel, isActive && styles.tabLabelActive]}
+              >
                 {tab === 'Offers Received'
                   ? `Offers Received (${post.offers.length})`
                   : tab}
@@ -825,7 +875,13 @@ const styles = StyleSheet.create({
   },
   heroStatusDot: { width: 5, height: 5, borderRadius: 3 },
   heroStatusText: { fontSize: 10, fontWeight: '800' },
-  heroBottom: { position: 'absolute', bottom: 14, left: 16, right: 16, zIndex: 3 },
+  heroBottom: {
+    position: 'absolute',
+    bottom: 14,
+    left: 16,
+    right: 16,
+    zIndex: 3,
+  },
   heroId: {
     fontSize: 9,
     color: 'rgba(255,255,255,0.5)',
@@ -863,7 +919,12 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
   },
   offerStatValue: { fontSize: 18, fontWeight: '900' },
-  offerStatLabel: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', marginTop: 2 },
+  offerStatLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
   sellerOfferList: { gap: 10 },
   sellerOfferCard: {
     backgroundColor: '#FFFFFF',
@@ -902,7 +963,12 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   sellerOfferMill: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  sellerOfferPrice: { fontSize: 17, fontWeight: '900', color: '#1A6B34', marginTop: 2 },
+  sellerOfferPrice: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#1A6B34',
+    marginTop: 2,
+  },
   sellerOfferRight: { alignItems: 'flex-end', gap: 4 },
   sellerOfferQty: { fontSize: 12, color: '#6B7280' },
   offerChipsRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
@@ -937,7 +1003,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: '#111827', marginBottom: 10 },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 10,
+  },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

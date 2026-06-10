@@ -310,10 +310,12 @@ export const normalizeOfferItem = (
     ),
     status,
     role,
-    actionText: stringify(
-      firstValue(item.action_label, item.next_action_label),
-      status.toLowerCase().includes('counter') ? 'Respond' : 'View detail',
-    ),
+    actionText: stringify(firstValue(item.action_label, item.next_action_label), (() => {
+      const s = status.toLowerCase();
+      if (s.includes('counter') || s.includes('awaiting')) return 'Counter received — respond';
+      if (s.includes('accepted')) return 'View Deal →';
+      return 'View detail';
+    })()),
   };
 };
 
@@ -346,7 +348,7 @@ export const offerStatusConfig = (status: string) => {
       headerBg: '#FEF3C7',
       dot: '#E8A838',
       text: '#92400E',
-      actionColor: '#D97706',
+      actionColor: '#F3CD03',
       respond: true,
     };
   if (n.includes('accepted'))
@@ -467,6 +469,11 @@ export const OfferCard = ({
   onPress: () => void;
 }) => {
   const config = offerStatusConfig(item.status);
+  const isYourOffer = item.role.toLowerCase().includes('your') || item.role.toLowerCase().includes('buyer');
+  const roleEmoji = isYourOffer ? '🛒' : '📦';
+  const roleLabel = isYourOffer ? 'YOUR OFFER' : item.role.toUpperCase();
+  const roleLabelColor = isYourOffer ? '#3B82F6' : '#217A3C';
+  const isAccepted = item.status.toLowerCase().includes('accepted');
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -480,21 +487,14 @@ export const OfferCard = ({
       ]}
       activeOpacity={0.88}
     >
-      <View
-        style={[
-          cardStyles.offerListHeader,
-          { backgroundColor: config.headerBg },
-        ]}
-      >
-        <View
-          style={[cardStyles.offerStatusDot, { backgroundColor: config.dot }]}
-        />
+      <View style={[cardStyles.offerListHeader, { backgroundColor: config.headerBg }]}>
+        <View style={[cardStyles.offerStatusDot, { backgroundColor: config.dot }]} />
         <Text style={[cardStyles.offerListStatus, { color: config.text }]}>
           {item.status}
         </Text>
         <View style={cardStyles.offerRolePill}>
-          <AppIcon name="business" size={11} color="#217A3C" />
-          <Text style={cardStyles.offerRoleText}>{item.role}</Text>
+          <Text style={cardStyles.offerRoleEmoji}>{roleEmoji}</Text>
+          <Text style={[cardStyles.offerRoleText, { color: roleLabelColor }]}>{roleLabel}</Text>
         </View>
         {config.respond ? (
           <View style={cardStyles.respondPill}>
@@ -522,7 +522,7 @@ export const OfferCard = ({
             </Text>
             {item.counterPrice ? (
               <Text style={cardStyles.offerCounterPrice} numberOfLines={1}>
-                {item.counterPrice}
+                {item.counterPrice.startsWith('↔') ? item.counterPrice : `↔ ${item.counterPrice}`}
               </Text>
             ) : null}
             <Text style={cardStyles.offerQty}>{item.qty}</Text>
@@ -532,20 +532,11 @@ export const OfferCard = ({
           <Text style={cardStyles.offerSent}>{item.sentDate}</Text>
           <View style={cardStyles.offerActionRow}>
             <AppIcon
-              name={
-                item.status.toLowerCase().includes('accepted')
-                  ? 'approved'
-                  : 'notificationWarning'
-              }
+              name={isAccepted ? 'approved' : 'chevronRight'}
               size={12}
               color={config.actionColor}
             />
-            <Text
-              style={[
-                cardStyles.offerActionText,
-                { color: config.actionColor },
-              ]}
-            >
+            <Text style={[cardStyles.offerActionText, { color: config.actionColor }]}>
               {item.actionText}
             </Text>
           </View>
@@ -880,7 +871,8 @@ const cardStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  offerRoleText: { fontSize: 9, fontWeight: '700', color: '#217A3C' },
+  offerRoleEmoji: { fontSize: 13 },
+  offerRoleText: { fontSize: 9, fontWeight: '700' },
   respondPill: {
     backgroundColor: '#F3CD03',
     borderRadius: 5,
@@ -915,7 +907,7 @@ const cardStyles = StyleSheet.create({
   offerPrice: { fontSize: 14, fontWeight: '900', color: '#1A6B34' },
   offerCounterPrice: {
     fontSize: 11,
-    color: '#D97706',
+    color: '#F3CD03',
     marginTop: 2,
     fontWeight: '700',
   },

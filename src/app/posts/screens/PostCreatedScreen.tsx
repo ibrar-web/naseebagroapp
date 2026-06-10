@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppIcon } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
 
@@ -25,7 +24,8 @@ const normalizePostItem = (postData: any): Record<string, any> | null => {
 };
 
 const DISPLAY_KEYS: Array<{ key: string; label: string }> = [
-  { key: 'code', label: 'Post Code' },
+  { key: 'code', label: 'Request ID' },
+  { key: 'id', label: 'Post ID' },
   { key: 'commodity', label: 'Commodity' },
   { key: 'quantity', label: 'Quantity' },
   { key: 'units', label: 'Units' },
@@ -33,7 +33,6 @@ const DISPLAY_KEYS: Array<{ key: string; label: string }> = [
   { key: 'price', label: 'Price' },
   { key: 'grades', label: 'Grades' },
   { key: 'payment_terms', label: 'Payment Terms' },
-  { key: 'mills', label: 'Mill' },
   { key: 'delivery_options', label: 'Delivery Options' },
   { key: 'delivery_terms', label: 'Delivery Terms' },
   { key: 'status', label: 'Status' },
@@ -55,19 +54,25 @@ const formatValue = (value: any): string => {
 };
 
 const PostCreatedScreen = ({ navigation, route }: Props) => {
-  const { mode, postData, categoryName } = route.params;
+  const { mode, postData, categoryName, totalCount } = route.params;
   const isBuyer = mode === 'buyer';
   const item = normalizePostItem(postData);
 
+  // Only show rows that have a non-empty value, skip 'id' if 'code' already shown
   const rows = item
     ? DISPLAY_KEYS.flatMap(({ key, label }) => {
+        if (key === 'id' && item.code) return [];
         const value = item[key];
         if (value === null || value === undefined || value === '') return [];
         return [{ label, value: formatValue(value) }];
       })
     : [];
 
-  const postCode = item?.code ?? item?.id ?? '';
+  // Default fallback row
+  const displayRows =
+    rows.length > 0
+      ? rows
+      : [{ label: 'Status', value: 'Submitted' }];
 
   const goMyPosts = () => {
     navigation.dispatch(
@@ -86,23 +91,40 @@ const PostCreatedScreen = ({ navigation, route }: Props) => {
     );
   };
 
-  const createAnother = () => {
+  const goMarket = () => {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
-        routes: [{ name: 'PrePost' }],
+        routes: [{ name: 'MainTabs', params: { screen: 'Market' } }],
       }),
     );
   };
+
+  const goHome = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs', params: { screen: 'Home' } }],
+      }),
+    );
+  };
+
+  const multiLabel =
+    totalCount && totalCount > 1
+      ? `${totalCount} ${isBuyer ? 'demands' : 'supplies'} submitted`
+      : null;
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
 
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity onPress={goMyPosts} style={styles.backBtn} activeOpacity={0.8}>
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isBuyer ? 'Demand Posted' : 'Supply Posted'}
+          {isBuyer ? 'Demand Submitted' : 'Supply Submitted'}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -112,81 +134,104 @@ const PostCreatedScreen = ({ navigation, route }: Props) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.successCard}>
-          <View style={styles.iconWrap}>
-            <AppIcon name="approved" size={32} color="#FFFFFF" />
+        {/* Success icon */}
+        <View style={styles.iconWrap}>
+          <View style={styles.iconRing}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.checkmark}>✓</Text>
+            </View>
           </View>
-          <Text style={styles.successTitle}>
-            {isBuyer
-              ? 'Demand Created Successfully!'
-              : 'Supply Listed Successfully!'}
-          </Text>
-          {postCode ? (
-            <Text style={styles.successCode}>{postCode}</Text>
-          ) : null}
-          {categoryName ? (
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryChipText}>{categoryName}</Text>
+        </View>
+
+        {/* Title */}
+        <Text style={styles.successTitle}>
+          {isBuyer ? 'Demand Submitted!' : 'Supply Submitted!'}
+        </Text>
+
+        {multiLabel ? (
+          <View style={styles.multiBadge}>
+            <Text style={styles.multiBadgeText}>{multiLabel}</Text>
+          </View>
+        ) : null}
+
+        {categoryName ? (
+          <View style={styles.categoryChip}>
+            <Text style={styles.categoryChipText}>{categoryName}</Text>
+          </View>
+        ) : null}
+
+        <Text style={styles.successSubtitle}>
+          The Naseeb team will review and respond within{' '}
+          <Text style={styles.subtitleBold}>2–4 hours</Text>.
+        </Text>
+
+        {/* Summary card */}
+        <View style={styles.summaryCard}>
+          {displayRows.map((row, index) => (
+            <View
+              key={row.label}
+              style={[
+                styles.summaryRow,
+                index < displayRows.length - 1 && styles.summaryRowBorder,
+              ]}
+            >
+              <Text style={styles.summaryLabel}>{row.label}</Text>
+              <Text style={styles.summaryValue} numberOfLines={2}>
+                {row.value}
+              </Text>
+            </View>
+          ))}
+
+          {/* Status row always present */}
+          {!displayRows.some(r => r.label === 'Status') ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Status</Text>
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusBadgeText}>Submitted</Text>
+              </View>
             </View>
           ) : null}
         </View>
 
-        {rows.length > 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {isBuyer ? 'Demand Summary' : 'Supply Summary'}
+        {/* Actions */}
+        <View style={styles.actionsWrap}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={goMyPosts}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.primaryBtnIcon}>☰</Text>
+            <Text style={styles.primaryBtnText}>
+              {isBuyer ? 'Track My Demand' : 'Track My Supply'}
             </Text>
-            {rows.map((row, index) => (
-              <View
-                key={row.label}
-                style={[
-                  styles.summaryRow,
-                  index < rows.length - 1 && styles.summaryRowBorder,
-                ]}
-              >
-                <Text style={styles.summaryLabel}>{row.label}</Text>
-                <Text style={styles.summaryValue} numberOfLines={2}>
-                  {row.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+          </TouchableOpacity>
 
-        <View style={styles.noteBox}>
-          <AppIcon name="shield" size={16} color="#217A3C" />
-          <Text style={styles.noteText}>
-            {isBuyer
-              ? 'Your demand is now visible to sellers. You will be notified when offers arrive.'
-              : 'Your supply is now visible to buyers. You will be notified when offers arrive.'}
-          </Text>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={goMarket}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryBtnIcon}>🛒</Text>
+            <Text style={styles.secondaryBtnText}>Browse More Listings</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.ghostBtn}
+            onPress={goHome}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ghostBtnText}>Back to Home</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={createAnother}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.secondaryBtnText}>Create Another</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={goMyPosts}
-          activeOpacity={0.88}
-        >
-          <Text style={styles.primaryBtnText}>
-            {isBuyer ? 'My Demands' : 'My Supplies'}
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,146 +242,168 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  headerSpacer: { width: 34 },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 116 },
-  successCard: {
-    backgroundColor: '#1A6B34',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
   },
+  backArrow: { fontSize: 22, color: '#111827', lineHeight: 24 },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 34 },
+
+  scroll: { flex: 1 },
+  scrollContent: {
+    padding: 24,
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+
+  // Success icon
+  iconWrap: { marginTop: 12, marginBottom: 16 },
+  iconRing: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    backgroundColor: '#F2FBF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: { fontSize: 44, color: '#2E9E52', lineHeight: 52 },
+
+  // Title + subtitle
   successTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
     textAlign: 'center',
     marginBottom: 6,
   },
-  successCode: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
-    fontFamily: 'monospace',
-    marginBottom: 12,
-  },
-  categoryChip: {
+  multiBadge: {
+    marginBottom: 6,
+    backgroundColor: '#E8F7EE',
+    borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    paddingVertical: 4,
   },
-  categoryChipText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '700',
+  multiBadgeText: { fontSize: 12, fontWeight: '700', color: '#1A6B34' },
+  categoryChip: {
+    marginBottom: 6,
+    backgroundColor: '#E8F7EE',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  cardTitle: {
+  categoryChipText: { fontSize: 12, fontWeight: '700', color: '#1A6B34' },
+  successSubtitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 8,
+    marginBottom: 18,
+  },
+  subtitleBold: { fontWeight: '700', color: '#374151' },
+
+  // Summary card
+  summaryCard: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 18,
   },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 9,
-    gap: 16,
+    paddingVertical: 7,
   },
   summaryRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#E5E7EB',
   },
-  summaryLabel: { fontSize: 12, color: '#6B7280', flex: 1 },
+  summaryLabel: { fontSize: 13, color: '#6B7280' },
   summaryValue: {
-    flex: 1.2,
-    fontSize: 12,
-    color: '#111827',
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  noteBox: {
-    backgroundColor: '#F2FBF5',
-    borderWidth: 1,
-    borderColor: '#7FD4A0',
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#145228',
-    lineHeight: 18,
+    fontSize: 13,
     fontWeight: '600',
-  },
-  bottomBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
-  },
-  secondaryBtn: {
+    color: '#111827',
+    textAlign: 'right',
     flex: 1,
-    borderWidth: 2,
-    borderColor: '#217A3C',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
+    marginLeft: 16,
   },
-  secondaryBtnText: { fontSize: 13, color: '#217A3C', fontWeight: '800' },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9CA3AF',
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: '600', color: '#4B5563' },
+
+  // Action buttons
+  actionsWrap: { width: '100%', gap: 10 },
   primaryBtn: {
-    flex: 1.2,
-    backgroundColor: '#F3CD03',
-    borderRadius: 14,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#217A3C',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    shadowColor: '#2E9E52',
+    shadowOpacity: 0.27,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  primaryBtnText: { fontSize: 13, color: '#0D3B1F', fontWeight: '900' },
+  primaryBtnIcon: { fontSize: 16, color: '#FFFFFF' },
+  primaryBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#2E9E52',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+  },
+  secondaryBtnIcon: { fontSize: 16 },
+  secondaryBtnText: { fontSize: 14, fontWeight: '600', color: '#1A6B34' },
+  ghostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+  },
+  ghostBtnText: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
 });
 
 export default PostCreatedScreen;

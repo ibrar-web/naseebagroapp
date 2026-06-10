@@ -1,4 +1,67 @@
 <!-- buyer create demand -->
+ <!-- backend dto -->
+  <!-- export class CreateDemandDto {
+  @ApiProperty()
+  @IsUUID()
+  category_id: string;
+
+  @ApiProperty()
+  @IsUUID()
+  commodity_id: string;
+
+  @ApiProperty({ enum: DeliveryOption, example: 'DELIVERED' })
+  @IsEnum(DeliveryOption)
+  delivery_option: DeliveryOption;
+
+  @ApiPropertyOptional({ type: [DemandMillDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => DemandMillDto)
+  mills?: DemandMillDto[];
+
+  @ApiProperty({ example: 150 })
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  quantity_required: number;
+
+  @ApiProperty({ example: 4000 })
+  @IsNumber()
+  @Min(0.01)
+  @Type(() => Number)
+  target_price_per_unit: number;
+
+  @ApiProperty({ example: 'Lahore' })
+  @IsString()
+  @MaxLength(100)
+  delivery_location: string;
+
+  @ApiProperty({ type: PaymentTermsDto })
+  @ValidateNested()
+  @Type(() => PaymentTermsDto)
+  payment_terms: PaymentTermsDto;
+
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  @IsIn(ALLOWED_DELIVERY_DAYS)
+  @Type(() => Number)
+  delivery_days: number;
+
+  @ApiPropertyOptional({ type: [String], enum: GradeQuality })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsEnum(GradeQuality, { each: true })
+  grades?: GradeQuality[];
+
+  @ApiPropertyOptional({ example: 'Grade A preferred, dry packaging' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  additional_requirements?: string;
+} -->
 <div
   style="
     height: 720px;
@@ -1336,6 +1399,93 @@
 </div>
 
 <!-- seller create supply -->
+
+<!-- backend dto -->
+
+<!-- export class CreateSupplyDto {
+  @ApiProperty()
+  @IsUUID()
+  category_id: string;
+
+  @ApiProperty()
+  @IsUUID()
+  commodity_id: string;
+
+  @ApiProperty({ default: false, example: true })
+  @IsBoolean()
+  is_mill_based: boolean;
+
+  @ApiPropertyOptional({
+    type: [SupplyMillDto],
+    description: 'Required if is_mill_based=true. Up to 20 mills.',
+  })
+  @ValidateIf((o) => o.is_mill_based === true)
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => SupplyMillDto)
+  mills?: SupplyMillDto[];
+
+  @ApiProperty({
+    example: 4200,
+    description:
+      'Headline price (per 40kg). When mill-based, set to cheapest mill price by the client.',
+  })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  price_per_unit: number;
+
+  @ApiProperty({ example: 500 })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  available_quantity: number;
+
+  @ApiPropertyOptional({
+    example: 'Multan',
+    description:
+      'Pickup/origin location. Required when is_mill_based=false.',
+  })
+  @ValidateIf((o) => o.is_mill_based === false)
+  @IsString()
+  @MaxLength(100)
+  pickup_location?: string;
+
+  @ApiProperty({ type: SupplyPaymentTermsDto })
+  @ValidateNested()
+  @Type(() => SupplyPaymentTermsDto)
+  payment_terms: SupplyPaymentTermsDto;
+
+  @ApiProperty({ example: 1, enum: ALLOWED_DELIVERY_DAYS })
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(ALLOWED_DELIVERY_DAYS)
+  delivery_days: number;
+
+  @ApiPropertyOptional({ type: [String], enum: SupplyGrade })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsEnum(SupplyGrade, { each: true })
+  grades?: SupplyGrade[];
+
+  @ApiPropertyOptional({ example: 12, description: 'Max moisture % (0-100)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  moisture_max_percent?: number;
+
+  @ApiPropertyOptional({ example: 'Fresh season stock — just harvested' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  supply_condition?: string;
+} -->
+
 <div
   style="
     flex: 1 1 0%;

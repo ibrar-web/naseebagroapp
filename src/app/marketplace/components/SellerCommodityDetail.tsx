@@ -27,40 +27,74 @@ type DemandMill = {
 };
 
 type DemandDetail = {
-  id: string;
+  listing_id: string;
   code?: string;
-  title?: string;
-  hero_image_url?: string;
-  status_label?: string;
   commodity?: {
+    id?: string;
     name?: string;
+    image?: string;
   };
-  quantity_label?: string;
-  location_label?: string;
-  posted_label?: string;
-  is_broker_protected?: boolean;
-  broker_protection_label?: string;
-  request_details?: {
-    rows?: Array<{ key: string; label: string; value: string }>;
+  category?: {
+    id?: string;
+    name?: string;
+    image?: string;
   };
-  mills_section?: {
-    title?: string;
-    mills?: DemandMill[];
+  total_quantity?: {
+    value?: number;
+    label?: string;
   };
-  buyer_requirements?: {
-    title?: string;
-    body?: string;
+  mills?: {
+    is_mill_based?: boolean;
+    available_mills?: DemandMill[];
   };
-  actions?: {
-    primary_cta?: {
-      label?: string;
-    };
+  payment_terms?: {
+    type?: string;
+    label?: string;
+    days?: number;
+    method?: string;
+  };
+  location?: {
+    city?: string;
+    province?: string | null;
+    label?: string;
+  };
+  created_date?: {
+    value?: string;
+    label?: string;
+  };
+  valid_date?: {
+    value?: string;
+    label?: string;
+    is_expired?: boolean;
+  };
+  pricing?: {
+    starting_price?: string;
+    starting_price_label?: string;
+    currency?: string;
+    currency_symbol?: string;
+    price_range_label?: string;
+  };
+  favorite?: {
+    can_favorite?: boolean;
+    is_favorited?: boolean;
+  };
+  delivery_option?: {
+    option?: string;
+    label?: string;
+    terms?: string;
+  };
+  supply_condition?: {
+    status?: string;
+    is_verified?: boolean;
+    verified_label?: string;
+    badge?: string | null;
+    badge_label?: string | null;
   };
 };
 
 const normalizeDemandDetail = (response: any): DemandDetail | null => {
-  const payload = response?.id ? response : response?.data ?? response;
-  return payload?.id ? payload : null;
+  const payload = response?.listing_id ? response : response?.data ?? response;
+  return payload?.listing_id ? payload : null;
 };
 
 const toStr = (val: any, fallback = ''): string => {
@@ -197,15 +231,26 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
   }
 
   const heroImage =
-    detail.hero_image_url ??
+    detail.commodity?.image ??
     `https://placehold.co/600x400?text=${encodeURIComponent(
-      detail.title ?? 'Commodity',
+      detail.commodity?.name ?? 'Commodity',
     )}`;
 
-  const statusLabel = detail.status_label ?? 'OPEN';
-  const mills = detail.mills_section?.mills ?? [];
-  const requestRows = detail.request_details?.rows ?? [];
-  const ctaLabel = detail.actions?.primary_cta?.label ?? 'Send Offer';
+  const statusLabel = detail.supply_condition?.status?.toUpperCase() ?? 'OPEN';
+  const mills = detail.mills?.available_mills ?? [];
+
+  const requestRows: Array<{ key: string; label: string; value: string }> = [
+    detail.code ? { key: 'code', label: 'Listing Code', value: detail.code } : null,
+    detail.pricing?.price_range_label ? { key: 'price', label: 'Price', value: detail.pricing.price_range_label } : null,
+    detail.total_quantity?.label ? { key: 'quantity', label: 'Quantity', value: detail.total_quantity.label } : null,
+    detail.payment_terms?.label ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label } : null,
+    detail.payment_terms?.method ? { key: 'payment_method', label: 'Payment Method', value: detail.payment_terms.method } : null,
+    detail.delivery_option?.label ? { key: 'delivery', label: 'Delivery', value: detail.delivery_option.label } : null,
+    detail.delivery_option?.terms ? { key: 'delivery_terms', label: 'Delivery Terms', value: detail.delivery_option.terms } : null,
+    detail.valid_date?.label ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
+
+  const ctaLabel = 'Send Offer';
 
   return (
     <View style={styles.container}>
@@ -234,9 +279,9 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           </View>
 
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{toStr(detail.code ?? detail.id)}</Text>
+            <Text style={styles.heroId}>{toStr(detail.code ?? detail.listing_id)}</Text>
             <Text style={styles.heroName} numberOfLines={1}>
-              {toStr(detail.title ?? detail.commodity?.name, 'Commodity')}
+              {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
           </View>
         </ImageBackground>
@@ -246,19 +291,19 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
         <View style={styles.metaItem}>
           <Text style={styles.metaLabel}>QUANTITY</Text>
           <Text style={styles.metaValue}>
-            {toStr(detail.quantity_label, '—')}
+            {toStr(detail.total_quantity?.label, '—')}
           </Text>
         </View>
         <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>LOCATION</Text>
           <Text style={styles.metaValue}>
-            {toStr(detail.location_label, '—')}
+            {toStr(detail.location?.label, '—')}
           </Text>
         </View>
         <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>POSTED</Text>
           <Text style={styles.metaValue}>
-            {toStr(detail.posted_label, '—')}
+            {toStr(detail.created_date?.label, '—')}
           </Text>
         </View>
       </View>
@@ -303,9 +348,7 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
               <View style={styles.cardIconBox}>
                 <AppIcon name="business" size={14} color="#217A3C" />
               </View>
-              <Text style={styles.cardTitle}>
-                {toStr(detail.mills_section?.title, 'Mills Specified by Buyer')}
-              </Text>
+              <Text style={styles.cardTitle}>Available Mills</Text>
             </View>
             {mills.map((mill, index) => (
               <MillRow
@@ -316,24 +359,6 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
             ))}
           </View>
         )}
-
-        {detail.buyer_requirements?.body ? (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.cardIconBox, styles.cardIconBoxYellow]}>
-                <AppIcon name="document" size={14} color="#D4AE02" />
-              </View>
-              <Text style={styles.cardTitle}>
-                {toStr(detail.buyer_requirements.title, 'Buyer Requirements')}
-              </Text>
-            </View>
-            <View style={styles.notesBox}>
-              <Text style={styles.notesBody}>
-                {toStr(detail.buyer_requirements.body)}
-              </Text>
-            </View>
-          </View>
-        ) : null}
 
         <View style={styles.card}>
           <Text style={styles.howItWorksTitle}>How It Works</Text>

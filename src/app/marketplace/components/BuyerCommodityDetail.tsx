@@ -40,57 +40,74 @@ type SupplyMill = {
 };
 
 type SupplyDetail = {
-  id: string;
+  listing_id: string;
   code?: string;
-  badge_label?: string | null;
-  badge?: string | null;
-  verified_label?: string;
-  is_verified?: boolean;
-  title?: string;
-  hero_image_url?: string;
-  price_freshness?: {
-    show_warning?: boolean;
-    stale_warning_label?: string;
-    stale_warning_detail?: string;
-  };
   commodity?: {
+    id?: string;
     name?: string;
-    category?: {
-      name?: string;
-    };
+    image?: string;
   };
-  summary_cards?: SupplySummaryCard[];
-  available_mills_section?: {
-    title?: string;
-    subtitle?: string | null;
-    mills?: SupplyMill[];
+  category?: {
+    id?: string;
+    name?: string;
+    image?: string;
   };
-  post_details?: {
-    title?: string;
-    rows?: Array<{ key: string; label: string; value: string }>;
+  total_quantity?: {
+    value?: number;
+    label?: string;
   };
-  seller_notes?: {
-    title?: string;
-    body?: string;
+  mills?: {
+    is_mill_based?: boolean;
+    available_mills?: SupplyMill[];
   };
-  seller?: {
-    fullName?: string;
-    rating_display?: string;
-    member_since_label?: string;
-    location_label?: string;
-    is_verified?: boolean;
+  payment_terms?: {
+    type?: string;
+    label?: string;
+    days?: number;
+    method?: string;
   };
-  actions?: {
+  location?: {
+    city?: string;
+    province?: string | null;
+    label?: string;
+  };
+  created_date?: {
+    value?: string;
+    label?: string;
+  };
+  valid_date?: {
+    value?: string;
+    label?: string;
+    is_expired?: boolean;
+  };
+  pricing?: {
+    starting_price?: string;
+    starting_price_label?: string;
+    currency?: string;
+    currency_symbol?: string;
+    price_range_label?: string;
+  };
+  favorite?: {
+    can_favorite?: boolean;
     is_favorited?: boolean;
-    primary_cta?: {
-      label?: string;
-    };
+  };
+  delivery_option?: {
+    option?: string;
+    label?: string;
+    terms?: string;
+  };
+  supply_condition?: {
+    status?: string;
+    is_verified?: boolean;
+    verified_label?: string;
+    badge?: string | null;
+    badge_label?: string | null;
   };
 };
 
 const normalizeSupplyDetail = (response: any): SupplyDetail | null => {
-  const payload = response?.id ? response : response?.data ?? response;
-  return payload?.id ? payload : null;
+  const payload = response?.listing_id ? response : response?.data ?? response;
+  return payload?.listing_id ? payload : null;
 };
 
 const toStr = (val: any, fallback = ''): string => {
@@ -262,7 +279,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         console.log('listing details scree:', response);
         if (active) {
           setDetail(normalized);
-          setSaved(Boolean(normalized?.actions?.is_favorited));
+          setSaved(Boolean(normalized?.favorite?.is_favorited));
         }
       } catch (err) {
         console.log('Supply detail error', err);
@@ -311,21 +328,50 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
   }
 
   const heroImage =
-    detail.hero_image_url ??
+    detail.commodity?.image ??
     `https://placehold.co/600x400?text=${encodeURIComponent(
-      detail.title ?? 'Commodity',
+      detail.commodity?.name ?? 'Commodity',
     )}`;
-  const badge = detail.badge_label ?? detail.badge;
-  const summaryCards = detail.summary_cards ?? [];
-  const termCards = summaryCards.filter(card =>
-    ['payment_terms', 'delivery_terms'].includes(card.key),
-  );
-  const infoCards = summaryCards.filter(
-    card => !['payment_terms', 'delivery_terms'].includes(card.key),
-  );
-  const mills = detail.available_mills_section?.mills ?? [];
-  const rows = detail.post_details?.rows ?? [];
-  const ctaLabel = detail.actions?.primary_cta?.label ?? 'Request to Purchase';
+  const badge =
+    detail.supply_condition?.badge_label ?? detail.supply_condition?.badge;
+
+  const infoCards: SupplySummaryCard[] = [
+    detail.pricing?.price_range_label
+      ? { key: 'price', label: 'Price', value: detail.pricing.price_range_label, is_highlighted: true }
+      : null,
+    detail.total_quantity?.label
+      ? { key: 'stock', label: 'Total Quantity', value: detail.total_quantity.label }
+      : null,
+    detail.location?.label
+      ? { key: 'location', label: 'Location', value: detail.location.label }
+      : null,
+    detail.valid_date?.label
+      ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label }
+      : null,
+  ].filter(Boolean) as SupplySummaryCard[];
+
+  const termCards: SupplySummaryCard[] = [
+    detail.payment_terms?.label
+      ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label }
+      : null,
+    detail.delivery_option?.label
+      ? { key: 'delivery_terms', label: 'Delivery', value: detail.delivery_option.label }
+      : null,
+  ].filter(Boolean) as SupplySummaryCard[];
+
+  const mills = detail.mills?.available_mills ?? [];
+
+  const rows: Array<{ key: string; label: string; value: string }> = [
+    detail.code ? { key: 'code', label: 'Listing Code', value: detail.code } : null,
+    detail.payment_terms?.method ? { key: 'payment_method', label: 'Payment Method', value: detail.payment_terms.method } : null,
+    detail.payment_terms?.label ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label } : null,
+    detail.delivery_option?.label ? { key: 'delivery', label: 'Delivery', value: detail.delivery_option.label } : null,
+    detail.delivery_option?.terms ? { key: 'delivery_terms', label: 'Delivery Terms', value: detail.delivery_option.terms } : null,
+    detail.created_date?.label ? { key: 'posted', label: 'Posted', value: detail.created_date.label } : null,
+    detail.valid_date?.label ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
+
+  const ctaLabel = 'Request to Purchase';
 
   return (
     <View style={styles.container}>
@@ -362,9 +408,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
             />
           </TouchableOpacity>
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{toStr(detail.code ?? detail.id)}</Text>
+            <Text style={styles.heroId}>{toStr(detail.code ?? detail.listing_id)}</Text>
             <Text style={styles.heroName} numberOfLines={1}>
-              {toStr(detail.title ?? detail.commodity?.name, 'Commodity')}
+              {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
             <View style={styles.heroBadgeRow}>
               {badge ? (
@@ -372,11 +418,11 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
                   <Text style={styles.premiumBadgeText}>{badge}</Text>
                 </View>
               ) : null}
-              {detail.is_verified ? (
+              {detail.supply_condition?.is_verified ? (
                 <View style={styles.verifiedRow}>
                   <AppIcon name="approved" size={11} color="#7FD4A0" />
                   <Text style={styles.verifiedText}>
-                    {toStr(detail.verified_label, 'Naseeb Verified')}
+                    {toStr(detail.supply_condition.verified_label, 'Naseeb Verified')}
                   </Text>
                 </View>
               ) : null}
@@ -385,15 +431,11 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         </ImageBackground>
       </View>
 
-      {detail.price_freshness?.show_warning ? (
+      {detail.valid_date?.is_expired ? (
         <View style={styles.warningBar}>
           <AppIcon name="notificationWarning" size={13} color="#92400E" />
           <Text style={styles.warningText}>
-            <Text style={styles.warningStrong}>
-              {toStr(detail.price_freshness.stale_warning_label, 'Price may have changed.')}
-            </Text>
-            {'  '}
-            {toStr(detail.price_freshness.stale_warning_detail)}
+            <Text style={styles.warningStrong}>Listing has expired.</Text>
           </Text>
         </View>
       ) : null}
@@ -430,8 +472,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         ) : null}
 
         <SectionCard
-          title={detail.available_mills_section?.title ?? 'Available Mills'}
-          subtitle={detail.available_mills_section?.subtitle}
+          title="Available Mills"
           icon="business"
         >
           {mills.length ? (
@@ -448,7 +489,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         </SectionCard>
 
         <SectionCard
-          title={detail.post_details?.title ?? 'POST DETAILS'}
+          title="POST DETAILS"
           icon="document"
         >
           {rows.map((row, index) => (
@@ -461,37 +502,6 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
             />
           ))}
         </SectionCard>
-
-        {detail.seller_notes?.body ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesTitle}>
-              {toStr(detail.seller_notes.title, 'Seller Notes')}
-            </Text>
-            <Text style={styles.notesBody}>{toStr(detail.seller_notes.body)}</Text>
-          </View>
-        ) : null}
-
-        {detail.seller ? (
-          <SectionCard title="Seller" icon="profileAvatar">
-            <DetailRow
-              label="Name"
-              value={toStr(detail.seller.fullName, 'Seller')}
-            />
-            <DetailRow
-              label="Rating"
-              value={toStr(detail.seller.rating_display, '0.0 (0)')}
-            />
-            <DetailRow
-              label="Location"
-              value={toStr(detail.seller.location_label, 'Not available')}
-            />
-            <DetailRow
-              label="Member Since"
-              value={toStr(detail.seller.member_since_label, 'Not available')}
-              last
-            />
-          </SectionCard>
-        ) : null}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

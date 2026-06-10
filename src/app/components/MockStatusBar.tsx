@@ -18,6 +18,7 @@ const MockStatusBar = ({
 
   return (
     <View
+      pointerEvents="none"
       style={[
         styles.bar,
         { backgroundColor, paddingTop: topPad },

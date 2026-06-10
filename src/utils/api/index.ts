@@ -99,13 +99,13 @@ export const api = {
     sendBuyrequest: (id: string | number, data?: any) =>
       Post('buyer/supplies/make-request', data, protectedRequest),
     listMyDemands: (params?: MyPostsListParams) =>
-      Get('buyer/my-posts/demands', params, protectedRequest),
+      Get('buyer/demands', params, protectedRequest),
     myDemandDetails: (id: string | number) =>
-      Get(byId('buyer/my-posts/demands', id), undefined, protectedRequest),
+      Get(byId('buyer/demands', id), undefined, protectedRequest),
     ListDemandOffers: (params?: MyPostsListParams) =>
-      Get('buyer/my-posts/offers', params, protectedRequest),
+      Get('buyer/offers', params, protectedRequest),
     myDemandOfferDetails: (id: string | number) =>
-      Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
+      Get(byId('buyer/offers', id), undefined, protectedRequest),
     markFavouriteSupply: (id: string | number) =>
       Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
     removeFavouriteSupply: (id: string | number) =>
@@ -126,13 +126,13 @@ export const api = {
     sendDemandOffer: (id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
     ListMyPosts: (params?: MyPostsListParams) =>
-      Get('seller/my-posts/supplies', params, protectedRequest),
+      Get('seller/supplies', params, protectedRequest),
     myPostDetails: (id: string | number) =>
-      Get(byId('seller/my-posts/supplies', id), undefined, protectedRequest),
+      Get(byId('seller/supplies', id), undefined, protectedRequest),
     ListMyPostsOffers: (params?: MyPostsListParams) =>
-      Get('seller/my-posts/offers', params, protectedRequest),
+      Get('seller/offers', params, protectedRequest),
     myPostOffersDetails: (id: string | number) =>
-      Get(byId('seller/my-posts/offers', id), undefined, protectedRequest),
+      Get(byId('seller/offers', id), undefined, protectedRequest),
     // get category form
     getSellerCategoryform: (id: string) =>
       Get(byId('public/seller/form', id), undefined),

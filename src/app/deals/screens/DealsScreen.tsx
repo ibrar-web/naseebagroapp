@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#145228',
-    paddingTop: 6,
+    paddingTop: 10,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

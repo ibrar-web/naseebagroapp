@@ -1198,7 +1198,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
       <View
         style={{
           backgroundColor: '#145228',
-          paddingTop: 6,
+          paddingTop: 10,
           paddingBottom: 14,
           paddingHorizontal: 20,
         }}

@@ -145,7 +145,7 @@ const unreadCount = NOTIFICATION_SECTIONS.reduce(
 const NotificationsScreen = ({ navigation }: any) => (
   <View className="flex-1 bg-gray-50">
     <MockStatusBar backgroundColor="#0D3B1F" textColor="#FFFFFF" />
-    <View className="px-5 pt-2 pb-4" style={styles.header}>
+    <View className="px-5 pb-4" style={[styles.header, { paddingTop: 10 }]}>
       <View style={styles.headerGlow} />
       <View className="flex-row items-center gap-3">
         <TouchableOpacity

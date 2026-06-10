@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
     backgroundColor: '#145228',
-    paddingTop: 6,
+    paddingTop: 10,
     paddingBottom: 14,
     paddingHorizontal: 20,
     flexDirection: 'row',

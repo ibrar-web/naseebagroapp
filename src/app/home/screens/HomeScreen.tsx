@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#0D3B1F',
     paddingHorizontal: 18,
+    paddingTop: 10,
     paddingBottom: 20,
     overflow: 'visible',
     position: 'relative',

@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -239,6 +240,7 @@ const MarketRatesScreen = ({ navigation }: any) => {
   );
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState('');
 
@@ -257,22 +259,19 @@ const MarketRatesScreen = ({ navigation }: any) => {
     [debouncedSearch, selectedMillId, selectedSort],
   );
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadRates = async () => {
-      try {
+  const loadRates = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        setError('');
+      }
+      setError('');
+      try {
         const response: any = await api.marketplace.public.listMarketRatesAll(
           params,
         );
         const payload = normalizeMarketRatesPayload(response);
-
-        if (!mounted) {
-          return;
-        }
-
         setMills(payload.mills ?? []);
         setRates(payload.rates ?? []);
         setNotice(
@@ -282,25 +281,23 @@ const MarketRatesScreen = ({ navigation }: any) => {
         setTotalCount(payload.meta?.total ?? payload.rates?.length ?? 0);
         setHasLoadedOnce(true);
       } catch {
-        if (!mounted) {
-          return;
-        }
         setError('Unable to load market rates. Pull latest again.');
         setRates([]);
         setHasLoadedOnce(true);
       } finally {
-        if (mounted) {
+        if (isRefresh) {
+          setRefreshing(false);
+        } else {
           setLoading(false);
         }
       }
-    };
+    },
+    [params],
+  );
 
+  useEffect(() => {
     loadRates();
-
-    return () => {
-      mounted = false;
-    };
-  }, [params]);
+  }, [loadRates]);
 
   const selectedSortLabel =
     SORT_OPTIONS.find(option => option.value === selectedSort)?.label ??
@@ -407,6 +404,13 @@ const MarketRatesScreen = ({ navigation }: any) => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadRates(true)}
+            tintColor="#217A3C"
+          />
+        }
         renderItem={({ item, index }) => <RateCard item={item} index={index} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>

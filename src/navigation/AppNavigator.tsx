@@ -36,7 +36,6 @@ import VerifyApprovedScreen from '../app/auth/screens/VerifyApprovedScreen';
 import MarketRatesScreen from '../app/marketplace/screens/MarketRatesScreen';
 
 // Detail screens (tab bar hidden)
-import ListingDetailScreen from '../app/marketplace/screens/ListingDetailScreen';
 import CommodityDetailScreen from '../app/marketplace/screens/CommodityDetailScreen';
 import RequestToPurchaseScreen from '../app/marketplace/screens/RequestToPurchaseScreen';
 import SendOfferScreen from '../app/marketplace/screens/SendOfferScreen';
@@ -224,7 +223,6 @@ export const AppNavigator = () => {
             component={CreateBuyerDemandScreen}
           />
           <Stack.Screen name="PostCreated" component={PostCreatedScreen} />
-          <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
           <Stack.Screen
             name="CommodityDetail"
             component={CommodityDetailScreen}

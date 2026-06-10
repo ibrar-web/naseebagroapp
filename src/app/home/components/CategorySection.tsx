@@ -53,10 +53,7 @@ const formatBadge = (item: FeaturedListing) => {
   return item.is_mill_based ? 'MILL BASED' : 'DIRECT';
 };
 
-const getDetailRoute = (item: FeaturedListing) =>
-  item.post_type === 'DEMAND' || item.code?.startsWith('LST-D')
-    ? 'ListingDetail'
-    : 'CommodityDetail';
+const getDetailRoute = (_item: FeaturedListing) => 'CommodityDetail';
 
 const CategorySection = ({ navigation }: any) => {
   const [categories, setCategories] = useState<FeaturedCategory[]>([]);

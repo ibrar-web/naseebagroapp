@@ -44,7 +44,6 @@ export type RootStackParamList = {
   PrePost: undefined;
   CreatePostSeller: { category: string; categoryData?: CategoryRouteParam };
   CreateBuyerDemand: { category: string; categoryData?: CategoryRouteParam };
-  ListingDetail: { listingId: string };
   CommodityDetail: { listingId: string };
   RequestToPurchase: { listingId: string };
   SendOffer: { listingId: string };

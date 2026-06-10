@@ -59,9 +59,20 @@ type MillEntry = {
   price: string;
 };
 
+type FormSnapshot = {
+  values: Record<string, FieldValue>;
+  selectedMills: MillEntry[];
+  deliveryDays: string;
+  isCustomDelivery: boolean;
+  customDeliveryInput: string;
+  paymentMode: PaymentMode;
+  paymentValue: string;
+};
+
 type QueuedPost = {
   payload: Record<string, unknown>;
   preview: string;
+  formSnapshot: FormSnapshot;
 };
 
 type Props = {
@@ -430,9 +441,38 @@ const CategoryPostForm = ({
     if (!canSubmit) return;
     setQueuedPosts(prev => [
       ...prev,
-      { payload: buildPayload(), preview: buildPreview() },
+      {
+        payload: buildPayload(),
+        preview: buildPreview(),
+        formSnapshot: {
+          values: { ...values },
+          selectedMills: [...selectedMills],
+          deliveryDays,
+          isCustomDelivery,
+          customDeliveryInput,
+          paymentMode,
+          paymentValue,
+        },
+      },
     ]);
     resetForm();
+  };
+
+  const removeQueuedPost = (index: number) => {
+    setQueuedPosts(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const editQueuedPost = (index: number) => {
+    const qp = queuedPosts[index];
+    const snap = qp.formSnapshot;
+    setValues(snap.values);
+    setSelectedMills(snap.selectedMills);
+    setDeliveryDays(snap.deliveryDays);
+    setIsCustomDelivery(snap.isCustomDelivery);
+    setCustomDeliveryInput(snap.customDeliveryInput);
+    setPaymentMode(snap.paymentMode);
+    setPaymentValue(snap.paymentValue);
+    setQueuedPosts(prev => prev.filter((_, i) => i !== index));
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -1121,6 +1161,20 @@ const CategoryPostForm = ({
                     <Text style={styles.queueItemText} numberOfLines={1}>
                       {qp.preview}
                     </Text>
+                    <TouchableOpacity
+                      onPress={() => editQueuedPost(i)}
+                      style={styles.queueItemEditBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.queueItemEditText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeQueuedPost(i)}
+                      style={styles.queueItemRemoveBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.queueItemRemoveText}>✕</Text>
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -1260,6 +1314,22 @@ const styles = StyleSheet.create({
   },
   queueItemDot: { fontSize: 10, color: '#15803D' },
   queueItemText: { fontSize: 11, color: '#166534', flex: 1 },
+  queueItemEditBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#DCFCE7',
+    marginLeft: 4,
+  },
+  queueItemEditText: { fontSize: 11, color: '#15803D', fontWeight: '700' },
+  queueItemRemoveBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#FEE2E2',
+    marginLeft: 4,
+  },
+  queueItemRemoveText: { fontSize: 11, color: '#DC2626', fontWeight: '700' },
 
   // Form card
   card: {

@@ -12,6 +12,7 @@ import {
   ImageBackground,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -1015,6 +1016,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
   const [meta, setMeta] = useState<MarketplaceMeta>({});
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState('');
 
@@ -1043,8 +1045,10 @@ const MarketplaceScreen = ({ navigation }: any) => {
   }, [activeCategoryId, appliedFilters, debouncedSearch, postType, sortBy]);
 
   const fetchListings = useCallback(
-    async (pageToLoad = 1, append = false) => {
-      if (append) {
+    async (pageToLoad = 1, append = false, isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (append) {
         setLoadingMore(true);
       } else {
         setLoading(true);
@@ -1082,7 +1086,9 @@ const MarketplaceScreen = ({ navigation }: any) => {
         console.log('Marketplace listings error', err);
         setError('Unable to load marketplace listings. Pull latest again.');
       } finally {
-        if (append) {
+        if (isRefresh) {
+          setRefreshing(false);
+        } else if (append) {
           setLoadingMore(false);
         } else {
           setLoading(false);
@@ -1239,6 +1245,13 @@ const MarketplaceScreen = ({ navigation }: any) => {
         onEndReachedThreshold={0.35}
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={viewabilityConfig.current}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchListings(1, false, true)}
+            tintColor="#217A3C"
+          />
+        }
         ListHeaderComponent={
           <>
             <View className="mb-[18px]">
@@ -1286,7 +1299,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
             index={index}
             onPress={() =>
               navigation.navigate(
-                isBuyer ? 'CommodityDetail' : 'ListingDetail',
+                'CommodityDetail',
                 {
                   listingId: item.id,
                 },

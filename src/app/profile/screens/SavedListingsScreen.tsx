@@ -86,7 +86,7 @@ const SavedListingsScreen = ({ navigation }: any) => {
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('ListingDetail', { listingId: item })
+                navigation.navigate('CommodityDetail', { listingId: item })
               }
               className="mb-3 flex-row items-center rounded-2xl bg-white p-4"
               style={CARD_SHADOW}

@@ -78,6 +78,7 @@ export const api = {
         Get('public/market-rates', params),
       listHomeCategoryListing: (params?: Record<string, any>) =>
         Get('public/featured-categories', params),
+      // market place screen with filters for buyer
       listMarketSuppliesListing: (params?: Record<string, any>) =>
         Get('public/supplies', params),
       DetailMarketSuppliesListing: (

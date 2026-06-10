@@ -90,22 +90,12 @@ export const api = {
         id: string | number,
         params?: Record<string, any>,
       ) => Get(byId('public/demand', id), params),
+      listCategories: (params?: Record<string, any>) =>
+        Get('public/categories', params),
     },
     private: {
       createSellerListing: (data: any) =>
         Post('seller/listings', data, protectedRequest),
-      createSellerListingForm: (data: any) =>
-        Post('seller/listings', data, protectedRequest),
-      getMyListings: () =>
-        Get('seller/listings/my', undefined, protectedRequest),
-      getSellerListing: (id: string | number) =>
-        Get(byId('seller/listings', id), undefined, protectedRequest),
-      updateSellerListing: (id: string | number, data: any) =>
-        Patch(byId('seller/listings', id), data, protectedRequest),
-      updateSellerListingForm: (id: string | number, data: any) =>
-        Patch(byId('seller/listings', id), data, protectedRequest),
-      removeSellerListing: (id: string | number) =>
-        Delete(byId('seller/listings', id), undefined, protectedRequest),
     },
   },
   posts: {
@@ -128,7 +118,7 @@ export const api = {
     myDemandOfferDetails: (id: string | number) =>
       Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
     createBuyDemandPost: (data?: any) =>
-      Post('buyer/my-posts/create', data, protectedRequest),
+      Post('buyer/demand/create', data, protectedRequest),
     markFavouriteSupply: (id: string | number) =>
       Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
     removeFavouriteSupply: (id: string | number) =>
@@ -151,7 +141,7 @@ export const api = {
     myPostOffersDetails: (id: string | number) =>
       Get(byId('seller/my-posts/offers', id), undefined, protectedRequest),
     createSupplyPost: (data?: any) =>
-      Post('seller/my-posts/create', data, protectedRequest),
+      Post('seller/supplies/create', data, protectedRequest),
   },
 };
 

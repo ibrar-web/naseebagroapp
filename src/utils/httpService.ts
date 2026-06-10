@@ -53,13 +53,13 @@ class HttpService {
       const status = error?.response?.status ?? error.message;
       const errorMessage =
         error?.response?.data?.message || 'Something went wrong.';
-
+      console.log('status :', status, errorMessage);
       switch (status) {
         case 'Network Error':
           Alert.alert('Network Error', `Cannot reach server.`);
           break;
         case 400:
-          Alert.alert('Error', errorMessage);
+          Alert.alert('Alert', errorMessage);
           break;
         case 401:
           store.dispatch(resetAllReduxStates());
@@ -68,8 +68,14 @@ class HttpService {
           break;
         case 403:
           Alert.alert(
-            'Forbidden',
-            'You do not have permission to perform this action.',
+            'Alert',
+            errorMessage,
+          );
+          break;
+        case 409:
+          Alert.alert(
+            'Alert',
+            errorMessage,
           );
           break;
         case 422:

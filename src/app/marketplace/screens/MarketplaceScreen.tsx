@@ -1040,13 +1040,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
       verified_only: appliedFilters.verifiedOnly ? true : undefined,
       sort: distanceSortNeedsCoordinates ? undefined : sortBy,
     });
-  }, [
-    activeCategoryId,
-    appliedFilters,
-    debouncedSearch,
-    postType,
-    sortBy,
-  ]);
+  }, [activeCategoryId, appliedFilters, debouncedSearch, postType, sortBy]);
 
   const fetchListings = useCallback(
     async (pageToLoad = 1, append = false) => {
@@ -1065,6 +1059,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
           ...requestParams,
           page: pageToLoad,
         });
+        console.log('market place api response:', response);
         const normalized = normalizeMarketplacePayload(response);
         const responsePage = normalized.meta.page ?? pageToLoad;
 

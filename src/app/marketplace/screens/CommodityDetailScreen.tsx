@@ -249,7 +249,7 @@ const CommodityDetailScreen = ({ navigation, route }: Props) => {
         const response =
           await api.marketplace.public.DetailMarketSuppliesListing(listingId);
         const normalized = normalizeSupplyDetail(response);
-
+        console.log('listing details scree:', response);
         if (active) {
           setDetail(normalized);
           setSaved(Boolean(normalized?.actions?.is_favorited));
@@ -333,8 +333,9 @@ const CommodityDetailScreen = ({ navigation, route }: Props) => {
           <View style={styles.heroOverlay} />
           <TouchableOpacity
             onPress={() => {
-              console.log('clicking')
-              navigation.goBack()}}
+              console.log('clicking');
+              navigation.goBack();
+            }}
             style={styles.backBtn}
           >
             <AppIcon name="back" size={20} color="#111827" />

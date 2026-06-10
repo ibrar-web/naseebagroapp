@@ -3,9 +3,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import CategoryPostForm from '../components/CategoryPostForm';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'CreatePostBuyer'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'CreateBuyerDemand'>;
 
-const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
+const CreateBuyerDemandScreen = ({ navigation, route }: Props) => {
   const { category, categoryData } = route.params;
 
   return (
@@ -18,4 +18,4 @@ const CreatePostBuyerScreen = ({ navigation, route }: Props) => {
   );
 };
 
-export default CreatePostBuyerScreen;
+export default CreateBuyerDemandScreen;

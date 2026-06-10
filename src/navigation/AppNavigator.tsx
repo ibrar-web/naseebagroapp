@@ -21,7 +21,6 @@ import HomeScreen from '../app/home/screens/HomeScreen';
 import MarketplaceScreen from '../app/marketplace/screens/MarketplaceScreen';
 import DealsScreen from '../app/deals/screens/DealsScreen';
 import MyPostsScreen from '../app/posts/screens/MyPostsScreen';
-import PostScreen from '../app/posts/screens/PostScreen';
 import ProfileScreen from '../app/profile/screens/ProfileScreen';
 
 // Onboarding
@@ -47,7 +46,7 @@ import OfferDetailScreen from '../app/posts/screens/OfferDetailScreen';
 import NegotiationScreen from '../app/posts/screens/NegotiationScreen';
 import PrePostScreen from '../app/posts/screens/PrePostScreen';
 import CreatePostSellerScreen from '../app/posts/screens/CreatePostSellerScreen';
-import CreatePostBuyerScreen from '../app/posts/screens/CreatePostBuyerScreen';
+import CreateBuyerDemandScreen from '../app/posts/screens/CreateBuyerDemandScreen';
 import DealDetailScreen from '../app/deals/screens/DealDetailScreen';
 import NotificationsScreen from '../app/notifications/screens/NotificationsScreen';
 
@@ -214,15 +213,14 @@ export const AppNavigator = () => {
           <Stack.Screen name="MarketRates" component={MarketRatesScreen} />
 
           {/* Listing & deal detail */}
-          <Stack.Screen name="CreatePost" component={PostScreen} />
           <Stack.Screen name="PrePost" component={PrePostScreen} />
           <Stack.Screen
             name="CreatePostSeller"
             component={CreatePostSellerScreen}
           />
           <Stack.Screen
-            name="CreatePostBuyer"
-            component={CreatePostBuyerScreen}
+            name="CreateBuyerDemand"
+            component={CreateBuyerDemandScreen}
           />
           <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
           <Stack.Screen

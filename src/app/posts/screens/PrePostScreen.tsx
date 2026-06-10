@@ -98,7 +98,7 @@ const PrePostScreen = ({ navigation }: Props) => {
     };
 
     if (isBuyer) {
-      navigation.navigate('CreatePostBuyer', params);
+      navigation.navigate('CreateBuyerDemand', params);
     } else {
       navigation.navigate('CreatePostSeller', params);
     }

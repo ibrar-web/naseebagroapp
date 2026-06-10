@@ -1,33 +1,76 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  ImageBackground,
+  StyleSheet,
   Text,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
+  View,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../navigation/types';
+import {
+  CategoryRouteParam,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { useAppSelector } from '../../../store';
 import MockStatusBar from '../../components/MockStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrePost'>;
 
-const CATEGORIES = [
-  { emoji: '🌾', name: 'Grains', count: '5 commodities' },
-  { emoji: '🌿', name: 'Cotton', count: '3 commodities' },
-  { emoji: '🥦', name: 'Vegetables', count: '5 commodities' },
-  { emoji: '🌻', name: 'Oilseeds', count: '4 commodities' },
-  { emoji: '🍋', name: 'Fruits', count: '5 commodities' },
-  { emoji: '🌶️', name: 'Spices', count: '4 commodities' },
-  { emoji: '🍬', name: 'Sugarcane', count: '3 commodities' },
-  { emoji: '🫘', name: 'Pulses', count: '4 commodities' },
-];
+const normalizeCategories = (response: any): CategoryRouteParam[] => {
+  const items =
+    response?.items ?? response?.data?.items ?? response?.data?.data?.items;
+
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter(item => item?.id && item?.name)
+    .map(item => ({
+      id: String(item.id),
+      name: String(item.name),
+      image_url: item.image_url ?? null,
+      commodity_count:
+        typeof item.commodity_count === 'number'
+          ? item.commodity_count
+          : Number(item.commodity_count ?? 0),
+    }));
+};
+
+const commodityCountLabel = (count?: number) => {
+  const safeCount = Number.isFinite(count) ? Number(count) : 0;
+  return `${safeCount} ${safeCount === 1 ? 'commodity' : 'commodities'}`;
+};
 
 const PrePostScreen = ({ navigation }: Props) => {
   const mode = useAppSelector(s => s.app.mode);
   const isBuyer = mode === 'buyer';
+  const [categories, setCategories] = useState<CategoryRouteParam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadCategories = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await api.marketplace.public.listCategories();
+      setCategories(normalizeCategories(response));
+    } catch {
+      setError('Unable to load categories. Please try again.');
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   const goBack = () => {
     if (navigation.canGoBack()) {
@@ -48,18 +91,51 @@ const PrePostScreen = ({ navigation }: Props) => {
     );
   };
 
-  const handleCategorySelect = (category: string) => {
+  const handleCategorySelect = (categoryData: CategoryRouteParam) => {
+    const params = {
+      category: categoryData.name,
+      categoryData,
+    };
+
     if (isBuyer) {
-      navigation.navigate('CreatePostBuyer', { category });
+      navigation.navigate('CreatePostBuyer', params);
     } else {
-      navigation.navigate('CreatePostSeller', { category });
+      navigation.navigate('CreatePostSeller', params);
     }
+  };
+
+  const renderCategory = (category: CategoryRouteParam) => {
+    const imageUrl =
+      category.image_url ||
+      `https://placehold.co/300x220?text=${encodeURIComponent(category.name)}`;
+
+    return (
+      <TouchableOpacity
+        key={category.id}
+        onPress={() => handleCategorySelect(category)}
+        style={styles.categoryCard}
+        activeOpacity={0.84}
+      >
+        <ImageBackground
+          source={{ uri: imageUrl }}
+          style={styles.categoryImage}
+          imageStyle={styles.categoryImageStyle}
+        />
+        <View style={styles.categoryBody}>
+          <Text style={styles.catName} numberOfLines={2}>
+            {category.name}
+          </Text>
+          <Text style={styles.catCount}>
+            {commodityCountLabel(category.commodity_count)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={goBack}
@@ -71,7 +147,7 @@ const PrePostScreen = ({ navigation }: Props) => {
         <Text style={styles.headerTitle}>
           {isBuyer ? 'Create Demand' : 'Create Supply'}
         </Text>
-        <View style={{ width: 34 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -83,20 +159,29 @@ const PrePostScreen = ({ navigation }: Props) => {
         </Text>
         <Text style={styles.subtitle}>Select a category to get started</Text>
 
-        <View style={styles.grid}>
-          {CATEGORIES.map(cat => (
+        {loading ? (
+          <View style={styles.stateBox}>
+            <ActivityIndicator color="#217A3C" />
+            <Text style={styles.stateText}>Loading categories...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.stateBox}>
+            <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
-              key={cat.name}
-              onPress={() => handleCategorySelect(cat.name)}
-              style={styles.categoryCard}
-              activeOpacity={0.82}
+              onPress={loadCategories}
+              style={styles.retryButton}
+              activeOpacity={0.8}
             >
-              <Text style={styles.catEmoji}>{cat.emoji}</Text>
-              <Text style={styles.catName}>{cat.name}</Text>
-              <Text style={styles.catCount}>{cat.count}</Text>
+              <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+        ) : categories.length === 0 ? (
+          <View style={styles.stateBox}>
+            <Text style={styles.stateText}>No categories available.</Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>{categories.map(renderCategory)}</View>
+        )}
       </ScrollView>
     </View>
   );
@@ -123,6 +208,7 @@ const styles = StyleSheet.create({
   },
   backArrow: { fontSize: 22, color: '#111827', lineHeight: 24 },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 34 },
   scrollContent: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 6 },
   subtitle: { fontSize: 13, color: '#6B7280', marginBottom: 20 },
@@ -134,19 +220,48 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: '47%',
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 16,
-    padding: 18,
-    shadowColor: '#000',
+    overflow: 'hidden',
+    shadowColor: '#000000',
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  catEmoji: { fontSize: 24, marginBottom: 8 },
-  catName: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  catCount: { fontSize: 11, color: '#9CA3AF', marginTop: 3 },
+  categoryImage: {
+    width: '100%',
+    aspectRatio: 1.35,
+    backgroundColor: '#E5E7EB',
+  },
+  categoryImageStyle: { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  categoryBody: { padding: 12 },
+  catName: { fontSize: 14, fontWeight: '800', color: '#111827' },
+  catCount: { fontSize: 11, color: '#6B7280', marginTop: 4 },
+  stateBox: {
+    minHeight: 190,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  stateText: { marginTop: 10, fontSize: 13, color: '#6B7280' },
+  errorText: {
+    color: '#991B1B',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    minHeight: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#217A3C',
+  },
+  retryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
 });
 
 export default PrePostScreen;

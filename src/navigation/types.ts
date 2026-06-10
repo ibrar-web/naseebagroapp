@@ -13,6 +13,13 @@ export type PostsTabRouteParam =
   | 'My Supplies'
   | 'My Offers';
 
+export type CategoryRouteParam = {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  commodity_count?: number;
+};
+
 export type TabParamList = {
   Home: undefined;
   Market: undefined;
@@ -35,8 +42,8 @@ export type RootStackParamList = {
   // Marketplace detail
   CreatePost: undefined;
   PrePost: undefined;
-  CreatePostSeller: { category: string };
-  CreatePostBuyer: { category: string };
+  CreatePostSeller: { category: string; categoryData?: CategoryRouteParam };
+  CreatePostBuyer: { category: string; categoryData?: CategoryRouteParam };
   ListingDetail: { listingId: string };
   CommodityDetail: { listingId: string };
   RequestToPurchase: { listingId: string };

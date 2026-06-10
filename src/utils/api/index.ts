@@ -90,21 +90,8 @@ export const api = {
         id: string | number,
         params?: Record<string, any>,
       ) => Get(byId('public/demand', id), params),
-      listCategories: (params?: Record<string, any>) =>
-        Get('public/categories', params),
+      listCategories: () => Get('public/categories'),
     },
-    private: {
-      createSellerListing: (data: any) =>
-        Post('seller/listings', data, protectedRequest),
-    },
-  },
-  posts: {
-    getSellerListing: (id: string | number) =>
-      Get(byId('seller/listings', id), undefined, protectedRequest),
-  },
-  deals: {
-    getMyDeals: (id: string | number) =>
-      Get(byId('seller/listings', id), undefined, protectedRequest),
   },
   buyer: {
     sendBuyrequest: (id: string | number, data?: any) =>
@@ -117,8 +104,6 @@ export const api = {
       Get('buyer/my-posts/offers', params, protectedRequest),
     myDemandOfferDetails: (id: string | number) =>
       Get(byId('buyer/my-posts/offers', id), undefined, protectedRequest),
-    createBuyDemandPost: (data?: any) =>
-      Post('buyer/demand/create', data, protectedRequest),
     markFavouriteSupply: (id: string | number) =>
       Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
     removeFavouriteSupply: (id: string | number) =>
@@ -127,6 +112,12 @@ export const api = {
         undefined,
         protectedRequest,
       ),
+    // get category form
+    getBuyerCategoryform: (id: string) =>
+      Get(byId('public/buyer/form', id), undefined),
+    // submit demand request
+    createBuyDemandPost: (data?: any) =>
+      Post('buyer/demand/create', data, protectedRequest),
   },
 
   seller: {
@@ -140,6 +131,10 @@ export const api = {
       Get('seller/my-posts/offers', params, protectedRequest),
     myPostOffersDetails: (id: string | number) =>
       Get(byId('seller/my-posts/offers', id), undefined, protectedRequest),
+    // get category form
+    getSellerCategoryform: (id: string) =>
+      Get(byId('public/seller/form', id), undefined),
+    // submit supply request
     createSupplyPost: (data?: any) =>
       Post('seller/supplies/create', data, protectedRequest),
   },

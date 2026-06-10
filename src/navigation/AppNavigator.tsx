@@ -17,7 +17,7 @@ import PhoneScreen from '../app/auth/screens/PhoneScreen';
 import OTPScreen from '../app/auth/screens/OTPScreen';
 
 // Main tabs
-import HomeScreen from '../app/buyer/screens/HomeScreen';
+import HomeScreen from '../app/home/screens/HomeScreen';
 import MarketplaceScreen from '../app/marketplace/screens/MarketplaceScreen';
 import DealsScreen from '../app/deals/screens/DealsScreen';
 import MyPostsScreen from '../app/posts/screens/MyPostsScreen';

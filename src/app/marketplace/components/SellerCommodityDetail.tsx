@@ -63,6 +63,13 @@ const normalizeDemandDetail = (response: any): DemandDetail | null => {
   return payload?.id ? payload : null;
 };
 
+const toStr = (val: any, fallback = ''): string => {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val || fallback;
+  if (typeof val === 'object' && typeof val.label === 'string') return val.label || fallback;
+  return String(val) || fallback;
+};
+
 const MillRow = ({ item, last }: { item: DemandMill; last?: boolean }) => (
   <View style={[styles.millRow, !last && styles.millRowBorder]}>
     <View style={styles.millIconBox}>
@@ -70,19 +77,19 @@ const MillRow = ({ item, last }: { item: DemandMill; last?: boolean }) => (
     </View>
     <View style={styles.millMiddle}>
       <Text style={styles.millName} numberOfLines={1}>
-        {item.mill?.name ?? 'Mill'}
+        {toStr(item.mill?.name, 'Mill')}
       </Text>
       <View style={styles.millLocationRow}>
         <AppIcon name="profileCity" size={10} color="#9CA3AF" />
         <Text style={styles.millLocation} numberOfLines={1}>
-          {item.mill?.location_label ?? 'Location not available'}
+          {toStr(item.mill?.location_label, 'Location not available')}
         </Text>
       </View>
     </View>
     <View style={styles.millRight}>
-      <Text style={styles.millPrice}>{item.price_display ?? 'Ask'}</Text>
+      <Text style={styles.millPrice}>{toStr(item.price_display, 'Ask')}</Text>
       <Text style={styles.millQuantity} numberOfLines={1}>
-        {item.available_quantity_label ?? ''}
+        {toStr(item.available_quantity_label)}
       </Text>
     </View>
   </View>
@@ -227,9 +234,9 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           </View>
 
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{detail.code ?? detail.id}</Text>
+            <Text style={styles.heroId}>{toStr(detail.code ?? detail.id)}</Text>
             <Text style={styles.heroName} numberOfLines={1}>
-              {detail.title ?? detail.commodity?.name ?? 'Commodity'}
+              {toStr(detail.title ?? detail.commodity?.name, 'Commodity')}
             </Text>
           </View>
         </ImageBackground>
@@ -239,19 +246,19 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
         <View style={styles.metaItem}>
           <Text style={styles.metaLabel}>QUANTITY</Text>
           <Text style={styles.metaValue}>
-            {detail.quantity_label ?? '—'}
+            {toStr(detail.quantity_label, '—')}
           </Text>
         </View>
         <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>LOCATION</Text>
           <Text style={styles.metaValue}>
-            {detail.location_label ?? '—'}
+            {toStr(detail.location_label, '—')}
           </Text>
         </View>
         <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>POSTED</Text>
           <Text style={styles.metaValue}>
-            {detail.posted_label ?? '—'}
+            {toStr(detail.posted_label, '—')}
           </Text>
         </View>
       </View>
@@ -280,8 +287,8 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
             {requestRows.map((row, index) => (
               <DetailRow
                 key={row.key}
-                label={row.label}
-                value={row.value}
+                label={toStr(row.label)}
+                value={toStr(row.value)}
                 highlight={row.key.includes('price') || row.key.includes('budget')}
                 mono={row.key.includes('id')}
                 last={index === requestRows.length - 1}
@@ -297,7 +304,7 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
                 <AppIcon name="business" size={14} color="#217A3C" />
               </View>
               <Text style={styles.cardTitle}>
-                {detail.mills_section?.title ?? 'Mills Specified by Buyer'}
+                {toStr(detail.mills_section?.title, 'Mills Specified by Buyer')}
               </Text>
             </View>
             {mills.map((mill, index) => (
@@ -317,12 +324,12 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
                 <AppIcon name="document" size={14} color="#D4AE02" />
               </View>
               <Text style={styles.cardTitle}>
-                {detail.buyer_requirements.title ?? 'Buyer Requirements'}
+                {toStr(detail.buyer_requirements.title, 'Buyer Requirements')}
               </Text>
             </View>
             <View style={styles.notesBox}>
               <Text style={styles.notesBody}>
-                {detail.buyer_requirements.body}
+                {toStr(detail.buyer_requirements.body)}
               </Text>
             </View>
           </View>

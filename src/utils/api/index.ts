@@ -85,6 +85,7 @@ export const api = {
         id: string | number,
         params?: Record<string, any>,
       ) => Get(byId('public/supplies', id), params),
+      // market place api for seller
       listMarketDemandsListing: (params?: Record<string, any>) =>
         Get('public/demand', params),
       DetailMarketDemandsListing: (

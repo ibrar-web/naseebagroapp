@@ -93,6 +93,13 @@ const normalizeSupplyDetail = (response: any): SupplyDetail | null => {
   return payload?.id ? payload : null;
 };
 
+const toStr = (val: any, fallback = ''): string => {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val || fallback;
+  if (typeof val === 'object' && typeof val.label === 'string') return val.label || fallback;
+  return String(val) || fallback;
+};
+
 const getSummaryIcon = (key: string): AppIconName => {
   if (key.includes('price')) {
     return 'currency';
@@ -158,13 +165,13 @@ const SummaryCard = ({ item }: { item: SupplySummaryCard }) => {
           style={[styles.infoValue, highlighted && styles.infoValueHighlight]}
           numberOfLines={2}
         >
-          {item.value}
+          {toStr(item.value)}
         </Text>
         <Text
           style={[styles.infoLabel, highlighted && styles.infoLabelHighlight]}
           numberOfLines={1}
         >
-          {item.label}
+          {toStr(item.label)}
         </Text>
       </View>
     </View>
@@ -215,19 +222,19 @@ const MillRow = ({ item, last }: { item: SupplyMill; last?: boolean }) => {
       </View>
       <View style={styles.millMiddle}>
         <Text style={styles.millName} numberOfLines={1}>
-          {item.mill?.name ?? 'Mill'}
+          {toStr(item.mill?.name, 'Mill')}
         </Text>
         <View style={styles.millLocationRow}>
           <AppIcon name="profileCity" size={10} color="#9CA3AF" />
           <Text style={styles.millLocation} numberOfLines={1}>
-            {item.mill?.location_label ?? 'Location not available'}
+            {toStr(item.mill?.location_label, 'Location not available')}
           </Text>
         </View>
       </View>
       <View style={styles.millRight}>
-        <Text style={styles.millPrice}>{item.price_display ?? 'Ask'}</Text>
+        <Text style={styles.millPrice}>{toStr(item.price_display, 'Ask')}</Text>
         <Text style={styles.millQuantity} numberOfLines={1}>
-          {item.available_quantity_label ?? 'Available'}
+          {toStr(item.available_quantity_label, 'Available')}
         </Text>
       </View>
     </View>
@@ -355,9 +362,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
             />
           </TouchableOpacity>
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{detail.code ?? detail.id}</Text>
+            <Text style={styles.heroId}>{toStr(detail.code ?? detail.id)}</Text>
             <Text style={styles.heroName} numberOfLines={1}>
-              {detail.title ?? detail.commodity?.name ?? 'Commodity'}
+              {toStr(detail.title ?? detail.commodity?.name, 'Commodity')}
             </Text>
             <View style={styles.heroBadgeRow}>
               {badge ? (
@@ -369,7 +376,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
                 <View style={styles.verifiedRow}>
                   <AppIcon name="approved" size={11} color="#7FD4A0" />
                   <Text style={styles.verifiedText}>
-                    {detail.verified_label ?? 'Naseeb Verified'}
+                    {toStr(detail.verified_label, 'Naseeb Verified')}
                   </Text>
                 </View>
               ) : null}
@@ -383,11 +390,10 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           <AppIcon name="notificationWarning" size={13} color="#92400E" />
           <Text style={styles.warningText}>
             <Text style={styles.warningStrong}>
-              {detail.price_freshness.stale_warning_label ??
-                'Price may have changed.'}
+              {toStr(detail.price_freshness.stale_warning_label, 'Price may have changed.')}
             </Text>
             {'  '}
-            {detail.price_freshness.stale_warning_detail}
+            {toStr(detail.price_freshness.stale_warning_detail)}
           </Text>
         </View>
       ) : null}
@@ -415,9 +421,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
                     size={12}
                     color="#217A3C"
                   />
-                  <Text style={styles.termTitle}>{card.label}</Text>
+                  <Text style={styles.termTitle}>{toStr(card.label)}</Text>
                 </View>
-                <Text style={styles.termValue}>{card.value}</Text>
+                <Text style={styles.termValue}>{toStr(card.value)}</Text>
               </View>
             ))}
           </View>
@@ -448,8 +454,8 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           {rows.map((row, index) => (
             <DetailRow
               key={row.key}
-              label={row.label}
-              value={row.value}
+              label={toStr(row.label)}
+              value={toStr(row.value)}
               mono={row.key.includes('id')}
               last={index === rows.length - 1}
             />
@@ -459,9 +465,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         {detail.seller_notes?.body ? (
           <View style={styles.notesBox}>
             <Text style={styles.notesTitle}>
-              {detail.seller_notes.title ?? 'Seller Notes'}
+              {toStr(detail.seller_notes.title, 'Seller Notes')}
             </Text>
-            <Text style={styles.notesBody}>{detail.seller_notes.body}</Text>
+            <Text style={styles.notesBody}>{toStr(detail.seller_notes.body)}</Text>
           </View>
         ) : null}
 
@@ -469,19 +475,19 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           <SectionCard title="Seller" icon="profileAvatar">
             <DetailRow
               label="Name"
-              value={detail.seller.fullName ?? 'Seller'}
+              value={toStr(detail.seller.fullName, 'Seller')}
             />
             <DetailRow
               label="Rating"
-              value={detail.seller.rating_display ?? '0.0 (0)'}
+              value={toStr(detail.seller.rating_display, '0.0 (0)')}
             />
             <DetailRow
               label="Location"
-              value={detail.seller.location_label ?? 'Not available'}
+              value={toStr(detail.seller.location_label, 'Not available')}
             />
             <DetailRow
               label="Member Since"
-              value={detail.seller.member_since_label ?? 'Not available'}
+              value={toStr(detail.seller.member_since_label, 'Not available')}
               last
             />
           </SectionCard>

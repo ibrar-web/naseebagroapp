@@ -199,6 +199,13 @@ const normalizeMarketplacePayload = (response: any): MarketplacePayload => {
   };
 };
 
+const toStr = (val: any, fallback = ''): string => {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val || fallback;
+  if (typeof val === 'object' && typeof val.label === 'string') return val.label || fallback;
+  return String(val) || fallback;
+};
+
 const formatBadge = (badge?: string | null) =>
   badge ? badge.replace(/_/g, ' ') : '';
 
@@ -218,9 +225,9 @@ const formatDateLabel = (date?: string) => {
   })}`;
 };
 
-const getListingLocation = (item: MarketListing) => {
+const getListingLocation = (item: MarketListing): string => {
   if (item.location) {
-    return item.location;
+    return toStr(item.location, 'Multiple mills');
   }
 
   const mill = item.mill_prices_preview?.[0]?.mill;
@@ -228,8 +235,8 @@ const getListingLocation = (item: MarketListing) => {
   return parts.length ? parts.join(', ') : 'Multiple mills';
 };
 
-const getSellerName = (item: MarketListing, isBuyer: boolean) =>
-  item.seller?.fullName ?? (isBuyer ? 'Verified seller' : 'Verified buyer');
+const getSellerName = (item: MarketListing, isBuyer: boolean): string =>
+  toStr(item.seller?.fullName) || (isBuyer ? 'Verified seller' : 'Verified buyer');
 
 const getMillRows = (item: MarketListing): ListingMillPrice[] => {
   if (item.mill_prices_preview?.length) {
@@ -807,7 +814,7 @@ const MillPriceRow = ({
             numberOfLines={1}
             style={{ color: featured ? 'rgba(255,255,255,0.48)' : '#9CA3AF' }}
           >
-            {mill.available_label ?? location}
+            {toStr(mill.available_label) || location}
           </Text>
         </View>
       </View>
@@ -816,7 +823,7 @@ const MillPriceRow = ({
           className="text-sm font-black"
           style={{ color: featured ? '#F7DB4A' : '#1A6B34' }}
         >
-          {mill.price_display ?? 'Ask'}
+          {toStr(mill.price_display, 'Ask')}
         </Text>
         <Text
           className="text-[9px]"
@@ -852,7 +859,7 @@ const MarketplaceListingCard = ({
   const actionLabel = isBuyer ? t('listing.sendInterest') : 'Send Offer';
   const millsTitle = isBuyer ? 'Mill Prices' : 'Demand Prices';
   const category = item.commodity?.category?.name ?? 'Commodity';
-  const rating = item.rating_display ?? `${item.seller?.rating ?? '0.0'}`;
+  const rating = toStr(item.rating_display) || toStr(item.seller?.rating, '0.0');
   const location = getListingLocation(item);
   const counterparty = getSellerName(item, isBuyer);
 
@@ -914,7 +921,7 @@ const MarketplaceListingCard = ({
               numberOfLines={1}
               className="text-gray-700 text-[11px] font-bold flex-1"
             >
-              {item.total_quantity_label ?? 'Quantity available'}
+              {toStr(item.total_quantity_label, 'Quantity available')}
             </Text>
           </View>
           <View className="flex-row items-center" style={{ gap: 3 }}>
@@ -945,7 +952,7 @@ const MarketplaceListingCard = ({
             {item.mill_prices_total &&
             item.mill_prices_total > millRows.length ? (
               <Text className="text-green-700 text-[10px] font-bold bg-green-50 rounded-full px-2 py-0.5">
-                {item.more_mills_label ??
+                {toStr(item.more_mills_label) ||
                   `+${item.mill_prices_total - millRows.length} more mill`}
               </Text>
             ) : null}

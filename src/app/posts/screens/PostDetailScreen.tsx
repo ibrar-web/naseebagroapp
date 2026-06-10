@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ImageBackground,
@@ -18,7 +18,31 @@ import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostDetail'>;
 type AppMode = 'buyer' | 'seller';
-type TabType = 'Post Details' | 'Offers Received';
+
+// ─── Types (mirror API shape) ────────────────────────────────────────────────
+
+type DetailRow = {
+  key: string;
+  label: string;
+  value: string;
+  value_color?: string;
+  is_highlighted?: boolean;
+};
+
+type MillItem = {
+  id: string;
+  mill: { name: string; location_label: string };
+  price_display: string;
+  price_unit_label: string;
+  requested_quantity_label: string;
+};
+
+type StatCard = {
+  key: string;
+  label: string;
+  value: number;
+  color: string;
+};
 
 type PostOffer = {
   id: string;
@@ -34,179 +58,96 @@ type PostOffer = {
   prompt?: string;
 };
 
+type MenuOption = {
+  key: string;
+  label: string;
+  enabled: boolean;
+};
+
 type PostDetail = {
   id: string;
   code: string;
-  name: string;
-  qty: string;
-  price: string;
   status: string;
-  image: string;
+  status_color: string;
+  hero: { image_url: string; code: string; title: string; subtitle: string };
+  tabs: Array<{ key: string; label: string; is_active: boolean }>;
+  post_details: { title: string; rows: DetailRow[] };
+  buyer_notes: { title: string; body: string | null; has_content: boolean };
+  price_freshness: { show_warning: boolean; hours_since_update: number };
+  mills_specified: { title: string; has_mills: boolean; mills: MillItem[] };
+  offers_received: { stats: { title_cards: StatCard[] }; items: PostOffer[] };
+  actions: { menu_options: MenuOption[] };
   fallback: string;
-  details: {
-    commodity: string;
-    category: string;
-    quantity: string;
-    priceRange: string;
-    deliveryCity: string;
-    deliveryDate: string;
-    paymentTerms: string;
-    quality: string;
-    notes: string;
-    posted: string;
-  };
-  offers: PostOffer[];
 };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640'];
 
 const firstValue = (...values: any[]) =>
-  values.find(value => value !== undefined && value !== null && value !== '');
+  values.find(v => v !== undefined && v !== null && v !== '');
 
 const stringify = (value: any, fallback = '') => {
   const resolved = firstValue(value);
-  if (resolved === undefined) {
-    return fallback;
-  }
-  return String(resolved);
+  return resolved === undefined ? fallback : String(resolved);
 };
 
 const titleCaseStatus = (status?: string) => {
   const raw = stringify(status, 'Pending').replace(/_/g, ' ').trim();
-  if (!raw) {
-    return 'Pending';
-  }
+  if (!raw) return 'Pending';
   return raw
     .split(' ')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
     .join(' ');
 };
 
 const formatDateLabel = (value?: string) => {
-  if (!value) {
-    return 'Recently posted';
-  }
-
-  if (value.includes('ago') || value.includes('Posted')) {
-    return value.replace('Posted ', '');
-  }
-
+  if (!value) return 'Recently';
+  if (value.includes('ago') || value.includes('Posted') || value.includes('Sent'))
+    return value.replace('Posted ', '').replace('Sent ', '');
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 const priceDisplay = (item: any) => {
   const explicit = firstValue(
-    item.price_display,
-    item.budget_display,
-    item.price_range_display,
-    item.asking_price_display,
-    item.counter_price_display,
-    item.offer_price_display,
+    item.price_display, item.budget_display, item.asking_price_display,
+    item.counter_price_display, item.offer_price_display,
   );
-  if (explicit) {
-    return String(explicit);
-  }
-
-  const min = firstValue(item.min_price, item.price_min, item.minimum_price);
-  const max = firstValue(item.max_price, item.price_max, item.maximum_price);
-  if (min && max) {
-    return `PKR ${min} - ${max}`;
-  }
-  if (min || max) {
-    return `PKR ${min ?? max}`;
-  }
-  if (item.price) {
-    return `PKR ${item.price}`;
-  }
+  if (explicit) return String(explicit);
+  if (item.price) return `PKR ${item.price}`;
   return 'Ask';
-};
-
-const findArray = (body: any, keys: string[]) => {
-  if (Array.isArray(body)) {
-    return body;
-  }
-
-  for (const key of keys) {
-    if (Array.isArray(body?.[key])) {
-      return body[key];
-    }
-  }
-
-  if (body?.data && typeof body.data === 'object') {
-    for (const key of keys) {
-      if (Array.isArray(body.data?.[key])) {
-        return body.data[key];
-      }
-    }
-  }
-
-  return [];
-};
-
-const rowValue = (rows: any[], keys: string[], fallback: any): string => {
-  const match = rows.find(row =>
-    keys.some(key =>
-      String(firstValue(row.key, row.label, row.name) ?? '')
-        .toLowerCase()
-        .includes(key),
-    ),
-  );
-  return stringify(firstValue(match?.value, fallback), 'Not provided');
 };
 
 const normalizeOffer = (item: any, index: number, mode: AppMode): PostOffer => {
   const id = stringify(
     firstValue(item.id, item.offer_id, item.negotiation_id, item.uuid),
-    `${mode}-detail-offer-${index}`,
+    `${mode}-offer-${index}`,
   );
   const status = titleCaseStatus(firstValue(item.status_label, item.status));
-
   return {
     id,
     code: stringify(firstValue(item.code, item.offer_code), id),
     partyId: stringify(
-      firstValue(
-        item.seller?.code,
-        item.buyer?.code,
-        item.seller_id,
-        item.buyer_id,
-      ),
+      firstValue(item.seller?.code, item.buyer?.code, item.seller_id, item.buyer_id),
       mode === 'buyer' ? 'Seller' : 'Buyer',
     ),
     partyName: stringify(
       firstValue(
-        item.mill?.name,
-        item.seller?.business_name,
-        item.seller?.fullName,
-        item.buyer?.business_name,
-        item.buyer?.fullName,
-        item.counterparty_name,
+        item.mill?.name, item.seller?.business_name, item.seller?.fullName,
+        item.buyer?.business_name, item.buyer?.fullName, item.counterparty_name,
       ),
       mode === 'buyer' ? 'Seller' : 'Buyer',
     ),
     price: priceDisplay(item),
     qty: stringify(
-      firstValue(
-        item.quantity_label,
-        item.supply_quantity_label,
-        item.requested_quantity_label,
-        item.quantity,
-        item.supply_quantity,
-      ),
+      firstValue(item.quantity_label, item.supply_quantity_label, item.quantity),
       'Quantity not set',
     ),
     payment: stringify(
       firstValue(
-        item.payment_terms_label,
-        item.counter_payment_terms?.label,
+        item.payment_terms_label, item.counter_payment_terms?.label,
         item.payment_terms?.label,
         item.payment_days ? `${item.payment_days} Days` : undefined,
       ),
@@ -214,21 +155,16 @@ const normalizeOffer = (item: any, index: number, mode: AppMode): PostOffer => {
     ),
     delivery: stringify(
       firstValue(
-        item.delivery_terms_label,
-        item.counter_delivery_terms?.label,
+        item.delivery_terms_label, item.counter_delivery_terms?.label,
         item.delivery_terms?.label,
         item.delivery_days ? `${item.delivery_days} Days` : undefined,
       ),
       'Delivery not set',
     ),
     status,
-    time: stringify(
-      firstValue(item.time_label, item.created_at, item.updated_at),
-      'Recently',
-    ),
+    time: stringify(firstValue(item.time_label, item.created_at, item.updated_at), 'Recently'),
     prompt:
-      status.toLowerCase().includes('awaiting') ||
-      status.toLowerCase().includes('counter')
+      status.toLowerCase().includes('awaiting') || status.toLowerCase().includes('counter')
         ? 'Tap to review and respond'
         : undefined,
   };
@@ -239,266 +175,139 @@ const normalizePostDetail = (
   id: string,
   mode: AppMode,
 ): PostDetail | null => {
-  const root =
-    response?.status && response?.data ? response.data : response ?? {};
+  const root = response?.status && response?.data ? response.data : response ?? {};
   const payload = root?.id ? root : root?.data ?? root;
+  if (!payload || typeof payload !== 'object') return null;
 
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const title = stringify(
-    firstValue(
-      payload.title,
-      payload.name,
-      payload.commodity?.name,
-      payload.commodity_name,
-      payload.product_name,
-    ),
-    mode === 'buyer' ? 'Demand' : 'Supply',
-  );
-  const rows = findArray(payload.post_details, ['rows']).length
-    ? findArray(payload.post_details, ['rows'])
-    : findArray(payload.request_details, ['rows']);
-  const offers = findArray(payload, [
-    'offers',
-    'received_offers',
-    'seller_offers',
-    'buyer_offers',
-    'offer_items',
-  ]).map((offer: any, index: number) => normalizeOffer(offer, index, mode));
+  const offerItems = Array.isArray(payload.offers_received?.items)
+    ? payload.offers_received.items.map((o: any, i: number) => normalizeOffer(o, i, mode))
+    : [];
 
   return {
-    id: stringify(
-      firstValue(
-        payload.id,
-        payload.post_id,
-        payload.demand_id,
-        payload.supply_id,
-      ),
-      id,
-    ),
-    code: stringify(
-      firstValue(
-        payload.code,
-        payload.post_code,
-        payload.demand_code,
-        payload.supply_code,
-        payload.reference_no,
-      ),
-      id,
-    ),
-    name: title,
-    qty: stringify(
-      firstValue(
-        payload.quantity_label,
-        payload.total_quantity_label,
-        payload.requested_quantity_label,
-        payload.available_quantity_label,
-        payload.quantity,
-      ),
-      'Quantity not set',
-    ),
-    price: priceDisplay(payload),
-    status: titleCaseStatus(
-      firstValue(payload.status_label, payload.status, payload.badge_label),
-    ),
-    image:
-      firstValue(
-        payload.hero_image_url,
-        payload.image_url,
-        payload.image,
-        payload.commodity?.image_url,
-      ) ?? `https://placehold.co/600x400?text=${encodeURIComponent(title)}`,
-    fallback: FALLBACK_COLORS[0],
-    details: {
-      commodity: stringify(
-        firstValue(payload.commodity?.name, payload.commodity_name, title),
-        title,
-      ),
-      category: stringify(
+    id: stringify(firstValue(payload.id, payload.post_id, payload.demand_id), id),
+    code: stringify(firstValue(payload.code, payload.post_code, payload.demand_code), id),
+    status: stringify(firstValue(payload.status_label, payload.status), 'OPEN'),
+    status_color: stringify(payload.status_color, 'green'),
+    hero: {
+      image_url:
+        firstValue(payload.hero?.image_url, payload.commodity_image, payload.image_url) ?? '',
+      code: stringify(firstValue(payload.hero?.code, payload.code), ''),
+      title: stringify(
         firstValue(
-          payload.commodity?.category?.name,
-          payload.category?.name,
-          payload.category_name,
+          payload.hero?.title, payload.title, payload.commodity_name, payload.name,
         ),
-        'Not provided',
+        mode === 'buyer' ? 'Demand' : 'Supply',
       ),
-      quantity: rowValue(
-        rows,
-        ['quantity', 'stock', 'available'],
-        firstValue(
-          payload.quantity_label,
-          payload.total_quantity_label,
-          payload.quantity,
-        ),
-      ),
-      priceRange: rowValue(rows, ['price', 'budget'], priceDisplay(payload)),
-      deliveryCity: rowValue(
-        rows,
-        ['city', 'location', 'pickup', 'delivery'],
-        firstValue(payload.delivery_location?.label, payload.location),
-      ),
-      deliveryDate: rowValue(
-        rows,
-        ['required', 'delivery date', 'date'],
-        firstValue(payload.dates?.required_by_label, payload.delivery_date),
-      ),
-      paymentTerms: rowValue(
-        rows,
-        ['payment'],
-        firstValue(payload.payment_terms_label, payload.payment_terms?.label),
-      ),
-      quality: rowValue(
-        rows,
-        ['quality', 'grade', 'condition'],
-        firstValue(payload.quality_label, payload.condition),
-      ),
-      notes: stringify(
-        firstValue(
-          payload.notes,
-          payload.additional_notes,
-          payload.seller_notes?.body,
-          payload.buyer_requirements_section?.body,
-        ),
-        '',
-      ),
-      posted: formatDateLabel(
-        firstValue(
-          payload.dates?.posted_label,
-          payload.dates?.posted_full_label,
-          payload.created_at,
-          payload.posted_at,
-        ),
-      ),
+      subtitle: stringify(firstValue(payload.hero?.subtitle, payload.subtitle), ''),
     },
-    offers,
+    tabs: Array.isArray(payload.tabs)
+      ? payload.tabs
+      : [
+          { key: 'post_details', label: 'Post Details', is_active: true },
+          { key: 'offers_received', label: 'Offers Received (0)', is_active: false },
+        ],
+    post_details: {
+      title: stringify(
+        payload.post_details?.title,
+        mode === 'buyer' ? 'DEMAND DETAILS' : 'SUPPLY DETAILS',
+      ),
+      rows: Array.isArray(payload.post_details?.rows) ? payload.post_details.rows : [],
+    },
+    buyer_notes: {
+      title: stringify(payload.buyer_notes?.title, 'BUYER NOTES'),
+      body: payload.buyer_notes?.body ?? null,
+      has_content: !!payload.buyer_notes?.has_content,
+    },
+    price_freshness: {
+      show_warning: !!payload.price_freshness?.show_warning,
+      hours_since_update: payload.price_freshness?.hours_since_update ?? 0,
+    },
+    mills_specified: {
+      title: stringify(payload.mills_specified?.title, 'Mills Specified'),
+      has_mills: !!payload.mills_specified?.has_mills,
+      mills: Array.isArray(payload.mills_specified?.mills)
+        ? payload.mills_specified.mills
+        : [],
+    },
+    offers_received: {
+      stats: {
+        title_cards: Array.isArray(payload.offers_received?.stats?.title_cards)
+          ? payload.offers_received.stats.title_cards
+          : [],
+      },
+      items: offerItems,
+    },
+    actions: {
+      menu_options: Array.isArray(payload.actions?.menu_options)
+        ? payload.actions.menu_options
+        : [],
+    },
+    fallback: FALLBACK_COLORS[0],
   };
 };
 
-const statusConfig = (status: string) => {
-  const normalized = status.toLowerCase();
-  if (normalized.includes('aging') || normalized.includes('expired')) {
-    return { bg: '#D97706', text: '#FFFFFF', dot: '#FFFFFF' };
-  }
-  if (
-    normalized.includes('inactive') ||
-    normalized.includes('closed') ||
-    normalized.includes('stale')
-  ) {
-    return { bg: '#6B7280', text: '#FFFFFF', dot: '#FFFFFF' };
-  }
-  return { bg: '#217A3C', text: '#FFFFFF', dot: '#FFFFFF' };
+// ─── Config helpers ───────────────────────────────────────────────────────────
+
+const statusBadgeConfig = (color: string) => {
+  if (color === 'orange' || color === 'amber')
+    return { bg: '#D97706', label: 'AGING' };
+  if (color === 'red')
+    return { bg: '#EF4444', label: 'CLOSED' };
+  return { bg: '#217A3C', label: 'ACTIVE' };
 };
 
-const sellerOfferConfig = (status: string) => {
-  const normalized = status.toLowerCase();
-  if (normalized.includes('awaiting') || normalized.includes('counter')) {
-    return {
-      bg: '#FEF3C7',
-      dot: '#92400E',
-      text: '#92400E',
-      border: 'rgba(46,158,82,0.2)',
-      footerBg: 'rgba(46,158,82,0.05)',
-      footerBorder: 'rgba(46,158,82,0.13)',
-    };
-  }
-  if (normalized.includes('rejected') || normalized.includes('cancelled')) {
-    return {
-      bg: '#FEE2E2',
-      dot: '#EF4444',
-      text: '#EF4444',
-      border: '#F3F4F6',
-      footerBg: '#FFFFFF',
-      footerBorder: '#FFFFFF',
-    };
-  }
-  if (normalized.includes('accepted')) {
-    return {
-      bg: '#E8F7EE',
-      dot: '#1A6B34',
-      text: '#1A6B34',
-      border: '#F3F4F6',
-      footerBg: '#FFFFFF',
-      footerBorder: '#FFFFFF',
-    };
-  }
-  return {
-    bg: '#F3F4F6',
-    dot: '#9CA3AF',
-    text: '#4B5563',
-    border: '#F3F4F6',
-    footerBg: '#FFFFFF',
-    footerBorder: '#FFFFFF',
-  };
+const statCardColors = (color: string) => {
+  if (color === 'blue') return { bg: '#EEF6FF', text: '#3B82F6' };
+  if (color === 'green') return { bg: '#E8F7EE', text: '#1A6B34' };
+  if (color === 'red') return { bg: '#FEE2E2', text: '#EF4444' };
+  return { bg: '#F9FAFB', text: '#374151' };
 };
 
-const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.detailRow}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    <Text style={styles.detailValue}>{value}</Text>
-  </View>
-);
+const rowValueColor = (valueColor?: string, isHighlighted?: boolean) => {
+  if (isHighlighted || valueColor === 'green') return '#1A6B34';
+  if (valueColor === 'red') return '#EF4444';
+  if (valueColor === 'orange') return '#D97706';
+  return '#111827';
+};
 
-const OfferStat = ({
-  value,
-  label,
-  bg,
-  color,
-}: {
-  value: string;
-  label: string;
-  bg: string;
-  color: string;
-}) => (
-  <View style={[styles.offerStat, { backgroundColor: bg }]}>
-    <Text style={[styles.offerStatValue, { color }]}>{value}</Text>
-    <Text style={styles.offerStatLabel}>{label}</Text>
-  </View>
-);
+const offerStatusConfig = (status: string) => {
+  const n = status.toLowerCase();
+  if (n.includes('awaiting') || n.includes('counter'))
+    return { bg: '#FEF3C7', dot: '#92400E', text: '#92400E', border: 'rgba(46,158,82,0.2)', footerBg: 'rgba(46,158,82,0.05)', footerBorder: 'rgba(46,158,82,0.13)' };
+  if (n.includes('rejected') || n.includes('cancelled'))
+    return { bg: '#FEE2E2', dot: '#EF4444', text: '#EF4444', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
+  if (n.includes('accepted'))
+    return { bg: '#E8F7EE', dot: '#1A6B34', text: '#1A6B34', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
+  return { bg: '#F3F4F6', dot: '#9CA3AF', text: '#4B5563', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
+};
 
-const SellerOfferCard = ({
-  offer,
-  onPress,
-}: {
-  offer: PostOffer;
-  onPress: () => void;
-}) => {
-  const config = sellerOfferConfig(offer.status);
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
+const OfferCard = ({ offer, onPress }: { offer: PostOffer; onPress: () => void }) => {
+  const config = offerStatusConfig(offer.status);
   return (
     <TouchableOpacity
-      style={[styles.sellerOfferCard, { borderColor: config.border }]}
+      style={[styles.offerCard, { borderColor: config.border }]}
       activeOpacity={0.88}
       onPress={onPress}
     >
-      <View style={[styles.sellerOfferHeader, { backgroundColor: config.bg }]}>
-        <View
-          style={[styles.sellerOfferDot, { backgroundColor: config.dot }]}
-        />
-        <Text style={[styles.sellerOfferStatus, { color: config.text }]}>
-          {offer.status}
-        </Text>
-        <Text style={styles.sellerOfferTime}>
-          {formatDateLabel(offer.time)}
-        </Text>
+      <View style={[styles.offerCardHeader, { backgroundColor: config.bg }]}>
+        <View style={[styles.offerDot, { backgroundColor: config.dot }]} />
+        <Text style={[styles.offerStatus, { color: config.text }]}>{offer.status}</Text>
+        <Text style={styles.offerTime}>{formatDateLabel(offer.time)}</Text>
       </View>
-
-      <View style={styles.sellerOfferBody}>
-        <View style={styles.sellerOfferMainRow}>
-          <View style={styles.sellerOfferLeft}>
-            <Text style={styles.sellerOfferId}>
-              {offer.partyId} - {offer.code}
-            </Text>
-            <Text style={styles.sellerOfferMill}>{offer.partyName}</Text>
-            <Text style={styles.sellerOfferPrice}>{offer.price}</Text>
+      <View style={styles.offerCardBody}>
+        <View style={styles.offerMainRow}>
+          <View style={styles.offerLeft}>
+            <Text style={styles.offerId}>{offer.partyId} - {offer.code}</Text>
+            <Text style={styles.offerMill}>{offer.partyName}</Text>
+            <Text style={styles.offerPrice}>{offer.price}</Text>
           </View>
-          <View style={styles.sellerOfferRight}>
-            <Text style={styles.sellerOfferQty}>{offer.qty}</Text>
+          <View style={styles.offerRight}>
+            <Text style={styles.offerQty}>{offer.qty}</Text>
             <AppIcon name="chevronRight" size={18} color="#D1D5DB" />
           </View>
         </View>
-
         <View style={styles.offerChipsRow}>
           <View style={styles.offerChip}>
             <AppIcon name="bank" size={10} color="#9CA3AF" />
@@ -510,105 +319,67 @@ const SellerOfferCard = ({
           </View>
         </View>
       </View>
-
       {offer.prompt ? (
-        <View
-          style={[
-            styles.sellerOfferFooter,
-            {
-              backgroundColor: config.footerBg,
-              borderTopColor: config.footerBorder,
-            },
-          ]}
-        >
+        <View style={[styles.offerFooter, { backgroundColor: config.footerBg, borderTopColor: config.footerBorder }]}>
           <AppIcon name="notificationWarning" size={12} color="#217A3C" />
-          <Text style={styles.sellerOfferPrompt}>{offer.prompt}</Text>
+          <Text style={styles.offerPrompt}>{offer.prompt}</Text>
         </View>
       ) : null}
     </TouchableOpacity>
   );
 };
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 const PostDetailScreen = ({ navigation, route }: Props) => {
   const currentMode = useAppSelector(s => s.app.mode) as AppMode;
   const mode = route.params.mode ?? currentMode;
   const isBuyer = mode === 'buyer';
   const { postId } = route.params;
+
   const [post, setPost] = useState<PostDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('Offers Received');
+  const [activeTab, setActiveTab] = useState<string>('post_details');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const goBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
+    if (navigation.canGoBack()) { navigation.goBack(); return; }
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            params: { screen: 'Post', params: { initialTab: 'posts' } },
-          },
-        ],
+        routes: [{ name: 'MainTabs', params: { screen: 'Post', params: { initialTab: 'posts' } } }],
       }),
     );
   };
 
   useEffect(() => {
     let active = true;
-    const loadDetail = async () => {
+    const load = async () => {
       setLoading(true);
       setError('');
-
       try {
         const response = isBuyer
           ? await api.buyer.myDemandDetails(postId)
           : await api.seller.myPostDetails(postId);
+        console.log('[PostDetail] API response:', JSON.stringify(response, null, 2));
         const normalized = normalizePostDetail(response, postId, mode);
-        console.log('post detail response ;', response);
-        if (active) {
+        if (active && normalized) {
           setPost(normalized);
+          const initialActive = normalized.tabs.find(t => t.is_active)?.key ?? 'post_details';
+          setActiveTab(initialActive);
         }
       } catch (err) {
-        console.log('Post detail load error', err);
-        if (active && (err as { code?: string })?.code !== 'AUTH_REQUIRED') {
+        console.log('[PostDetail] load error', err);
+        if (active && (err as any)?.code !== 'AUTH_REQUIRED') {
           setError('Unable to load post details.');
         }
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
-
-    loadDetail();
-    return () => {
-      active = false;
-    };
+    load();
+    return () => { active = false; };
   }, [isBuyer, mode, postId]);
-
-  const offerStats = useMemo(() => {
-    const offers = post?.offers ?? [];
-    return {
-      total: String(offers.length),
-      new: String(
-        offers.filter(o => {
-          const status = o.status.toLowerCase();
-          return status.includes('awaiting') || status.includes('pending');
-        }).length,
-      ),
-      accepted: String(
-        offers.filter(o => o.status.toLowerCase().includes('accepted')).length,
-      ),
-      rejected: String(
-        offers.filter(o => o.status.toLowerCase().includes('rejected')).length,
-      ),
-    };
-  }, [post?.offers]);
 
   if (loading && !post) {
     return (
@@ -625,98 +396,140 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
       <View style={styles.stateScreen}>
         <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
         <AppIcon name="notificationWarning" size={34} color="#D97706" />
-        <Text style={styles.stateText}>
-          {error || 'Post details not found.'}
-        </Text>
-        <TouchableOpacity
-          style={styles.stateButton}
-          onPress={goBack}
-          activeOpacity={0.85}
-        >
+        <Text style={styles.stateText}>{error || 'Post details not found.'}</Text>
+        <TouchableOpacity style={styles.stateButton} onPress={goBack} activeOpacity={0.85}>
           <Text style={styles.stateButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const status = statusConfig(post.status);
-  const detailTitle = isBuyer ? 'Demand Details' : 'Supply Details';
-  const editLabel = isBuyer ? 'Edit Demand' : 'Edit Supply';
-  const closeLabel = isBuyer ? 'Close Demand' : 'Close Supply';
-
+  const badge = statusBadgeConfig(post.status_color);
+ 
+  // ── Post Details tab ────────────────────────────────────────────────────────
   const renderPostDetails = () => (
     <View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{detailTitle}</Text>
-        <DetailRow label="Commodity" value={post.details.commodity} />
-        <DetailRow label="Category" value={post.details.category} />
-        <DetailRow label="Quantity" value={post.details.quantity} />
-        <DetailRow label="Price Range" value={post.details.priceRange} />
-        <DetailRow
-          label={isBuyer ? 'Delivery City' : 'Pickup City'}
-          value={post.details.deliveryCity}
-        />
-        <DetailRow label="Delivery Date" value={post.details.deliveryDate} />
-        <DetailRow label="Payment Terms" value={post.details.paymentTerms} />
-        <DetailRow label="Quality" value={post.details.quality} />
-        <DetailRow label="Posted" value={post.details.posted} />
-      </View>
-
-      {post.details.notes ? (
+      {/* Detail rows card */}
+      {post.post_details.rows.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Notes</Text>
-          <Text style={styles.notesText}>{post.details.notes}</Text>
+          <Text style={styles.sectionTitle}>{post.post_details.title}</Text>
+          {post.post_details.rows.map((row, i) => {
+            const isLast = i === post.post_details.rows.length - 1;
+            const vColor = rowValueColor(row.value_color, row.is_highlighted);
+            const isMono = row.key === 'demand_id' || row.key === 'supply_id' || row.key === 'post_id';
+            return (
+              <View key={row.key} style={[styles.detailRow, isLast && styles.detailRowLast]}>
+                <Text style={styles.detailLabel}>{row.label}</Text>
+                <Text
+                  style={[
+                    styles.detailValue,
+                    row.is_highlighted ? styles.detailValueHighlighted : styles.detailValueNormal,
+                    { color: vColor },
+                    isMono && styles.monoText,
+                  ]}
+                >
+                  {row.value}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Buyer / seller notes */}
+      {post.buyer_notes.has_content && post.buyer_notes.body ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{post.buyer_notes.title}</Text>
+          <Text style={styles.notesText}>{post.buyer_notes.body}</Text>
         </View>
       ) : null}
+
+      {/* Price freshness warning */}
+      {post.price_freshness.show_warning && (
+        <View style={styles.warningCard}>
+          <View style={styles.warningIconBox}>
+            <AppIcon name="notificationWarning" size={17} color="#92400E" />
+          </View>
+          <View style={styles.warningContent}>
+            <Text style={styles.warningTitle}>Target Price May Be Outdated</Text>
+            <Text style={styles.warningBody}>
+              Your target price was last updated{' '}
+              <Text style={styles.warningBodyBold}>
+                {post.price_freshness.hours_since_update} hour
+                {post.price_freshness.hours_since_update !== 1 ? 's' : ''} ago
+              </Text>
+              . Refresh your price so sellers can send accurate offers.
+            </Text>
+            <TouchableOpacity style={styles.warningBtn} activeOpacity={0.85}>
+              <Text style={styles.warningBtnText}>Update Price</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Mills specified */}
+      {post.mills_specified.has_mills && post.mills_specified.mills.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitleDark}>{post.mills_specified.title}</Text>
+          {post.mills_specified.mills.map((m, i) => {
+            const isLast = i === post.mills_specified.mills.length - 1;
+            return (
+              <View key={m.id} style={[styles.millRow, isLast && styles.millRowLast]}>
+                <View style={styles.millIconBox}>
+                  <AppIcon name="business" size={16} color="#217A3C" />
+                </View>
+                <View style={styles.millInfo}>
+                  <Text style={styles.millName}>{m.mill.name}</Text>
+                  <View style={styles.millLocationRow}>
+                    <AppIcon name="pin" size={10} color="#9CA3AF" />
+                    <Text style={styles.millLocation}>{m.mill.location_label}</Text>
+                  </View>
+                </View>
+                <View style={styles.millPriceCol}>
+                  <Text style={styles.millPrice}>
+                    {m.price_display}
+                    <Text style={styles.millPriceUnit}>{m.price_unit_label}</Text>
+                  </Text>
+                  <Text style={styles.millQty}>{m.requested_quantity_label}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 
+  // ── Offers tab ──────────────────────────────────────────────────────────────
   const renderOffers = () => (
     <View>
-      <View style={styles.offerStatsRow}>
-        <OfferStat
-          value={offerStats.total}
-          label="TOTAL"
-          bg="#F9FAFB"
-          color="#374151"
-        />
-        <OfferStat
-          value={offerStats.new}
-          label="NEW"
-          bg="#EEF6FF"
-          color="#3B82F6"
-        />
-        <OfferStat
-          value={offerStats.accepted}
-          label="ACCEPTED"
-          bg="#E8F7EE"
-          color="#1A6B34"
-        />
-        <OfferStat
-          value={offerStats.rejected}
-          label="REJECTED"
-          bg="#FEE2E2"
-          color="#EF4444"
-        />
-      </View>
+      {post.offers_received.stats.title_cards.length > 0 && (
+        <View style={styles.statsRow}>
+          {post.offers_received.stats.title_cards.map(card => {
+            const c = statCardColors(card.color);
+            return (
+              <View key={card.key} style={[styles.statCard, { backgroundColor: c.bg }]}>
+                <Text style={[styles.statValue, { color: c.text }]}>{card.value}</Text>
+                <Text style={styles.statLabel}>{card.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
-      {post.offers.length === 0 ? (
+      {post.offers_received.items.length === 0 ? (
         <View style={styles.emptyState}>
           <AppIcon name="notificationOffers" size={34} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>No offers yet</Text>
-          <Text style={styles.emptySubtitle}>
-            Offers related to this post will show here.
-          </Text>
+          <Text style={styles.emptySub}>Offers related to this post will show here.</Text>
         </View>
       ) : (
-        <View style={styles.sellerOfferList}>
-          {post.offers.map(offer => (
-            <SellerOfferCard
+        <View style={styles.offerList}>
+          {post.offers_received.items.map(offer => (
+            <OfferCard
               key={offer.id}
               offer={offer}
-              onPress={() =>
-                navigation.navigate('OfferDetail', { offerId: offer.id, mode })
-              }
+              onPress={() => navigation.navigate('OfferDetail', { offerId: offer.id, mode })}
             />
           ))}
         </View>
@@ -726,118 +539,88 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
 
   return (
     <View style={styles.container}>
+      {/* Hero */}
       <View style={styles.hero}>
-        <MockStatusBar
-          absolute
-          backgroundColor="transparent"
-          textColor="#FFFFFF"
-        />
+        <MockStatusBar absolute backgroundColor="transparent" textColor="#FFFFFF" />
         <ImageBackground
-          source={{ uri: post.image }}
+          source={{ uri: post.hero.image_url || undefined }}
           style={styles.heroImage}
           resizeMode="cover"
           imageStyle={{ backgroundColor: post.fallback }}
         >
           <View style={styles.heroOverlay} />
 
-          <TouchableOpacity
-            onPress={goBack}
-            style={styles.backBtn}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity onPress={goBack} style={styles.backBtn} activeOpacity={0.85}>
             <AppIcon name="back" size={18} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <View style={styles.heroRightActions}>
-            <View
-              style={[styles.heroStatusBadge, { backgroundColor: status.bg }]}
-            >
-              <View
-                style={[styles.heroStatusDot, { backgroundColor: status.dot }]}
-              />
-              <Text style={[styles.heroStatusText, { color: status.text }]}>
-                {post.status}
-              </Text>
+          <View style={styles.heroActions}>
+            <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>{badge.label}</Text>
+            </View>
+            <View style={styles.menuBtn}>
+              <Text style={styles.menuBtnDots}>•••</Text>
             </View>
           </View>
 
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{post.code}</Text>
-            <Text style={styles.heroName}>{post.name}</Text>
-            <Text style={styles.heroMeta}>
-              {post.qty} - {post.price}
-            </Text>
+            <Text style={styles.heroCode}>{post.hero.code}</Text>
+            <Text style={styles.heroTitle}>{post.hero.title}</Text>
+            {post.hero.subtitle ? (
+              <Text style={styles.heroSubtitle}>{post.hero.subtitle}</Text>
+            ) : null}
           </View>
         </ImageBackground>
       </View>
 
+      {/* Tab bar */}
       <View style={styles.tabBar}>
-        {(['Post Details', 'Offers Received'] as TabType[]).map(tab => {
-          const isActive = activeTab === tab;
+        {post.tabs.map(tab => {
+          const isActive = activeTab === tab.key;
           return (
             <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
               style={[styles.tabItem, isActive && styles.tabItemActive]}
               activeOpacity={0.75}
             >
-              <Text
-                style={[styles.tabLabel, isActive && styles.tabLabelActive]}
-              >
-                {tab === 'Offers Received'
-                  ? `Offers Received (${post.offers.length})`
-                  : tab}
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                {tab.label}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
+      {/* Content */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'Post Details' ? renderPostDetails() : renderOffers()}
+        {activeTab === 'post_details' ? renderPostDetails() : renderOffers()}
       </ScrollView>
 
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
-          <Text style={styles.editBtnText}>{editLabel}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.closeBtn} activeOpacity={0.85}>
-          <Text style={styles.closeBtnText}>{closeLabel}</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   stateScreen: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-    gap: 12,
+    flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center',
+    justifyContent: 'center', paddingHorizontal: 28, gap: 12,
   },
-  stateText: {
-    fontSize: 14,
-    color: '#4B5563',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
+  stateText: { fontSize: 14, color: '#4B5563', textAlign: 'center', fontWeight: '600' },
   stateButton: {
-    marginTop: 4,
-    backgroundColor: '#217A3C',
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    marginTop: 4, backgroundColor: '#217A3C', borderRadius: 10,
+    paddingHorizontal: 18, paddingVertical: 10,
   },
   stateButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  scroll: { flex: 1 },
+  // Hero
   hero: { height: 180, flexShrink: 0, overflow: 'hidden' },
   heroImage: { width: '100%', height: '100%' },
   heroOverlay: {
@@ -845,225 +628,169 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.62)',
   },
   backBtn: {
-    position: 'absolute',
-    top: 44,
-    left: 14,
-    zIndex: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 10,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', top: 44, left: 14, zIndex: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10,
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
   },
-  heroRightActions: {
-    position: 'absolute',
-    top: 44,
-    right: 14,
-    zIndex: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  heroActions: {
+    position: 'absolute', top: 44, right: 14, zIndex: 3,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  heroStatusBadge: {
-    borderRadius: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  statusBadge: {
+    borderRadius: 7, paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
   },
-  heroStatusDot: { width: 5, height: 5, borderRadius: 3 },
-  heroStatusText: { fontSize: 10, fontWeight: '800' },
-  heroBottom: {
-    position: 'absolute',
-    bottom: 14,
-    left: 16,
-    right: 16,
-    zIndex: 3,
+  statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FFFFFF' },
+  statusText: { fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
+  menuBtn: {
+    width: 32, height: 32, backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 9, alignItems: 'center', justifyContent: 'center',
   },
-  heroId: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'monospace',
-    marginBottom: 3,
-  },
-  heroName: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
-  heroMeta: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  menuBtnDots: { fontSize: 11, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
+  heroBottom: { position: 'absolute', bottom: 14, left: 16, right: 16, zIndex: 3 },
+  heroCode: { fontSize: 9, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', marginBottom: 3 },
+  heroTitle: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
+  heroSubtitle: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  // Tabs
   tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexShrink: 0,
+    flexDirection: 'row', backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexShrink: 0,
   },
   tabItem: {
-    flex: 1,
-    paddingVertical: 13,
-    alignItems: 'center',
-    borderBottomWidth: 2.5,
-    borderBottomColor: 'transparent',
+    flex: 1, paddingVertical: 13, alignItems: 'center',
+    borderBottomWidth: 2.5, borderBottomColor: 'transparent',
   },
   tabItemActive: { borderBottomColor: '#217A3C' },
   tabLabel: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
   tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
-  scrollContent: { padding: 14, paddingBottom: 118 },
-  offerStatsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  offerStat: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+  // Scroll
+  scroll: { flex: 1 },
+  scrollContent: { padding: 14, paddingBottom: 118, gap: 14 },
+  // Cards
+  card: {
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  offerStatValue: { fontSize: 18, fontWeight: '900' },
-  offerStatLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 2,
+  sectionTitle: {
+    fontSize: 12, fontWeight: '700', color: '#9CA3AF',
+    letterSpacing: 0.5, marginBottom: 12,
   },
-  sellerOfferList: { gap: 10 },
-  sellerOfferCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+  cardTitleDark: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 12 },
+  // Detail rows
+  detailRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', gap: 12,
   },
-  sellerOfferHeader: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
+  detailRowLast: { borderBottomWidth: 0 },
+  detailLabel: { fontSize: 12, color: '#6B7280', flex: 1 },
+  detailValue: { fontSize: 12, flex: 1, textAlign: 'right' },
+  detailValueHighlighted: { fontWeight: '800' },
+  detailValueNormal: { fontWeight: '600' },
+  monoText: { fontFamily: 'monospace' },
+  notesText: { fontSize: 13, color: '#374151', lineHeight: 20 },
+  // Price freshness warning
+  warningCard: {
+    backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D',
+    borderRadius: 14, padding: 13, flexDirection: 'row', gap: 11, alignItems: 'flex-start',
   },
-  sellerOfferDot: { width: 6, height: 6, borderRadius: 3 },
-  sellerOfferStatus: { flex: 1, fontSize: 10, fontWeight: '700' },
-  sellerOfferTime: { fontSize: 10, color: '#9CA3AF' },
-  sellerOfferBody: { paddingHorizontal: 14, paddingVertical: 12 },
-  sellerOfferMainRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    gap: 10,
+  warningIconBox: {
+    width: 34, height: 34, backgroundColor: '#FDE68A', borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
   },
-  sellerOfferLeft: { flex: 1 },
-  sellerOfferId: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    fontFamily: 'monospace',
-    marginBottom: 3,
+  warningContent: { flex: 1 },
+  warningTitle: { fontSize: 13, fontWeight: '800', color: '#92400E', marginBottom: 3 },
+  warningBody: { fontSize: 12, color: '#B45309', lineHeight: 18 },
+  warningBodyBold: { fontWeight: '700' },
+  warningBtn: {
+    marginTop: 10, paddingVertical: 8, paddingHorizontal: 14,
+    backgroundColor: '#92400E', borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
   },
-  sellerOfferMill: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  sellerOfferPrice: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#1A6B34',
-    marginTop: 2,
+  warningBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  // Mills
+  millRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  sellerOfferRight: { alignItems: 'flex-end', gap: 4 },
-  sellerOfferQty: { fontSize: 12, color: '#6B7280' },
+  millRowLast: { borderBottomWidth: 0 },
+  millIconBox: {
+    width: 36, height: 36, backgroundColor: '#F2FBF5', borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  millInfo: { flex: 1 },
+  millName: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  millLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  millLocation: { fontSize: 11, color: '#6B7280' },
+  millPriceCol: { alignItems: 'flex-end' },
+  millPrice: { fontSize: 14, fontWeight: '900', color: '#1A6B34' },
+  millPriceUnit: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
+  millQty: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  // Offers tab — stats
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 0 },
+  statCard: {
+    flex: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 6,
+    alignItems: 'center', borderWidth: 1, borderColor: '#F3F4F6',
+  },
+  statValue: { fontSize: 18, fontWeight: '900' },
+  statLabel: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', marginTop: 2 },
+  offerList: { gap: 10 },
+  // Offer card
+  offerCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden',
+    borderWidth: 1.5, shadowColor: '#000', shadowOpacity: 0.07,
+    shadowRadius: 12, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+  },
+  offerCardHeader: {
+    paddingHorizontal: 14, paddingVertical: 7,
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+  },
+  offerDot: { width: 6, height: 6, borderRadius: 3 },
+  offerStatus: { flex: 1, fontSize: 10, fontWeight: '700' },
+  offerTime: { fontSize: 10, color: '#9CA3AF' },
+  offerCardBody: { paddingHorizontal: 14, paddingVertical: 12 },
+  offerMainRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 10, gap: 10,
+  },
+  offerLeft: { flex: 1 },
+  offerId: { fontSize: 10, color: '#9CA3AF', fontFamily: 'monospace', marginBottom: 3 },
+  offerMill: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  offerPrice: { fontSize: 17, fontWeight: '900', color: '#1A6B34', marginTop: 2 },
+  offerRight: { alignItems: 'flex-end', gap: 4 },
+  offerQty: { fontSize: 12, color: '#6B7280' },
   offerChipsRow: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
   offerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 7,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#F9FAFB', borderRadius: 7, paddingHorizontal: 9,
+    paddingVertical: 4, borderWidth: 1, borderColor: '#F3F4F6',
   },
   offerChipText: { fontSize: 11, color: '#4B5563' },
-  sellerOfferFooter: {
-    borderTopWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  offerFooter: {
+    borderTopWidth: 1, paddingHorizontal: 14, paddingVertical: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
   },
-  sellerOfferPrompt: { fontSize: 11, fontWeight: '600', color: '#1A6B34' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 10,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    gap: 12,
-  },
-  detailLabel: { fontSize: 12, color: '#6B7280', flex: 1 },
-  detailValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-    textAlign: 'right',
-  },
-  notesText: { fontSize: 13, color: '#4B5563', lineHeight: 20 },
+  offerPrompt: { fontSize: 11, fontWeight: '600', color: '#1A6B34' },
+  // Empty state
   emptyState: { alignItems: 'center', paddingTop: 48, gap: 10 },
   emptyTitle: { fontSize: 15, fontWeight: '700', color: '#374151' },
-  emptySubtitle: { fontSize: 12, color: '#9CA3AF', textAlign: 'center' },
+  emptySub: { fontSize: 12, color: '#9CA3AF', textAlign: 'center' },
+  // Bottom bar
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', gap: 10, backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28,
+    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, elevation: 8,
   },
   editBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#1A6B3499',
+    flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#1A6B3499',
   },
   editBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
   closeBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#EF444499',
+    flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#EF444499',
   },
   closeBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
 });

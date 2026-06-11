@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -93,42 +92,36 @@ const DropdownPicker = ({ placeholder, options, value, onChange }: DropdownProps
   const selected = options.find(o => o.value === value);
 
   return (
-    <>
+    <View style={styles.dropdownWrap}>
       <TouchableOpacity
-        style={styles.dropdownBtn}
-        onPress={() => setOpen(true)}
+        style={[styles.dropdownBtn, open && styles.dropdownBtnOpen]}
+        onPress={() => setOpen(v => !v)}
         activeOpacity={0.8}
       >
         <Text style={[styles.dropdownBtnText, !selected && styles.dropdownPlaceholder]}>
           {selected ? selected.label : placeholder}
         </Text>
-        <Text style={styles.dropdownCaret}>▾</Text>
+        <Text style={styles.dropdownCaret}>{open ? '▴' : '▾'}</Text>
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.dropdownOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.dropdownSheet}>
-            <Text style={styles.dropdownSheetTitle}>{placeholder}</Text>
-            <FlatList
-              data={options}
-              keyExtractor={item => String(item.value)}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.dropdownItem, item.value === value && styles.dropdownItemActive]}
-                  onPress={() => { onChange(item.value === value ? null : item.value); setOpen(false); }}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[styles.dropdownItemText, item.value === value && styles.dropdownItemTextActive]}>
-                    {item.label}
-                  </Text>
-                  {item.value === value && <Text style={styles.dropdownCheck}>✓</Text>}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </>
+      {open && (
+        <View style={styles.dropdownList}>
+          {options.map(item => (
+            <TouchableOpacity
+              key={item.value}
+              style={[styles.dropdownItem, item.value === value && styles.dropdownItemActive]}
+              onPress={() => { onChange(item.value === value ? null : item.value); setOpen(false); }}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.dropdownItemText, item.value === value && styles.dropdownItemTextActive]}>
+                {item.label}
+              </Text>
+              {item.value === value && <Text style={styles.dropdownCheck}>✓</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -460,62 +453,69 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
               </TouchableOpacity>
             </View>
 
-            {counterTab === 'price' ? (
-              /* Price tab */
-              <View style={styles.priceTab}>
-                <Text style={styles.priceDisplay}>{formattedCounter}</Text>
-                <Text style={styles.priceUnit}>per 40kg bag</Text>
-                <View style={styles.stepper}>
-                  <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(-STEP)} activeOpacity={0.75}>
-                    <Text style={styles.stepBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <View style={styles.stepCenter}>
-                    <Text style={styles.stepValue}>{formattedCounter}</Text>
-                    <Text style={styles.stepHint}>tap ± PKR {STEP}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(STEP)} activeOpacity={0.75}>
-                    <Text style={styles.stepBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              /* Payment & Delivery tab */
-              <View style={styles.termsTab}>
-                {/* Payment Term toggle */}
-                <Text style={styles.termsLabel}>Payment Term</Text>
-                <View style={styles.subTabBar}>
-                  {(['fixed', 'weekly'] as const).map(t => (
-                    <TouchableOpacity
-                      key={t}
-                      style={[styles.subTab, paymentType === t && styles.subTabActive]}
-                      onPress={() => { setPaymentType(t); setPaymentDays(null); }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.subTabText, paymentType === t && styles.subTabTextActive]}>
-                        {t === 'fixed' ? 'Fixed Days' : 'Weekly %'}
-                      </Text>
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {counterTab === 'price' ? (
+                /* Price tab */
+                <View style={styles.priceTab}>
+                  <Text style={styles.priceDisplay}>{formattedCounter}</Text>
+                  <Text style={styles.priceUnit}>per 40kg bag</Text>
+                  <View style={styles.stepper}>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(-STEP)} activeOpacity={0.75}>
+                      <Text style={styles.stepBtnText}>−</Text>
                     </TouchableOpacity>
-                  ))}
+                    <View style={styles.stepCenter}>
+                      <Text style={styles.stepValue}>{formattedCounter}</Text>
+                      <Text style={styles.stepHint}>tap ± PKR {STEP}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(STEP)} activeOpacity={0.75}>
+                      <Text style={styles.stepBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+              ) : (
+                /* Payment & Delivery tab */
+                <View style={styles.termsTab}>
+                  {/* Payment Term toggle */}
+                  <Text style={styles.termsLabel}>Payment Term</Text>
+                  <View style={styles.subTabBar}>
+                    {(['fixed', 'weekly'] as const).map(t => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.subTab, paymentType === t && styles.subTabActive]}
+                        onPress={() => { setPaymentType(t); setPaymentDays(null); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.subTabText, paymentType === t && styles.subTabTextActive]}>
+                          {t === 'fixed' ? 'Fixed Days' : 'Weekly %'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
 
-                {/* Payment value dropdown */}
-                <DropdownPicker
-                  placeholder={paymentType === 'fixed' ? 'Pay within how many days?' : 'Pay what % per week?'}
-                  options={paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS}
-                  value={paymentDays}
-                  onChange={setPaymentDays}
-                />
+                  {/* Payment value dropdown */}
+                  <DropdownPicker
+                    placeholder={paymentType === 'fixed' ? 'Pay within how many days?' : 'Pay what % per week?'}
+                    options={paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS}
+                    value={paymentDays}
+                    onChange={setPaymentDays}
+                  />
 
-                {/* Delivery Term dropdown */}
-                <Text style={[styles.termsLabel, { marginTop: 16 }]}>Delivery Term</Text>
-                <DropdownPicker
-                  placeholder="Deliver within how many days?"
-                  options={DELIVERY_OPTIONS}
-                  value={deliveryDays}
-                  onChange={setDeliveryDays}
-                />
-              </View>
-            )}
+                  {/* Delivery Term dropdown */}
+                  <Text style={[styles.termsLabel, { marginTop: 16 }]}>Delivery Term</Text>
+                  <DropdownPicker
+                    placeholder="Deliver within how many days?"
+                    options={DELIVERY_OPTIONS}
+                    value={deliveryDays}
+                    onChange={setDeliveryDays}
+                  />
+                </View>
+              )}
+            </ScrollView>
 
             {/* Submit button */}
             <TouchableOpacity
@@ -613,18 +613,21 @@ const styles = StyleSheet.create({
   subTabText: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
   subTabTextActive: { fontWeight: '700', color: '#111827' },
   // Dropdown
+  dropdownWrap: { marginBottom: 0 },
   dropdownBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: '#2E9E52', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#FFFFFF' },
+  dropdownBtnOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomColor: '#E5E7EB' },
   dropdownBtnText: { fontSize: 13, color: '#111827', flex: 1 },
   dropdownPlaceholder: { color: '#9CA3AF' },
   dropdownCaret: { fontSize: 14, color: '#2E9E52', marginLeft: 8 },
-  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', paddingHorizontal: 32 },
-  dropdownSheet: { backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden', maxHeight: 320 },
-  dropdownSheetTitle: { fontSize: 12, fontWeight: '700', color: '#6B7280', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
+  dropdownList: { borderWidth: 1.5, borderTopWidth: 0, borderColor: '#2E9E52', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   dropdownItemActive: { backgroundColor: '#F0FDF4' },
-  dropdownItemText: { fontSize: 13, color: '#111827', flex: 1 },
+  dropdownItemText: { fontSize: 13, color: '#374151', flex: 1 },
   dropdownItemTextActive: { color: '#1A6B34', fontWeight: '700' },
   dropdownCheck: { fontSize: 13, color: '#1A6B34', fontWeight: '700', marginLeft: 8 },
+  // Sheet scroll
+  sheetScroll: { flexGrow: 0 },
+  sheetScrollContent: { paddingBottom: 8 },
   // Submit
   submitBtn: { backgroundColor: '#1A6B34', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   submitBtnDisabled: { opacity: 0.5 },

@@ -23,34 +23,29 @@ export type OfferStatusPayload = {
 // ─── Room helpers ─────────────────────────────────────────────────────────────
 
 export const joinOfferRoom = (offerId: string) => {
-  // Backend gateway expects { offerId } — not offer_id
   getSocket()?.emit('join_offer', { offerId });
 };
 
-// ─── Listeners ────────────────────────────────────────────────────────────────
+// ─── Listeners — each returns its own unsubscribe fn ─────────────────────────
+// Using the callback-specific overload of socket.off() so that removing one
+// listener never accidentally strips listeners added by other components.
 
-export const onNewOffer = (callback: (data: NewOfferPayload) => void) => {
+export const onNewOffer = (callback: (data: NewOfferPayload) => void): (() => void) => {
   getSocket()?.on('offer.created', callback);
+  return () => getSocket()?.off('offer.created', callback);
 };
 
-export const onCounterOffer = (callback: (data: CounterOfferPayload) => void) => {
+export const onCounterOffer = (callback: (data: CounterOfferPayload) => void): (() => void) => {
   getSocket()?.on('offer.countered', callback);
+  return () => getSocket()?.off('offer.countered', callback);
 };
 
-export const onOfferAccepted = (callback: (data: OfferStatusPayload) => void) => {
+export const onOfferAccepted = (callback: (data: OfferStatusPayload) => void): (() => void) => {
   getSocket()?.on('offer.accepted', callback);
+  return () => getSocket()?.off('offer.accepted', callback);
 };
 
-export const onOfferRejected = (callback: (data: OfferStatusPayload) => void) => {
+export const onOfferRejected = (callback: (data: OfferStatusPayload) => void): (() => void) => {
   getSocket()?.on('offer.rejected', callback);
-};
-
-// ─── Cleanup ──────────────────────────────────────────────────────────────────
-
-export const offNegotiationEvents = () => {
-  const socket = getSocket();
-  socket?.off('offer.created');
-  socket?.off('offer.countered');
-  socket?.off('offer.accepted');
-  socket?.off('offer.rejected');
+  return () => getSocket()?.off('offer.rejected', callback);
 };

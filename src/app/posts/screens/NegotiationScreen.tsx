@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -21,7 +20,6 @@ import { useAppSelector } from '../../../store';
 import api from '../../../utils/api';
 import {
   joinOfferRoom,
-  offNegotiationEvents,
   onCounterOffer,
   onOfferAccepted,
   onOfferRejected,
@@ -56,24 +54,9 @@ type OfferState = {
   lastPrice: number;
 };
 
-// ─── Privacy filter ────────────────────────────────────────────────────────────
-
-const BLOCKED_PATTERNS: { regex: RegExp; label: string }[] = [
-  { regex: /(?:0|\+?92)3\d{9}/, label: 'phone number' },
-  { regex: /\b\d{10,}\b/, label: 'phone number' },
-  { regex: /\S+@\S+\.\S+/, label: 'email address' },
-  { regex: /whatsapp|wtsapp|wa\.me/i, label: 'WhatsApp contact' },
-  { regex: /telegram|t\.me\//i, label: 'Telegram contact' },
-  { regex: /@[a-zA-Z0-9_]{3,}/, label: 'social handle' },
-  { regex: /instagram|facebook|snapchat|twitter|tiktok/i, label: 'social media link' },
-];
-
-const detectPersonalInfo = (text: string): string | null => {
-  for (const { regex, label } of BLOCKED_PATTERNS) {
-    if (regex.test(text)) return label;
-  }
-  return null;
-};
+const PAYMENT_FIXED_OPTIONS = [3, 7, 15, 30];
+const PAYMENT_WEEKLY_OPTIONS = [10, 20, 25, 50];
+const DELIVERY_OPTIONS = [1, 2, 3, 5, 7, 10, 14];
 
 // ─── Normalizer ────────────────────────────────────────────────────────────────
 
@@ -171,10 +154,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   // Counter offer sheet
   const [counterVisible, setCounterVisible] = useState(false);
-  const [counterTab, setCounterTab] = useState<'price' | 'note'>('price');
+  const [counterTab, setCounterTab] = useState<'price' | 'terms'>('price');
   const [counterPrice, setCounterPrice] = useState(0);
-  const [counterNote, setCounterNote] = useState('');
-  const [noteWarning, setNoteWarning] = useState('');
+  const [paymentType, setPaymentType] = useState<'fixed' | 'weekly'>('fixed');
+  const [paymentDays, setPaymentDays] = useState<number | null>(null);
+  const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -200,10 +184,10 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   useEffect(() => {
     joinOfferRoom(offerId);
-    onCounterOffer(() => fetchOffer());
-    onOfferAccepted(() => fetchOffer());
-    onOfferRejected(() => fetchOffer());
-    return () => { offNegotiationEvents(); };
+    const unsubCounter = onCounterOffer(() => fetchOffer());
+    const unsubAccepted = onOfferAccepted(() => fetchOffer());
+    const unsubRejected = onOfferRejected(() => fetchOffer());
+    return () => { unsubCounter(); unsubAccepted(); unsubRejected(); };
   }, [offerId, fetchOffer]);
 
   useEffect(() => {
@@ -214,16 +198,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   const openCounterSheet = () => {
     setCounterPrice(offer?.lastPrice ?? 2500);
-    setCounterNote('');
-    setNoteWarning('');
     setCounterTab('price');
+    setPaymentType('fixed');
+    setPaymentDays(null);
+    setDeliveryDays(null);
     setCounterVisible(true);
-  };
-
-  const handleNoteChange = (text: string) => {
-    setCounterNote(text);
-    const hit = detectPersonalInfo(text);
-    setNoteWarning(hit ? `Sharing a ${hit} is not allowed — keep negotiations anonymous` : '');
   };
 
   const adjustPrice = (delta: number) => {
@@ -235,13 +214,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
       Alert.alert('Enter a valid price');
       return;
     }
-    if (noteWarning) {
-      Alert.alert('Note blocked', 'Remove personal information from your note before sending.');
-      return;
-    }
     setActionLoading(true);
     try {
-      const payload = { offered_price: counterPrice, note: counterNote.trim() || undefined };
+      const payload = { offered_price: counterPrice } as any;
+      if (paymentDays) { payload.payment_days = paymentDays; payload.payment_type = paymentType; }
+      if (deliveryDays) payload.delivery_days = deliveryDays;
       mode === 'buyer'
         ? await api.buyer.counterOffer(offerId, payload)
         : await api.seller.counterOffer(offerId, payload);
@@ -401,11 +378,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                 <Text style={[styles.tabText, counterTab === 'price' && styles.tabTextActive]}>Price</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, counterTab === 'note' && styles.tabActive]}
-                onPress={() => setCounterTab('note')}
+                style={[styles.tab, counterTab === 'terms' && styles.tabActive]}
+                onPress={() => setCounterTab('terms')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.tabText, counterTab === 'note' && styles.tabTextActive]}>Note</Text>
+                <Text style={[styles.tabText, counterTab === 'terms' && styles.tabTextActive]}>Payment & Delivery</Text>
               </TouchableOpacity>
             </View>
 
@@ -414,7 +391,6 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
               <View style={styles.priceTab}>
                 <Text style={styles.priceDisplay}>{formattedCounter}</Text>
                 <Text style={styles.priceUnit}>per 40kg bag</Text>
-
                 <View style={styles.stepper}>
                   <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(-STEP)} activeOpacity={0.75}>
                     <Text style={styles.stepBtnText}>−</Text>
@@ -429,42 +405,70 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                 </View>
               </View>
             ) : (
-              /* Note tab */
-              <View style={styles.noteTab}>
-                <View style={styles.privacyBanner}>
-                  <AppIcon name="shield" size={13} color="#1A6B34" />
-                  <Text style={styles.privacyBannerText}>
-                    Do not share personal info — phone numbers, emails, or social handles are blocked to keep both parties anonymous.
-                  </Text>
+              /* Payment & Delivery tab */
+              <View style={styles.termsTab}>
+                {/* Payment Term */}
+                <Text style={styles.termsLabel}>Payment Term</Text>
+                <View style={styles.subTabBar}>
+                  {(['fixed', 'weekly'] as const).map(t => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.subTab, paymentType === t && styles.subTabActive]}
+                      onPress={() => { setPaymentType(t); setPaymentDays(null); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.subTabText, paymentType === t && styles.subTabTextActive]}>
+                        {t === 'fixed' ? 'Fixed Days' : 'Weekly %'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <TextInput
-                  style={[styles.noteInput, !!noteWarning && styles.noteInputError]}
-                  placeholder="Add a short note about your offer…"
-                  value={counterNote}
-                  onChangeText={handleNoteChange}
-                  multiline
-                  maxLength={200}
-                  placeholderTextColor="#9CA3AF"
-                />
-                {!!noteWarning && (
-                  <View style={styles.warningRow}>
-                    <Text style={styles.warningText}>🚫 {noteWarning}</Text>
-                  </View>
-                )}
-                <Text style={styles.charCount}>{counterNote.length}/200</Text>
+                <View style={styles.optionRow}>
+                  {(paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS).map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[styles.optionChip, paymentDays === v && styles.optionChipActive]}
+                      onPress={() => setPaymentDays(paymentDays === v ? null : v)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.optionChipText, paymentDays === v && styles.optionChipTextActive]}>
+                        {paymentType === 'fixed' ? `${v}d` : `${v}%`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Delivery Term */}
+                <Text style={[styles.termsLabel, { marginTop: 14 }]}>Delivery (days)</Text>
+                <View style={styles.optionRow}>
+                  {DELIVERY_OPTIONS.map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[styles.optionChip, deliveryDays === v && styles.optionChipActive]}
+                      onPress={() => setDeliveryDays(deliveryDays === v ? null : v)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.optionChipText, deliveryDays === v && styles.optionChipTextActive]}>
+                        {v}d
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             )}
 
             {/* Submit button */}
             <TouchableOpacity
-              style={[styles.submitBtn, (actionLoading || !!noteWarning) && styles.submitBtnDisabled]}
+              style={[styles.submitBtn, actionLoading && styles.submitBtnDisabled]}
               onPress={handleCounter}
-              disabled={actionLoading || !!noteWarning}
+              disabled={actionLoading}
               activeOpacity={0.85}
             >
               {actionLoading
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.submitBtnText}>Submit Counter — {formattedCounter}</Text>}
+                : <Text style={styles.submitBtnText}>
+                    {`Submit Counter — ${formattedCounter}${deliveryDays ? ` · ${deliveryDays}d delivery` : ''}`}
+                  </Text>}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -540,15 +544,19 @@ const styles = StyleSheet.create({
   stepCenter: { flex: 1, alignItems: 'center' },
   stepValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
   stepHint: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },
-  // Note tab
-  noteTab: { marginBottom: 16 },
-  privacyBanner: { flexDirection: 'row', gap: 8, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, marginBottom: 12, alignItems: 'flex-start' },
-  privacyBannerText: { flex: 1, fontSize: 11, color: '#166534', lineHeight: 16 },
-  noteInput: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#111827', height: 90, textAlignVertical: 'top' },
-  noteInputError: { borderColor: '#EF4444' },
-  warningRow: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 8, marginTop: 6 },
-  warningText: { fontSize: 11, color: '#DC2626', fontWeight: '600' },
-  charCount: { fontSize: 10, color: '#9CA3AF', textAlign: 'right', marginTop: 4 },
+  // Payment & Delivery tab
+  termsTab: { marginBottom: 16 },
+  termsLabel: { fontSize: 11, fontWeight: '700', color: '#4B5563', marginBottom: 8 },
+  subTabBar: { flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: 9, padding: 3, marginBottom: 10 },
+  subTab: { flex: 1, paddingVertical: 7, borderRadius: 7, alignItems: 'center' },
+  subTabActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  subTabText: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
+  subTabTextActive: { fontWeight: '700', color: '#111827' },
+  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  optionChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: '#F3F4F6', borderWidth: 1.5, borderColor: 'transparent' },
+  optionChipActive: { backgroundColor: '#F0FDF4', borderColor: '#1A6B34' },
+  optionChipText: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
+  optionChipTextActive: { color: '#1A6B34' },
   // Submit
   submitBtn: { backgroundColor: '#1A6B34', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   submitBtnDisabled: { opacity: 0.5 },

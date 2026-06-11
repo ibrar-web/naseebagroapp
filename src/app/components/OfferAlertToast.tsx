@@ -23,34 +23,39 @@ export const showOfferToast = (offerId: string, title: string, body?: string) =>
     type: 'offer',
     text1: title,
     text2: body,
-    visibilityTime: 4000,
+    visibilityTime: 5000,
     props: { offerId },
   });
 };
 
 const OfferAlertToast = () => {
   useEffect(() => {
-    onNewOffer((data: NewOfferPayload) => {
+    const unsubNew = onNewOffer((data: NewOfferPayload) => {
       showOfferToast(data.offer_id, 'New Offer Received', `Offer ${data.code ?? ''}`);
     });
 
-    onCounterOffer((data: CounterOfferPayload) => {
+    const unsubCounter = onCounterOffer((data: CounterOfferPayload) => {
       showOfferToast(
         data.offer_id,
         'Counter Offer Received',
-        `Round ${data.round}`,
+        `Round ${data.round} — PKR ${Number(data.offered_price).toLocaleString('en-PK')}`,
       );
     });
 
-    onOfferAccepted((data: OfferStatusPayload) => {
-      showOfferToast(data.offer_id, 'Offer Accepted', 'A deal has been created');
+    const unsubAccepted = onOfferAccepted((data: OfferStatusPayload) => {
+      showOfferToast(data.offer_id, '✅ Offer Accepted', 'A deal has been created');
     });
 
-    onOfferRejected((data: OfferStatusPayload) => {
+    const unsubRejected = onOfferRejected((data: OfferStatusPayload) => {
       showOfferToast(data.offer_id, 'Offer Rejected');
     });
 
-    return () => {};
+    return () => {
+      unsubNew();
+      unsubCounter();
+      unsubAccepted();
+      unsubRejected();
+    };
   }, []);
 
   return null;

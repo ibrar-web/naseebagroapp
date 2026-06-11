@@ -123,6 +123,7 @@ export const api = {
   },
 
   seller: {
+    //this api use in market place to send offer on demand
     sendDemandOffer: (id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
     ListMyPosts: (params?: MyPostsListParams) =>

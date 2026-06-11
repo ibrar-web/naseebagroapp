@@ -16,36 +16,37 @@ import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SendOffer'>;
-type PriceOption = 'USE_ORIGINAL' | 'MAKE_OFFER';
+type PriceOption = 'USE_BUYER_BUDGET' | 'MAKE_COUNTER';
 
 type DemandMill = {
   id: string;
   name?: string;
   city?: string;
   price_per_unit?: string;
-  available_quantity?: string;
-  is_cheapest?: boolean;
-  is_default_selected?: boolean;
+  available_quantity?: number | string;
 };
 
 type DemandDetail = {
   id: string;
+  listing_id?: string;
   code?: string;
   title?: string;
   hero_image_url?: string;
   category?: { id?: string; name?: string; image?: string };
   commodity?: { id?: string; name?: string; image?: string };
+  mills?: { is_mill_based: boolean; available_mills: DemandMill[] };
   header_stats?: Array<{ key: string; label: string; value: string }>;
   quantity_label?: string;
   delivery_location?: { label?: string };
-  mills_specified_section?: {
-    mills?: DemandMill[];
-    has_mills?: boolean;
-  };
+  mills_specified_section?: { mills?: DemandMill[]; has_mills?: boolean };
 };
 
 const normalizeDemand = (response: any): DemandDetail | null => {
-  const payload = response?.id ? response : response?.data ?? response;
+  const payload = response?.id
+    ? response
+    : response?.listing_id
+    ? { ...response, id: response.listing_id }
+    : response?.data ?? response;
   return payload?.id ? payload : null;
 };
 
@@ -76,12 +77,12 @@ const PRICE_OPTIONS: Array<{
   {
     label: 'Use Original Price',
     subLabel: 'Use the buyer listed price',
-    value: 'USE_ORIGINAL',
+    value: 'USE_BUYER_BUDGET',
   },
   {
     label: 'Make an Offer',
     subLabel: 'Enter a different price',
-    value: 'MAKE_OFFER',
+    value: 'MAKE_COUNTER',
   },
 ];
 
@@ -105,7 +106,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
 
   const [selectedMill, setSelectedMill] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
-  const [priceMode, setPriceMode] = useState<PriceOption>('USE_ORIGINAL');
+  const [priceMode, setPriceMode] = useState<PriceOption>('USE_BUYER_BUDGET');
   const [counterPrice, setCounterPrice] = useState('');
   const [paymentDays, setPaymentDays] = useState<string | null>(null);
   const [deliveryDays, setDeliveryDays] = useState<string | null>(null);
@@ -171,9 +172,13 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
   }
 
   const hasMills =
-    (detail.mills_specified_section?.has_mills ?? false) &&
-    (detail.mills_specified_section?.mills?.length ?? 0) > 0;
-  const mills = detail.mills_specified_section?.mills ?? [];
+    (detail.mills?.is_mill_based ?? detail.mills_specified_section?.has_mills ?? false) &&
+    ((detail.mills?.available_mills?.length ?? 0) > 0 ||
+      (detail.mills_specified_section?.mills?.length ?? 0) > 0);
+  const mills =
+    detail.mills?.available_mills ??
+    detail.mills_specified_section?.mills ??
+    [];
   const heroImage =
     detail.category?.image ??
     detail.commodity?.image ??
@@ -194,7 +199,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
   const selectedMillData = mills.find(m => m.id === selectedMill);
   const selectedMillName = selectedMillData?.name ?? 'Selected mill';
   const submittedPrice =
-    priceMode === 'MAKE_OFFER'
+    priceMode === 'MAKE_COUNTER'
       ? parseNumber(counterPrice)
       : parseNumber(selectedMillData?.price_per_unit);
   const canSubmit = Boolean(
@@ -202,11 +207,11 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       quantity &&
       paymentDays &&
       deliveryDays &&
-      (priceMode === 'USE_ORIGINAL' || counterPrice),
+      (priceMode === 'USE_BUYER_BUDGET' || counterPrice),
   );
 
   const handleSubmit = async () => {
-    if (!canSubmit || !selectedMill) {
+    if (!canSubmit) {
       return;
     }
 
@@ -249,7 +254,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           {
             label: 'Price Option',
             value:
-              priceMode === 'MAKE_OFFER'
+              priceMode === 'MAKE_COUNTER'
                 ? `Offer PKR ${submittedPrice}`
                 : 'Original price',
           },
@@ -359,14 +364,11 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
                   </View>
                   <View style={styles.millPriceCol}>
                     <Text style={styles.millPrice}>
-                      {mill.price_per_unit ?? 'Ask'}
-                      {mill?.name ? (
-                        <Text style={styles.millUnit}>{mill.name}</Text>
-                      ) : null}
+                      {mill.price_per_unit ? `PKR ${mill.price_per_unit}` : 'Ask'}
                     </Text>
-                    {mill.price_per_unit ? (
+                    {mill.available_quantity != null ? (
                       <Text style={styles.millAvail}>
-                        {mill.price_per_unit}
+                        {mill.available_quantity} available
                       </Text>
                     ) : null}
                   </View>
@@ -424,15 +426,15 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
                       selected && styles.priceToggleSubActive,
                     ]}
                   >
-                    {option.value === 'USE_ORIGINAL'
-                      ? selectedMillData?.price_display ?? 'Select mill first'
+                    {option.value === 'USE_BUYER_BUDGET'
+                      ? selectedMillData?.price_per_unit ?? 'Select mill first'
                       : option.subLabel}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-          {priceMode === 'MAKE_OFFER' ? (
+          {priceMode === 'MAKE_COUNTER' ? (
             <TextInput
               style={[styles.input, { marginTop: 10 }]}
               placeholder="e.g. 4000"

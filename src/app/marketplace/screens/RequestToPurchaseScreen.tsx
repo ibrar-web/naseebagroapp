@@ -23,9 +23,7 @@ type SupplyMill = {
   name?: string;
   city?: string;
   price_per_unit?: string;
-  available_quantity?: string;
-  is_cheapest?: boolean;
-  is_default_selected?: boolean;
+  available_quantity?: number | string;
 };
 
 type SupplyDetail = {
@@ -133,10 +131,10 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         const normalized = normalizeSupply(res);
         if (active) {
           setDetail(normalized);
-          const defaultMill = normalized?.available_mills_section?.mills?.find(
-            m => m.is_default_selected || m.is_cheapest,
-          );
-          if (defaultMill) setSelectedMill(defaultMill.id);
+          const firstMill =
+            normalized?.mills?.available_mills?.[0] ??
+            normalized?.available_mills_section?.mills?.[0];
+          if (firstMill) setSelectedMill(firstMill.id);
         }
       } catch (err) {
         console.log('RequestToPurchase load error', err);
@@ -213,7 +211,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   );
 
   const handleSubmit = async () => {
-    if (!canSubmit || !selectedMill) {
+    if (!canSubmit) {
       return;
     }
 
@@ -358,10 +356,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                   </View>
                   <View style={styles.millRowEnd}>
                     <Text style={styles.millPrice}>
-                      {mill.price_per_unit ?? 'Ask'}
-                      <Text style={styles.millUnit}>/40kg</Text>
+                      {mill.price_per_unit ? `PKR ${mill.price_per_unit}` : 'Ask'}
                     </Text>
-                    {mill.available_quantity ? (
+                    {mill.available_quantity != null ? (
                       <Text style={styles.millAvail}>
                         {mill.available_quantity} available
                       </Text>

@@ -129,10 +129,7 @@ const findArray = (body: any, keys: string[]) => {
   return [];
 };
 
-const normalizeHistory = (
-  payload: any,
-  mode: AppMode,
-): OfferHistoryEvent[] => {
+const normalizeHistory = (payload: any, mode: AppMode): OfferHistoryEvent[] => {
   const events = findArray(payload, [
     'history',
     'offer_history',
@@ -146,7 +143,9 @@ const normalizeHistory = (
       {
         actor: mode === 'buyer' ? 'Buyer' : 'Seller',
         badge: 'YOU',
-        title: titleCaseStatus(firstValue(payload.status_label, payload.status)),
+        title: titleCaseStatus(
+          firstValue(payload.status_label, payload.status),
+        ),
         time: formatDateLabel(firstValue(payload.created_at, payload.sent_at)),
         price: priceDisplay(payload),
       },
@@ -169,10 +168,17 @@ const normalizeHistory = (
         ? 'YOU'
         : event.badge,
     title: stringify(
-      firstValue(event.title, event.type_label, event.action, event.status_label),
+      firstValue(
+        event.title,
+        event.type_label,
+        event.action,
+        event.status_label,
+      ),
       'Offer Update',
     ),
-    time: formatDateLabel(firstValue(event.time_label, event.created_at, event.time)),
+    time: formatDateLabel(
+      firstValue(event.time_label, event.created_at, event.time),
+    ),
     price: priceDisplay(event),
   }));
 };
@@ -201,7 +207,9 @@ const normalizeOfferDetail = (
     ),
     'Offer',
   );
-  const status = titleCaseStatus(firstValue(payload.status_label, payload.status));
+  const status = titleCaseStatus(
+    firstValue(payload.status_label, payload.status),
+  );
 
   return {
     id: stringify(firstValue(payload.id, payload.offer_id, payload.uuid), id),
@@ -249,7 +257,10 @@ const normalizeOfferDetail = (
       ),
       'Payment not set',
     ),
-    alert: stringify(firstValue(payload.alert_label, payload.action_label), status),
+    alert: stringify(
+      firstValue(payload.alert_label, payload.action_label),
+      status,
+    ),
     history: normalizeHistory(payload, mode),
   };
 };
@@ -293,6 +304,8 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
           ? await api.buyer.myDemandOfferDetails(offerId)
           : await api.seller.myPostOffersDetails(offerId);
         const normalized = normalizeOfferDetail(response, offerId, mode);
+
+        console.log('offer details screen:', response);
         if (active) {
           setOfferDetail(normalized);
         }
@@ -390,11 +403,17 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
             ].map(([label, value], index) => (
               <View
                 key={label}
-                style={[styles.summaryItem, index > 0 && styles.summaryItemBorder]}
+                style={[
+                  styles.summaryItem,
+                  index > 0 && styles.summaryItemBorder,
+                ]}
               >
                 <Text style={styles.summaryLabel}>{label}</Text>
                 <Text
-                  style={[styles.summaryValue, index === 0 && styles.summaryPrice]}
+                  style={[
+                    styles.summaryValue,
+                    index === 0 && styles.summaryPrice,
+                  ]}
                   numberOfLines={1}
                 >
                   {value}
@@ -536,7 +555,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  anonymousText: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  anonymousText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.9)',
+  },
   summaryBar: {
     backgroundColor: '#145228',
     paddingHorizontal: 14,
@@ -549,7 +572,11 @@ const styles = StyleSheet.create({
     borderLeftColor: 'rgba(255,255,255,0.13)',
     paddingLeft: 8,
   },
-  summaryLabel: { fontSize: 8, color: 'rgba(255,255,255,0.33)', marginBottom: 2 },
+  summaryLabel: {
+    fontSize: 8,
+    color: 'rgba(255,255,255,0.33)',
+    marginBottom: 2,
+  },
   summaryValue: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
   summaryPrice: { color: '#F7DB4A' },
   alertBanner: {
@@ -583,7 +610,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  historyTitle: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 12 },
+  historyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
   historyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

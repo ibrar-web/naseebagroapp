@@ -60,7 +60,7 @@ export type RootStackParamList = {
   PostCreated: { mode: 'buyer' | 'seller'; postData: any; categoryName?: string; totalCount?: number };
   PostDetail: { postId: string; mode?: AppModeParam };
   OfferDetail: { offerId: string; mode?: AppModeParam };
-  Negotiation: { offerId: string };
+  Negotiation: { offerId: string; mode?: AppModeParam };
   DealDetail: { dealId: string };
   Notifications: undefined;
 

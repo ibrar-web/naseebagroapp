@@ -1,77 +1,59 @@
 import { getSocket } from './index';
 
 export type NewOfferPayload = {
-  offerId: string;
-  offerCode: string;
-  price: number;
-  priceDisplay: string;
-  quantityLabel: string;
-  commodityName: string;
+  offer_id: string;
+  code: string;
 };
 
 export type CounterOfferPayload = {
-  offerId: string;
-  offerCode: string;
-  price: number;
-  priceDisplay: string;
+  offer_id: string;
+  party: string;
+  offered_price: number;
   round: number;
+  status: string;
 };
 
 export type OfferStatusPayload = {
-  offerId: string;
-  offerCode: string;
-  status: string;
+  offer_id: string;
+  accepted_by?: string;
+  rejected_by?: string;
+  accepted_price?: number;
+};
+
+// ─── Room helpers ─────────────────────────────────────────────────────────────
+
+export const joinUserRoom = (userId: string) => {
+  getSocket()?.emit('join', { room: `user:${userId}` });
+};
+
+export const joinOfferRoom = (offerId: string) => {
+  getSocket()?.emit('join_offer', { offer_id: offerId });
 };
 
 // ─── Listeners ────────────────────────────────────────────────────────────────
 
 export const onNewOffer = (callback: (data: NewOfferPayload) => void) => {
-  const socket = getSocket();
-  socket?.on('offer:new', callback);
+  getSocket()?.on('offer.created', callback);
 };
 
 export const onCounterOffer = (callback: (data: CounterOfferPayload) => void) => {
-  const socket = getSocket();
-  socket?.on('offer:counter', callback);
+  getSocket()?.on('offer.countered', callback);
 };
 
 export const onOfferAccepted = (callback: (data: OfferStatusPayload) => void) => {
-  const socket = getSocket();
-  socket?.on('offer:accepted', callback);
+  getSocket()?.on('offer.accepted', callback);
 };
 
 export const onOfferRejected = (callback: (data: OfferStatusPayload) => void) => {
-  const socket = getSocket();
-  socket?.on('offer:rejected', callback);
-};
-
-// ─── Emitters ─────────────────────────────────────────────────────────────────
-
-export const emitCounterOffer = (data: {
-  offerId: string;
-  price: number;
-  note?: string;
-}) => {
-  const socket = getSocket();
-  socket?.emit('offer:counter', data);
-};
-
-export const emitAcceptOffer = (offerId: string) => {
-  const socket = getSocket();
-  socket?.emit('offer:accept', { offerId });
-};
-
-export const emitRejectOffer = (offerId: string) => {
-  const socket = getSocket();
-  socket?.emit('offer:reject', { offerId });
+  getSocket()?.on('offer.rejected', callback);
 };
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
 
 export const offNegotiationEvents = () => {
   const socket = getSocket();
-  socket?.off('offer:new');
-  socket?.off('offer:counter');
-  socket?.off('offer:accepted');
-  socket?.off('offer:rejected');
+  socket?.off('offer.created');
+  socket?.off('offer.countered');
+  socket?.off('offer.accepted');
+  socket?.off('offer.rejected');
 };

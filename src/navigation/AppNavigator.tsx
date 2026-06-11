@@ -66,6 +66,9 @@ import { AppIcon } from '../assets/icons';
 import type { AppIconName } from '../assets/icons';
 import LoginRequiredSheet from '../app/auth/components/LoginRequiredSheet';
 import { subscribeAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
+import Toast from 'react-native-toast-message';
+import { toastConfig } from '../app/components/toastConfig';
+import OfferAlertToast from '../app/components/OfferAlertToast';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -292,6 +295,8 @@ export const AppNavigator = () => {
         onClose={closeLoginSheet}
         onLogin={openLogin}
       />
+      <OfferAlertToast />
+      <Toast config={toastConfig} />
     </>
   );
 };

@@ -106,6 +106,18 @@ export const api = {
       Get('buyer/offers', params, protectedRequest),
     myDemandOfferDetails: (id: string | number) =>
       Get(byId('buyer/offers', id), undefined, protectedRequest),
+    counterOffer: (id: string, data: { offered_price: number; note?: string }) =>
+      Post(`buyer/offers/${id}/counter`, data, protectedRequest),
+    acceptOffer: (id: string) =>
+      Post(`buyer/offers/${id}/accept`, undefined, protectedRequest),
+    rejectOffer: (id: string) =>
+      Post(`buyer/offers/${id}/reject`, undefined, protectedRequest),
+    listNotifications: (params?: { limit?: number; offset?: number }) =>
+      Get('buyer/notifications', params, protectedRequest),
+    markNotificationRead: (id: string) =>
+      Patch(`buyer/notifications/${id}/read`, undefined, protectedRequest),
+    markAllNotificationsRead: () =>
+      Patch('buyer/notifications/read-all', undefined, protectedRequest),
     markFavouriteSupply: (id: string | number) =>
       Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
     removeFavouriteSupply: (id: string | number) =>
@@ -134,6 +146,18 @@ export const api = {
       Get('seller/offers', params, protectedRequest),
     myPostOffersDetails: (id: string | number) =>
       Get(byId('seller/offers', id), undefined, protectedRequest),
+    counterOffer: (id: string, data: { offered_price: number; note?: string }) =>
+      Post(`seller/offers/${id}/counter`, data, protectedRequest),
+    acceptOffer: (id: string) =>
+      Post(`seller/offers/${id}/accept`, undefined, protectedRequest),
+    rejectOffer: (id: string) =>
+      Post(`seller/offers/${id}/reject`, undefined, protectedRequest),
+    listNotifications: (params?: { limit?: number; offset?: number }) =>
+      Get('seller/notifications', params, protectedRequest),
+    markNotificationRead: (id: string) =>
+      Patch(`seller/notifications/${id}/read`, undefined, protectedRequest),
+    markAllNotificationsRead: () =>
+      Patch('seller/notifications/read-all', undefined, protectedRequest),
     // get category form
     getSellerCategoryform: (id: string) =>
       Get(byId('public/seller/form', id), undefined),

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -277,6 +278,7 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
   const { offerId } = route.params;
   const [offerDetail, setOfferDetail] = useState<OfferDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
 
   const goBack = () => {
@@ -296,6 +298,65 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
         ],
       }),
     );
+  };
+
+  const reloadDetail = async () => {
+    try {
+      const response = isBuyer
+        ? await api.buyer.myDemandOfferDetails(offerId)
+        : await api.seller.myPostOffersDetails(offerId);
+      const normalized = normalizeOfferDetail(response, offerId, mode);
+      if (normalized) setOfferDetail(normalized);
+    } catch {}
+  };
+
+  const handleAccept = () => {
+    Alert.alert('Accept Offer', 'This will create a Deal instantly. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Accept',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            isBuyer
+              ? await api.buyer.acceptOffer(offerId)
+              : await api.seller.acceptOffer(offerId);
+            await reloadDetail();
+          } catch (e: any) {
+            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
+          } finally {
+            setActionLoading(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleReject = (isSender: boolean) => {
+    const label = isSender ? 'Cancel Offer' : 'Reject Offer';
+    const msg = isSender
+      ? 'Withdraw your offer? This cannot be undone.'
+      : 'Reject this offer? This cannot be undone.';
+    Alert.alert(label, msg, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: label,
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            isBuyer
+              ? await api.buyer.rejectOffer(offerId)
+              : await api.seller.rejectOffer(offerId);
+            await reloadDetail();
+          } catch (e: any) {
+            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Action failed');
+          } finally {
+            setActionLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -468,24 +529,54 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
         </View>
 
         <View style={styles.actions}>
-          {offerDetail.canCounter ? (
-            <TouchableOpacity
-              style={styles.negotiateBtn}
-              activeOpacity={0.86}
-              onPress={() => navigation.navigate('Negotiation', { offerId })}
-            >
-              <AppIcon name="notificationWarning" size={17} color="#0D3B1F" />
-              <Text style={styles.negotiateBtnText}>Open Negotiation</Text>
-            </TouchableOpacity>
-          ) : null}
+          <TouchableOpacity
+            style={styles.negotiateBtn}
+            activeOpacity={0.86}
+            onPress={() => navigation.navigate('Negotiation', { offerId, mode })}
+          >
+            <AppIcon name="notificationWarning" size={17} color="#0D3B1F" />
+            <Text style={styles.negotiateBtnText}>Open Negotiation</Text>
+          </TouchableOpacity>
+
+          {/* Receiver: can accept the last offer made by the other party */}
           {offerDetail.canAccept ? (
-            <TouchableOpacity style={styles.acceptBtn} activeOpacity={0.86}>
-              <AppIcon name="approved" size={16} color="#FFFFFF" />
-              <Text style={styles.acceptBtnText}>Accept Deal</Text>
+            <TouchableOpacity
+              style={[styles.acceptBtn, actionLoading && styles.btnDisabled]}
+              activeOpacity={0.86}
+              disabled={actionLoading}
+              onPress={handleAccept}
+            >
+              {actionLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <AppIcon name="approved" size={16} color="#FFFFFF" />
+                  <Text style={styles.acceptBtnText}>Accept Deal</Text>
+                </>
+              )}
             </TouchableOpacity>
           ) : null}
-          {offerDetail.canReject ? (
-            <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.84}>
+
+          {/* Receiver: reject the incoming offer */}
+          {offerDetail.canAccept && offerDetail.canReject ? (
+            <TouchableOpacity
+              style={[styles.cancelBtn, actionLoading && styles.btnDisabled]}
+              activeOpacity={0.84}
+              disabled={actionLoading}
+              onPress={() => handleReject(false)}
+            >
+              <Text style={styles.cancelBtnText}>Reject Offer</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Sender: withdraw their own pending offer (not your turn, still active) */}
+          {!offerDetail.canAccept && offerDetail.canReject ? (
+            <TouchableOpacity
+              style={[styles.cancelBtn, actionLoading && styles.btnDisabled]}
+              activeOpacity={0.84}
+              disabled={actionLoading}
+              onPress={() => handleReject(true)}
+            >
               <Text style={styles.cancelBtnText}>Cancel Offer</Text>
             </TouchableOpacity>
           ) : null}
@@ -700,6 +791,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
+  btnDisabled: { opacity: 0.5 },
 });
 
 export default OfferDetailScreen;

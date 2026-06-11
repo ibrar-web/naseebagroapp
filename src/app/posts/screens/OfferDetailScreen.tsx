@@ -38,6 +38,11 @@ type OfferDetail = {
   mill: string;
   payment: string;
   alert: string;
+  statusColor: string;
+  isYourTurn: boolean;
+  canCounter: boolean;
+  canAccept: boolean;
+  canReject: boolean;
   history: OfferHistoryEvent[];
 };
 
@@ -155,11 +160,10 @@ const normalizeHistory = (payload: any, mode: AppMode): OfferHistoryEvent[] => {
   return events.map((event: any, index: number) => ({
     actor: stringify(
       firstValue(
+        event.label,
         event.actor_label,
         event.actor,
         event.user?.fullName,
-        event.seller?.fullName,
-        event.buyer?.fullName,
       ),
       index === 0 ? (mode === 'buyer' ? 'Buyer' : 'Seller') : 'Counterparty',
     ),
@@ -168,18 +172,13 @@ const normalizeHistory = (payload: any, mode: AppMode): OfferHistoryEvent[] => {
         ? 'YOU'
         : event.badge,
     title: stringify(
-      firstValue(
-        event.title,
-        event.type_label,
-        event.action,
-        event.status_label,
-      ),
-      'Offer Update',
+      firstValue(event.title, event.type_label, event.action, event.status_label),
+      event.round_number === 1 ? 'Initial Offer' : `Counter Offer${event.round_number ? ` · Round ${event.round_number}` : ''}`,
     ),
     time: formatDateLabel(
       firstValue(event.time_label, event.created_at, event.time),
     ),
-    price: priceDisplay(event),
+    price: stringify(firstValue(event.price_display), priceDisplay(event)),
   }));
 };
 
@@ -210,6 +209,12 @@ const normalizeOfferDetail = (
   const status = titleCaseStatus(
     firstValue(payload.status_label, payload.status),
   );
+  const initial = payload.initial_offer ?? {};
+  const millName = stringify(
+    firstValue(initial.mill?.name, payload.mill?.name),
+    mode === 'buyer' ? 'Seller' : 'Buyer',
+  );
+  const millCity = initial.mill?.city ? `, ${initial.mill.city}` : '';
 
   return {
     id: stringify(firstValue(payload.id, payload.offer_id, payload.uuid), id),
@@ -217,50 +222,50 @@ const normalizeOfferDetail = (
     title,
     image:
       firstValue(
+        payload.commodity?.image_url,
         payload.hero_image_url,
         payload.image_url,
         payload.image,
-        payload.commodity?.image_url,
         payload.post?.hero_image_url,
         payload.demand?.hero_image_url,
-        payload.supply?.hero_image_url,
       ) ?? `https://placehold.co/600x400?text=${encodeURIComponent(title)}`,
     fallback: '#8A9A5B',
-    myOffer: priceDisplay(payload),
+    myOffer: stringify(
+      firstValue(
+        initial.price_display,
+        payload.offer_price_display,
+        payload.price_display,
+      ),
+      priceDisplay(payload),
+    ),
     qty: stringify(
       firstValue(
+        initial.quantity_label,
         payload.quantity_label,
         payload.supply_quantity_label,
-        payload.requested_quantity_label,
         payload.quantity,
-        payload.supply_quantity,
       ),
       'Quantity not set',
     ),
-    mill: stringify(
-      firstValue(
-        payload.mill?.name,
-        payload.seller?.business_name,
-        payload.seller?.fullName,
-        payload.buyer?.business_name,
-        payload.buyer?.fullName,
-        payload.counterparty_name,
-      ),
-      mode === 'buyer' ? 'Seller' : 'Buyer',
-    ),
+    mill: `${millName}${millCity}`,
     payment: stringify(
       firstValue(
+        initial.payment_terms,
         payload.payment_terms_label,
-        payload.counter_payment_terms?.label,
         payload.payment_terms?.label,
         payload.payment_days ? `${payload.payment_days} days` : undefined,
       ),
       'Payment not set',
     ),
     alert: stringify(
-      firstValue(payload.alert_label, payload.action_label),
+      firstValue(payload.status_subtext, payload.alert_label, payload.action_label),
       status,
     ),
+    statusColor: stringify(payload.status_color, ''),
+    isYourTurn: payload.is_your_turn === true,
+    canCounter: payload.actions?.can_counter === true,
+    canAccept: payload.actions?.can_accept === true,
+    canReject: payload.actions?.can_reject === true,
     history: normalizeHistory(payload, mode),
   };
 };
@@ -396,9 +401,9 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
 
           <View style={styles.summaryBar}>
             {[
-              [isBuyer ? 'OFFER' : 'OFFER', offerDetail.myOffer],
+              ['YOUR OFFER', offerDetail.myOffer],
               ['QTY', offerDetail.qty],
-              [isBuyer ? 'SELLER' : 'BUYER', offerDetail.mill],
+              ['MILL', offerDetail.mill],
               ['PAYMENT', offerDetail.payment],
             ].map(([label, value], index) => (
               <View
@@ -423,9 +428,18 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
           </View>
         </View>
 
-        <View style={styles.alertBanner}>
-          <View style={styles.alertDot} />
-          <Text style={styles.alertText}>{offerDetail.alert}</Text>
+        <View style={[
+          styles.alertBanner,
+          offerDetail.statusColor === 'blue' && styles.alertBannerBlue,
+        ]}>
+          <View style={[
+            styles.alertDot,
+            offerDetail.statusColor === 'blue' && styles.alertDotBlue,
+          ]} />
+          <Text style={[
+            styles.alertText,
+            offerDetail.statusColor === 'blue' && styles.alertTextBlue,
+          ]}>{offerDetail.alert}</Text>
         </View>
 
         <View style={styles.historyCard}>
@@ -454,21 +468,27 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.negotiateBtn}
-            activeOpacity={0.86}
-            onPress={() => navigation.navigate('Negotiation', { offerId })}
-          >
-            <AppIcon name="notificationWarning" size={17} color="#0D3B1F" />
-            <Text style={styles.negotiateBtnText}>Open Negotiation</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.acceptBtn} activeOpacity={0.86}>
-            <AppIcon name="approved" size={16} color="#FFFFFF" />
-            <Text style={styles.acceptBtnText}>Accept Deal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.84}>
-            <Text style={styles.cancelBtnText}>Cancel Offer</Text>
-          </TouchableOpacity>
+          {offerDetail.canCounter ? (
+            <TouchableOpacity
+              style={styles.negotiateBtn}
+              activeOpacity={0.86}
+              onPress={() => navigation.navigate('Negotiation', { offerId })}
+            >
+              <AppIcon name="notificationWarning" size={17} color="#0D3B1F" />
+              <Text style={styles.negotiateBtnText}>Open Negotiation</Text>
+            </TouchableOpacity>
+          ) : null}
+          {offerDetail.canAccept ? (
+            <TouchableOpacity style={styles.acceptBtn} activeOpacity={0.86}>
+              <AppIcon name="approved" size={16} color="#FFFFFF" />
+              <Text style={styles.acceptBtnText}>Accept Deal</Text>
+            </TouchableOpacity>
+          ) : null}
+          {offerDetail.canReject ? (
+            <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.84}>
+              <Text style={styles.cancelBtnText}>Cancel Offer</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -591,13 +611,19 @@ const styles = StyleSheet.create({
     gap: 9,
     marginBottom: 16,
   },
+  alertBannerBlue: {
+    backgroundColor: '#EFF6FF',
+    borderColor: 'rgba(59,130,246,0.3)',
+  },
   alertDot: {
     width: 9,
     height: 9,
     borderRadius: 5,
     backgroundColor: '#F3CD03',
   },
+  alertDotBlue: { backgroundColor: '#3B82F6' },
   alertText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#92400E' },
+  alertTextBlue: { color: '#1D4ED8' },
   historyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,

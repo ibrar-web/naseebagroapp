@@ -29,19 +29,24 @@ type SupplyMill = {
 
 type SupplyDetail = {
   id: string;
+  listing_id?: string;
   code?: string;
   title?: string;
   badge_label?: string | null;
   badge?: string | null;
   hero_image_url?: string;
+  mills?: { is_mill_based: boolean; available_mills: SupplyMill[] };
+  pricing?: { starting_price?: string; starting_price_label?: string; price_range_label?: string };
   available_mills_section?: { mills?: SupplyMill[] };
-  post_details?: {
-    rows?: Array<{ key: string; label: string; value: string }>;
-  };
+  post_details?: { rows?: Array<{ key: string; label: string; value: string }> };
 };
 
 const normalizeSupply = (response: any): SupplyDetail | null => {
-  const payload = response?.id ? response : response?.data ?? response;
+  const payload = response?.id
+    ? response
+    : response?.listing_id
+    ? { ...response, id: response.listing_id }
+    : response?.data ?? response;
   return payload?.id ? payload : null;
 };
 
@@ -115,6 +120,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         const res = await api.marketplace.public.DetailMarketSuppliesListing(
           listingId,
         );
+        console.log('request to purchase:', res);
         const normalized = normalizeSupply(res);
         if (active) {
           setDetail(normalized);
@@ -163,7 +169,15 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
     );
   }
 
-  const mills = detail.available_mills_section?.mills ?? [];
+  const hasMills =
+    (detail.mills?.is_mill_based ?? false) &&
+    (detail.mills?.available_mills?.length ?? 0) > 0;
+  const mills = hasMills
+    ? (detail.mills?.available_mills ?? detail.available_mills_section?.mills ?? [])
+    : (detail.available_mills_section?.mills ?? []);
+  const listingPrice =
+    detail.pricing?.starting_price_label ??
+    detail.pricing?.price_range_label;
   const badge = detail.badge_label ?? detail.badge;
   const heroImage =
     detail.hero_image_url ??
@@ -175,13 +189,14 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   const submittedPrice =
     priceMode === 'MAKE_OFFER'
       ? parseNumber(offerPrice)
-      : parseNumber(selectedMillData?.price_display);
+      : hasMills
+      ? parseNumber(selectedMillData?.price_display)
+      : parseNumber(detail.pricing?.starting_price);
   const canSubmit = Boolean(
-    selectedMill &&
+    (!hasMills || selectedMill) &&
       quantity &&
       paymentDays &&
       deliveryDays &&
-      submittedPrice &&
       (priceMode === 'USE_ORIGINAL' || offerPrice),
   );
 
@@ -195,7 +210,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
 
     const payload = {
       listing_id: listingId,
-      mill_id: selectedMillData?.mill?.id ?? selectedMill,
+      ...(hasMills && selectedMill ? { mill_id: selectedMillData?.mill?.id ?? selectedMill } : {}),
       quantity: parseNumber(quantity),
       price_option: priceMode,
       offered_price_per_unit: submittedPrice,
@@ -209,7 +224,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       },
       additional_requirement: additionalReq || null,
     };
- console.log('payload :',payload)
+    console.log('payload :', payload);
     try {
       await api.buyer.sendBuyrequest(listingId, payload);
       navigation.replace('OfferSent', {
@@ -222,7 +237,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         subtitle: 'Seller will respond with acceptance, rejection or counter.',
         summary: [
           { label: 'Listing ID', value: detail.code ?? listingId },
-          { label: 'Mill', value: selectedMillName },
+          ...(hasMills ? [{ label: 'Mill', value: selectedMillName }] : []),
           { label: 'Quantity', value: `${payload.quantity}` },
           {
             label: 'Price Option',
@@ -297,16 +312,16 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           </ImageBackground>
         </View>
 
-        {/* 1. Select Mill */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            1. Select Mill <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.sectionSubtitle}>
-            Your request will be tied to one mill
-          </Text>
-          {mills.length ? (
-            mills.map(mill => {
+        {/* 1. Select Mill (only if mill-based) or Listing Price */}
+        {hasMills ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>
+              1. Select Mill <Text style={styles.required}>*</Text>
+            </Text>
+            <Text style={styles.sectionSubtitle}>
+              Your request will be tied to one mill
+            </Text>
+            {mills.map(mill => {
               const isSelected = selectedMill === mill.id;
               return (
                 <TouchableOpacity
@@ -315,42 +330,35 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      isSelected && styles.radioOuterSelected,
-                    ]}
-                  >
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.millName}>
-                      {mill.mill?.name ?? 'Mill'}
-                    </Text>
-                    <Text style={styles.millLocation}>
-                      {mill.mill?.location_label ?? ''}
-                    </Text>
+                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
+                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
+                  <View style={styles.millRowEnd}>
                     <Text style={styles.millPrice}>
                       {mill.price_display ?? 'Ask'}
                       <Text style={styles.millUnit}>/40kg</Text>
                     </Text>
                     {mill.available_quantity_label ? (
-                      <Text style={styles.millAvail}>
-                        {mill.available_quantity_label} available
-                      </Text>
+                      <Text style={styles.millAvail}>{mill.available_quantity_label} available</Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
               );
-            })
-          ) : (
-            <Text style={styles.emptyText}>
-              No mills available for this listing.
-            </Text>
-          )}
-        </View>
+            })}
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>1. Listing Price</Text>
+            <View style={styles.priceInfoBox}>
+              <Text style={styles.priceInfoLabel}>Starting Price</Text>
+              <Text style={styles.priceInfoValue}>{listingPrice ?? 'Contact seller'}</Text>
+            </View>
+          </View>
+        )}
 
         {/* 2. Quantity */}
         <View style={styles.card}>
@@ -724,6 +732,17 @@ const styles = StyleSheet.create({
   millUnit: { fontSize: 10, fontWeight: '500', color: '#9CA3AF' },
   millAvail: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
   emptyText: { fontSize: 12, color: '#9CA3AF' },
+  priceInfoBox: {
+    backgroundColor: '#F2FBF5',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#7FD4A0',
+  },
+  priceInfoLabel: { fontSize: 11, color: '#6B7280', marginBottom: 4 },
+  priceInfoValue: { fontSize: 20, fontWeight: '900', color: '#1A6B34' },
+  millRowEnd: { alignItems: 'flex-end' },
   input: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',

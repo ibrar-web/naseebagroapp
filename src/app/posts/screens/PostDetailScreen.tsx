@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ImageBackground,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
@@ -332,6 +334,7 @@ const OfferCard = ({ offer, onPress }: { offer: PostOffer; onPress: () => void }
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 const PostDetailScreen = ({ navigation, route }: Props) => {
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const currentMode = useAppSelector(s => s.app.mode) as AppMode;
   const mode = route.params.mode ?? currentMode;
   const isBuyer = mode === 'buyer';
@@ -341,6 +344,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   const [activeTab, setActiveTab] = useState<string>('post_details');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const goBack = () => {
     if (navigation.canGoBack()) { navigation.goBack(); return; }
@@ -405,7 +409,9 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   }
 
   const badge = statusBadgeConfig(post.status_color);
- 
+  const editOption = post.actions.menu_options.find(o => o.key === 'edit');
+  const closeOption = post.actions.menu_options.find(o => o.key === 'close');
+
   // ── Post Details tab ────────────────────────────────────────────────────────
   const renderPostDetails = () => (
     <View>
@@ -559,9 +565,13 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>{badge.label}</Text>
             </View>
-            <View style={styles.menuBtn}>
-              <Text style={styles.menuBtnDots}>•••</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.menuBtn}
+              onPress={() => setMenuOpen(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.menuBtnDots}>{'⋮'}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.heroBottom}>
@@ -602,6 +612,54 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
         {activeTab === 'post_details' ? renderPostDetails() : renderOffers()}
       </ScrollView>
 
+      {/* Bottom bar */}
+      {(editOption?.enabled || closeOption?.enabled) && (
+        <View style={styles.bottomBar}>
+          {editOption?.enabled ? (
+            <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
+              <Text style={styles.editBtnText}>{editOption.label}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {closeOption?.enabled ? (
+            <TouchableOpacity style={styles.closeBtn} activeOpacity={0.85}>
+              <Text style={styles.closeBtnText}>{closeOption.label}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
+
+      {/* Menu dropdown via Modal */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableOpacity
+          style={[styles.menuBackdrop, { width: screenW, height: screenH }]}
+          onPress={() => setMenuOpen(false)}
+          activeOpacity={1}
+        >
+          <View style={styles.menuSheet}>
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+              <AppIcon name="edit" size={15} color="#374151" />
+              <Text style={styles.menuItemText}>Edit Demand</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+              <AppIcon name="filter" size={15} color="#374151" />
+              <Text style={styles.menuItemText}>Mark as Inactive</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+              <AppIcon name="currency" size={15} color="#374151" />
+              <Text style={styles.menuItemText}>Refresh Price</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+              <AppIcon name="notificationWarning" size={15} color="#EF4444" />
+              <Text style={[styles.menuItemText, styles.menuItemTextDestructive]}>Delete Demand</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -793,6 +851,35 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#EF444499',
   },
   closeBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
+  // Actions menu
+  menuBackdrop: {
+    backgroundColor: 'transparent',
+  },
+  menuSheet: {
+    position: 'absolute',
+    top: 88,
+    right: 14,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    minWidth: 185,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 14,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+  },
+  menuItemBorder: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  menuItemText: { fontSize: 13, fontWeight: '600', color: '#374151', flex: 1 },
+  menuItemTextDestructive: { color: '#EF4444' },
+  menuItemTextDisabled: { opacity: 0.4 },
 });
 
 export default PostDetailScreen;

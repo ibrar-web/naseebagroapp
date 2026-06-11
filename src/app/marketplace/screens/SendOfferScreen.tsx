@@ -117,6 +117,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         const res = await api.marketplace.public.DetailMarketDemandsListing(
           listingId,
         );
+        console.log('res send offer page', res);
         const normalized = normalizeDemand(res);
         if (active) {
           setDetail(normalized);
@@ -153,7 +154,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       <View style={styles.stateScreen}>
         <MockStatusBar backgroundColor="#F9FAFB" textColor="#111827" />
         <AppIcon name="notificationWarning" size={34} color="#D97706" />
-        <Text style={styles.stateText}>{error || 'Listing not found.'}</Text>
+        <Text style={styles.stateText}>{error || 'Listing not found'}</Text>
         <TouchableOpacity
           style={styles.stateButton}
           onPress={() => navigation.goBack()}
@@ -165,6 +166,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
     );
   }
 
+  const hasMills =
+    (detail.mills_specified_section?.has_mills ?? false) &&
+    (detail.mills_specified_section?.mills?.length ?? 0) > 0;
   const mills = detail.mills_specified_section?.mills ?? [];
   const heroImage =
     detail.hero_image_url ??
@@ -188,11 +192,10 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
       ? parseNumber(counterPrice)
       : parseNumber(selectedMillData?.price_display);
   const canSubmit = Boolean(
-    selectedMill &&
+    (!hasMills || selectedMill) &&
       quantity &&
       paymentDays &&
       deliveryDays &&
-      submittedPrice &&
       (priceMode === 'USE_ORIGINAL' || counterPrice),
   );
 
@@ -206,7 +209,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
 
     const payload = {
       demand_id: listingId,
-      mill_id: selectedMillData?.mill?.id ?? selectedMill,
+      ...(hasMills && selectedMill ? { mill_id: selectedMillData?.mill?.id ?? selectedMill } : {}),
       supply_quantity: parseNumber(quantity),
       price_option: priceMode,
       counter_price_per_unit: submittedPrice,
@@ -233,7 +236,7 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
         subtitle: 'Buyer will respond with acceptance, rejection or counter.',
         summary: [
           { label: 'Demand ID', value: detail.code ?? listingId },
-          { label: 'Mill', value: selectedMillName },
+          ...(hasMills ? [{ label: 'Mill', value: selectedMillName }] : []),
           { label: 'Supply Quantity', value: `${payload.supply_quantity}` },
           {
             label: 'Price Option',
@@ -316,16 +319,16 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
           ) : null}
         </View>
 
-        {/* 1. Select Mill */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            1. Select Your Mill <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.sectionSubtitle}>
-            Choose which of your mills will fulfil this order
-          </Text>
-          {mills.length ? (
-            mills.map(mill => {
+        {/* 1. Select Mill — only shown when buyer specified mills */}
+        {hasMills && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>
+              1. Select Your Mill <Text style={styles.required}>*</Text>
+            </Text>
+            <Text style={styles.sectionSubtitle}>
+              Choose which of your mills will fulfil this order
+            </Text>
+            {mills.map(mill => {
               const isSelected = selectedMill === mill.id;
               return (
                 <TouchableOpacity
@@ -334,44 +337,29 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      isSelected && styles.radioOuterSelected,
-                    ]}
-                  >
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.millName}>
-                      {mill.mill?.name ?? 'Mill'}
-                    </Text>
-                    <Text style={styles.millLocation}>
-                      {mill.mill?.location_label ?? ''}
-                    </Text>
+                  <View style={styles.millInfo}>
+                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
+                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
+                  <View style={styles.millPriceCol}>
                     <Text style={styles.millPrice}>
                       {mill.price_display ?? 'Ask'}
                       {mill.price_unit_label ? (
-                        <Text style={styles.millUnit}>
-                          {mill.price_unit_label}
-                        </Text>
+                        <Text style={styles.millUnit}>{mill.price_unit_label}</Text>
                       ) : null}
                     </Text>
                     {mill.requested_quantity_label ? (
-                      <Text style={styles.millAvail}>
-                        {mill.requested_quantity_label}
-                      </Text>
+                      <Text style={styles.millAvail}>{mill.requested_quantity_label}</Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
               );
-            })
-          ) : (
-            <Text style={styles.emptyText}>No mills specified by buyer.</Text>
-          )}
-        </View>
+            })}
+          </View>
+        )}
 
         {/* 2. Quantity */}
         <View style={styles.card}>
@@ -739,6 +727,8 @@ const styles = StyleSheet.create({
   millUnit: { fontSize: 10, fontWeight: '500', color: '#9CA3AF' },
   millAvail: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
   emptyText: { fontSize: 12, color: '#9CA3AF' },
+  millInfo: { flex: 1 },
+  millPriceCol: { alignItems: 'flex-end' },
   input: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',

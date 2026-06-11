@@ -35,6 +35,8 @@ type SupplyDetail = {
   badge_label?: string | null;
   badge?: string | null;
   hero_image_url?: string;
+  category?: { id?: string; name?: string; image?: string };
+  commodity?: { id?: string; name?: string; image?: string };
   mills?: { is_mill_based: boolean; available_mills: SupplyMill[] };
   pricing?: { starting_price?: string; starting_price_label?: string; price_range_label?: string };
   available_mills_section?: { mills?: SupplyMill[] };
@@ -180,6 +182,8 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
     detail.pricing?.price_range_label;
   const badge = detail.badge_label ?? detail.badge;
   const heroImage =
+    detail.category?.image ??
+    detail.commodity?.image ??
     detail.hero_image_url ??
     `https://placehold.co/600x400?text=${encodeURIComponent(
       detail.title ?? 'Listing',

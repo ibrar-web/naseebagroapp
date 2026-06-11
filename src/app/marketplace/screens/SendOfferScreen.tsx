@@ -31,6 +31,8 @@ type DemandDetail = {
   code?: string;
   title?: string;
   hero_image_url?: string;
+  category?: { id?: string; name?: string; image?: string };
+  commodity?: { id?: string; name?: string; image?: string };
   header_stats?: Array<{ key: string; label: string; value: string }>;
   quantity_label?: string;
   delivery_location?: { label?: string };
@@ -171,6 +173,8 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
     (detail.mills_specified_section?.mills?.length ?? 0) > 0;
   const mills = detail.mills_specified_section?.mills ?? [];
   const heroImage =
+    detail.category?.image ??
+    detail.commodity?.image ??
     detail.hero_image_url ??
     `https://placehold.co/600x400?text=${encodeURIComponent(
       detail.title ?? 'Demand',

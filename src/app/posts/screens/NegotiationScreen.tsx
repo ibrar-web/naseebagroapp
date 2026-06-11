@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -54,9 +55,82 @@ type OfferState = {
   lastPrice: number;
 };
 
-const PAYMENT_FIXED_OPTIONS = [3, 7, 15, 30];
-const PAYMENT_WEEKLY_OPTIONS = [10, 20, 25, 50];
-const DELIVERY_OPTIONS = [1, 2, 3, 5, 7, 10, 14];
+type DropdownOption = { label: string; value: number };
+
+const PAYMENT_FIXED_OPTIONS: DropdownOption[] = [
+  { label: 'Full payment in 3 days', value: 3 },
+  { label: 'Full payment in 7 days', value: 7 },
+  { label: 'Full payment in 15 days', value: 15 },
+  { label: 'Full payment in 30 days', value: 30 },
+];
+const PAYMENT_WEEKLY_OPTIONS: DropdownOption[] = [
+  { label: '10% per week', value: 10 },
+  { label: '20% per week', value: 20 },
+  { label: '25% per week', value: 25 },
+  { label: '50% per week', value: 50 },
+];
+const DELIVERY_OPTIONS: DropdownOption[] = [
+  { label: 'Delivery within 1 day', value: 1 },
+  { label: 'Delivery within 2 days', value: 2 },
+  { label: 'Delivery within 3 days', value: 3 },
+  { label: 'Delivery within 5 days', value: 5 },
+  { label: 'Delivery within 7 days', value: 7 },
+  { label: 'Delivery within 10 days', value: 10 },
+  { label: 'Delivery within 14 days', value: 14 },
+];
+
+// ─── Inline dropdown ───────────────────────────────────────────────────────────
+
+type DropdownProps = {
+  placeholder: string;
+  options: DropdownOption[];
+  value: number | null;
+  onChange: (v: number | null) => void;
+};
+
+const DropdownPicker = ({ placeholder, options, value, onChange }: DropdownProps) => {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.dropdownBtn}
+        onPress={() => setOpen(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={[styles.dropdownBtnText, !selected && styles.dropdownPlaceholder]}>
+          {selected ? selected.label : placeholder}
+        </Text>
+        <Text style={styles.dropdownCaret}>▾</Text>
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={styles.dropdownOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View style={styles.dropdownSheet}>
+            <Text style={styles.dropdownSheetTitle}>{placeholder}</Text>
+            <FlatList
+              data={options}
+              keyExtractor={item => String(item.value)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.dropdownItem, item.value === value && styles.dropdownItemActive]}
+                  onPress={() => { onChange(item.value === value ? null : item.value); setOpen(false); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.dropdownItemText, item.value === value && styles.dropdownItemTextActive]}>
+                    {item.label}
+                  </Text>
+                  {item.value === value && <Text style={styles.dropdownCheck}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+};
 
 // ─── Normalizer ────────────────────────────────────────────────────────────────
 
@@ -407,7 +481,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
             ) : (
               /* Payment & Delivery tab */
               <View style={styles.termsTab}>
-                {/* Payment Term */}
+                {/* Payment Term toggle */}
                 <Text style={styles.termsLabel}>Payment Term</Text>
                 <View style={styles.subTabBar}>
                   {(['fixed', 'weekly'] as const).map(t => (
@@ -423,37 +497,23 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                     </TouchableOpacity>
                   ))}
                 </View>
-                <View style={styles.optionRow}>
-                  {(paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS).map(v => (
-                    <TouchableOpacity
-                      key={v}
-                      style={[styles.optionChip, paymentDays === v && styles.optionChipActive]}
-                      onPress={() => setPaymentDays(paymentDays === v ? null : v)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.optionChipText, paymentDays === v && styles.optionChipTextActive]}>
-                        {paymentType === 'fixed' ? `${v}d` : `${v}%`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
 
-                {/* Delivery Term */}
-                <Text style={[styles.termsLabel, { marginTop: 14 }]}>Delivery (days)</Text>
-                <View style={styles.optionRow}>
-                  {DELIVERY_OPTIONS.map(v => (
-                    <TouchableOpacity
-                      key={v}
-                      style={[styles.optionChip, deliveryDays === v && styles.optionChipActive]}
-                      onPress={() => setDeliveryDays(deliveryDays === v ? null : v)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.optionChipText, deliveryDays === v && styles.optionChipTextActive]}>
-                        {v}d
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {/* Payment value dropdown */}
+                <DropdownPicker
+                  placeholder={paymentType === 'fixed' ? 'Pay within how many days?' : 'Pay what % per week?'}
+                  options={paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS}
+                  value={paymentDays}
+                  onChange={setPaymentDays}
+                />
+
+                {/* Delivery Term dropdown */}
+                <Text style={[styles.termsLabel, { marginTop: 16 }]}>Delivery Term</Text>
+                <DropdownPicker
+                  placeholder="Deliver within how many days?"
+                  options={DELIVERY_OPTIONS}
+                  value={deliveryDays}
+                  onChange={setDeliveryDays}
+                />
               </View>
             )}
 
@@ -552,11 +612,19 @@ const styles = StyleSheet.create({
   subTabActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   subTabText: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
   subTabTextActive: { fontWeight: '700', color: '#111827' },
-  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  optionChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: '#F3F4F6', borderWidth: 1.5, borderColor: 'transparent' },
-  optionChipActive: { backgroundColor: '#F0FDF4', borderColor: '#1A6B34' },
-  optionChipText: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  optionChipTextActive: { color: '#1A6B34' },
+  // Dropdown
+  dropdownBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: '#2E9E52', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#FFFFFF' },
+  dropdownBtnText: { fontSize: 13, color: '#111827', flex: 1 },
+  dropdownPlaceholder: { color: '#9CA3AF' },
+  dropdownCaret: { fontSize: 14, color: '#2E9E52', marginLeft: 8 },
+  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', paddingHorizontal: 32 },
+  dropdownSheet: { backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden', maxHeight: 320 },
+  dropdownSheetTitle: { fontSize: 12, fontWeight: '700', color: '#6B7280', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
+  dropdownItemActive: { backgroundColor: '#F0FDF4' },
+  dropdownItemText: { fontSize: 13, color: '#111827', flex: 1 },
+  dropdownItemTextActive: { color: '#1A6B34', fontWeight: '700' },
+  dropdownCheck: { fontSize: 13, color: '#1A6B34', fontWeight: '700', marginLeft: 8 },
   // Submit
   submitBtn: { backgroundColor: '#1A6B34', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   submitBtnDisabled: { opacity: 0.5 },

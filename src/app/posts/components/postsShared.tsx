@@ -34,6 +34,7 @@ export interface OfferItem {
   qty: string;
   sentDate: string;
   status: string;
+  statusColor: string;
   role: string;
   actionText: string;
 }
@@ -251,10 +252,16 @@ export const normalizeOfferItem = (
     `${mode}-offer-${index}`,
   );
   const status = titleCaseStatus(firstValue(item.status_label, item.status));
+  const statusColor = stringify(item.status_color, '');
   const role = stringify(
-    firstValue(item.role_label, item.role, item.offer_type_label),
+    firstValue(item.offer_direction_label, item.role_label, item.role, item.offer_type_label),
     mode === 'buyer' ? 'Seller Offer' : 'Buyer Offer',
   );
+  const millName = stringify(
+    firstValue(item.mill?.name, item.seller?.business_name, item.seller?.fullName, item.buyer?.business_name, item.buyer?.fullName, item.counterparty_name),
+    mode === 'buyer' ? 'Seller' : 'Buyer',
+  );
+  const millCity = item.mill?.city ? `, ${item.mill.city}` : '';
   return {
     id,
     offerId: stringify(
@@ -272,19 +279,19 @@ export const normalizeOfferItem = (
       ),
       'Offer',
     ),
-    mill: stringify(
+    mill: `${millName}${millCity}`,
+    price: stringify(
       firstValue(
-        item.mill?.name,
-        item.seller?.business_name,
-        item.seller?.fullName,
-        item.buyer?.business_name,
-        item.buyer?.fullName,
-        item.counterparty_name,
+        item.offer_price_display,
+        item.price_display,
+        item.budget_display,
+        item.price_range_display,
+        item.asking_price_display,
       ),
-      mode === 'buyer' ? 'Seller' : 'Buyer',
+      priceDisplay(item),
     ),
-    price: priceDisplay(item),
     counterPrice: firstValue(
+      item.listed_price_display,
       item.counter_price_display,
       item.counter_offer_display,
       item.latest_counter_display,
@@ -301,6 +308,7 @@ export const normalizeOfferItem = (
     ),
     sentDate: formatDateLabel(
       firstValue(
+        item.updated_label,
         item.sent_label,
         item.created_at,
         item.sent_at,
@@ -309,13 +317,18 @@ export const normalizeOfferItem = (
       'Sent',
     ),
     status,
+    statusColor,
     role,
-    actionText: stringify(firstValue(item.action_label, item.next_action_label), (() => {
-      const s = status.toLowerCase();
-      if (s.includes('counter') || s.includes('awaiting')) return 'Counter received — respond';
-      if (s.includes('accepted')) return 'View Deal →';
-      return 'View detail';
-    })()),
+    actionText: stringify(
+      firstValue(item.action_label, item.next_action_label),
+      (() => {
+        const s = status.toLowerCase();
+        if (s.includes('counter') || s.includes('awaiting'))
+          return 'Counter received — respond';
+        if (s.includes('accepted')) return 'View Deal →';
+        return 'View detail';
+      })(),
+    ),
   };
 };
 
@@ -339,8 +352,19 @@ export const tagConfig = (status: string) => {
   return { bg: '#F2FBF5', dot: '#2E9E52', text: '#1A6B34', label: status };
 };
 
-export const offerStatusConfig = (status: string) => {
+export const offerStatusConfig = (status: string, statusColor = '') => {
   const n = status.toLowerCase();
+  const c = statusColor.toLowerCase();
+  if (c === 'blue' || n.includes('new offer') || n.includes('pending'))
+    return {
+      cardBorder: '#3B82F6',
+      shadow: '#3B82F6',
+      headerBg: '#EFF6FF',
+      dot: '#3B82F6',
+      text: '#1D4ED8',
+      actionColor: '#3B82F6',
+      respond: false,
+    };
   if (n.includes('counter') || n.includes('awaiting'))
     return {
       cardBorder: '#F3CD03',
@@ -468,8 +492,11 @@ export const OfferCard = ({
   item: OfferItem;
   onPress: () => void;
 }) => {
-  const config = offerStatusConfig(item.status);
-  const isYourOffer = item.role.toLowerCase().includes('your') || item.role.toLowerCase().includes('buyer');
+  console.log('offer card :', item);
+  const config = offerStatusConfig(item.status, item.statusColor);
+  const isYourOffer =
+    item.role.toLowerCase().includes('your') ||
+    item.role.toLowerCase().includes('buyer');
   const roleEmoji = isYourOffer ? '🛒' : '📦';
   const roleLabel = isYourOffer ? 'YOUR OFFER' : item.role.toUpperCase();
   const roleLabelColor = isYourOffer ? '#3B82F6' : '#217A3C';
@@ -487,14 +514,23 @@ export const OfferCard = ({
       ]}
       activeOpacity={0.88}
     >
-      <View style={[cardStyles.offerListHeader, { backgroundColor: config.headerBg }]}>
-        <View style={[cardStyles.offerStatusDot, { backgroundColor: config.dot }]} />
+      <View
+        style={[
+          cardStyles.offerListHeader,
+          { backgroundColor: config.headerBg },
+        ]}
+      >
+        <View
+          style={[cardStyles.offerStatusDot, { backgroundColor: config.dot }]}
+        />
         <Text style={[cardStyles.offerListStatus, { color: config.text }]}>
           {item.status}
         </Text>
         <View style={cardStyles.offerRolePill}>
           <Text style={cardStyles.offerRoleEmoji}>{roleEmoji}</Text>
-          <Text style={[cardStyles.offerRoleText, { color: roleLabelColor }]}>{roleLabel}</Text>
+          <Text style={[cardStyles.offerRoleText, { color: roleLabelColor }]}>
+            {roleLabel}
+          </Text>
         </View>
         {config.respond ? (
           <View style={cardStyles.respondPill}>
@@ -522,7 +558,9 @@ export const OfferCard = ({
             </Text>
             {item.counterPrice ? (
               <Text style={cardStyles.offerCounterPrice} numberOfLines={1}>
-                {item.counterPrice.startsWith('↔') ? item.counterPrice : `↔ ${item.counterPrice}`}
+                {item.counterPrice.startsWith('↔')
+                  ? item.counterPrice
+                  : `↔ ${item.counterPrice}`}
               </Text>
             ) : null}
             <Text style={cardStyles.offerQty}>{item.qty}</Text>
@@ -536,7 +574,12 @@ export const OfferCard = ({
               size={12}
               color={config.actionColor}
             />
-            <Text style={[cardStyles.offerActionText, { color: config.actionColor }]}>
+            <Text
+              style={[
+                cardStyles.offerActionText,
+                { color: config.actionColor },
+              ]}
+            >
               {item.actionText}
             </Text>
           </View>

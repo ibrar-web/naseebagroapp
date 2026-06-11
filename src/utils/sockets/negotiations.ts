@@ -22,12 +22,9 @@ export type OfferStatusPayload = {
 
 // ─── Room helpers ─────────────────────────────────────────────────────────────
 
-export const joinUserRoom = (userId: string) => {
-  getSocket()?.emit('join', { room: `user:${userId}` });
-};
-
 export const joinOfferRoom = (offerId: string) => {
-  getSocket()?.emit('join_offer', { offer_id: offerId });
+  // Backend gateway expects { offerId } — not offer_id
+  getSocket()?.emit('join_offer', { offerId });
 };
 
 // ─── Listeners ────────────────────────────────────────────────────────────────

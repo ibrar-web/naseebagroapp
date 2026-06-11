@@ -23,8 +23,21 @@ const startHeartbeat = () => {
   }, HEARTBEAT_INTERVAL);
 };
 
+const joinUserRoomIfAuthed = () => {
+  const userId = store.getState().auth.user?.id;
+  if (socket && userId) {
+    socket.emit('join', { userId });
+    console.log('[Socket] Joined user room:', userId);
+  }
+};
+
 export const connectSocket = () => {
-  if (socket?.connected) {
+  // Already connected — nothing to do
+  if (socket?.connected) return socket;
+
+  // Socket exists but disconnected — just reconnect it
+  if (socket) {
+    socket.connect();
     return socket;
   }
 
@@ -32,15 +45,16 @@ export const connectSocket = () => {
 
   socket = io(ENV.SOCKET_URL, {
     autoConnect: false,
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionDelay: 2000,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10,
     ...(token ? { auth: { token } } : {}),
   });
 
   socket.on('connect', () => {
     console.log('[Socket] Connected:', socket?.id);
+    joinUserRoomIfAuthed();
     startHeartbeat();
   });
 
@@ -53,9 +67,7 @@ export const connectSocket = () => {
     console.log('[Socket] Connection error:', err.message);
   });
 
-  socket.on('heartbeat_ack', () => {
-    console.log('[Socket] Heartbeat ack received');
-  });
+  socket.on('heartbeat_ack', () => {});
 
   socket.connect();
   return socket;
@@ -70,3 +82,26 @@ export const disconnectSocket = () => {
 };
 
 export const getSocket = (): Socket | null => socket;
+
+// ─── Auto-manage connection based on auth state ───────────────────────────────
+// This runs when the module is first imported, wiring up store subscriptions
+// so the socket connects/disconnects automatically as auth changes.
+
+let trackedToken: string | null = null;
+
+const syncSocketToAuth = () => {
+  const token = store.getState().auth.token;
+  if (token && token !== trackedToken) {
+    trackedToken = token;
+    connectSocket();
+  } else if (!token && trackedToken !== null) {
+    trackedToken = null;
+    disconnectSocket();
+  }
+};
+
+// Watch future auth changes
+store.subscribe(syncSocketToAuth);
+
+// Connect immediately if already authenticated (e.g. app restart with persisted token)
+syncSocketToAuth();

@@ -31,12 +31,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Negotiation'>;
 
 type ChatBubble = {
   round_number: number;
+  price: number;
   price_display: string;
   label: string;
   is_mine: boolean;
   note: string | null;
   time_label: string;
   payment_terms?: string;
+  is_awaiting?: boolean;
 };
 
 type OfferState = {
@@ -51,15 +53,57 @@ type OfferState = {
   canAccept: boolean;
   canReject: boolean;
   history: ChatBubble[];
+  lastPrice: number;
 };
+
+// ─── Privacy filter ────────────────────────────────────────────────────────────
+
+const BLOCKED_PATTERNS: { regex: RegExp; label: string }[] = [
+  { regex: /(?:0|\+?92)3\d{9}/, label: 'phone number' },
+  { regex: /\b\d{10,}\b/, label: 'phone number' },
+  { regex: /\S+@\S+\.\S+/, label: 'email address' },
+  { regex: /whatsapp|wtsapp|wa\.me/i, label: 'WhatsApp contact' },
+  { regex: /telegram|t\.me\//i, label: 'Telegram contact' },
+  { regex: /@[a-zA-Z0-9_]{3,}/, label: 'social handle' },
+  { regex: /instagram|facebook|snapchat|twitter|tiktok/i, label: 'social media link' },
+];
+
+const detectPersonalInfo = (text: string): string | null => {
+  for (const { regex, label } of BLOCKED_PATTERNS) {
+    if (regex.test(text)) return label;
+  }
+  return null;
+};
+
+// ─── Normalizer ────────────────────────────────────────────────────────────────
 
 const firstValue = (...vals: any[]) =>
   vals.find(v => v !== undefined && v !== null && v !== '');
 
-const normalizeOffer = (payload: any, mode: 'buyer' | 'seller'): OfferState => {
+const normalizeOffer = (payload: any): OfferState => {
   const initial = payload.initial_offer ?? {};
   const mill = initial.mill ?? {};
   const millName = [mill.name, mill.city].filter(Boolean).join(', ') || '—';
+
+  const history: ChatBubble[] = (payload.history ?? []).map((r: any, i: number, arr: any[]) => {
+    const rawPrice = firstValue(r.price, r.offered_price) ?? 0;
+    const isAwaiting = !r.is_mine && i === arr.length - 1 &&
+      ['pending', 'counter_received'].includes(payload.status ?? '');
+    return {
+      round_number: r.round_number,
+      price: Number(rawPrice),
+      price_display: firstValue(r.price_display, `PKR ${rawPrice}`) ?? '',
+      label: r.label ?? '',
+      is_mine: r.is_mine ?? false,
+      note: r.note ?? null,
+      time_label: firstValue(r.time_label, '') ?? '',
+      payment_terms: r.round_number === 1 ? (initial.payment_terms ?? null) : null,
+      is_awaiting: isAwaiting,
+    };
+  });
+
+  const lastItem = history[history.length - 1];
+  const lastPrice = lastItem?.price || Number(initial.price ?? 0) || 2500;
 
   return {
     id: payload.id ?? '',
@@ -72,17 +116,12 @@ const normalizeOffer = (payload: any, mode: 'buyer' | 'seller'): OfferState => {
     canCounter: payload.actions?.can_counter ?? false,
     canAccept: payload.actions?.can_accept ?? false,
     canReject: payload.actions?.can_reject ?? false,
-    history: (payload.history ?? []).map((r: any) => ({
-      round_number: r.round_number,
-      price_display: firstValue(r.price_display, `PKR ${r.price}`) ?? '',
-      label: r.label ?? '',
-      is_mine: r.is_mine ?? false,
-      note: r.note ?? null,
-      time_label: firstValue(r.time_label, '') ?? '',
-      payment_terms: initial.payment_terms ?? null,
-    })),
+    history,
+    lastPrice,
   };
 };
+
+// ─── Chat bubble ───────────────────────────────────────────────────────────────
 
 const Bubble = ({ item }: { item: ChatBubble }) => {
   const alignRight = item.is_mine;
@@ -91,13 +130,21 @@ const Bubble = ({ item }: { item: ChatBubble }) => {
     <View style={[styles.row, alignRight ? styles.rowRight : styles.rowLeft]}>
       <View style={styles.bubbleWrap}>
         <Text style={[styles.timeLabel, { textAlign: alignRight ? 'right' : 'left' }]}>
-          {alignRight ? 'You' : 'Counterparty'} · {item.time_label}
+          {alignRight ? 'You' : 'Counterparty'}{item.time_label ? ` · ${item.time_label}` : ''}
         </Text>
-        <View style={[styles.bubble, alignRight ? styles.bubbleMine : styles.bubbleTheirs]}>
-          <Text style={styles.bubbleLabel}>{item.label.toUpperCase()}</Text>
+        <View style={[
+          styles.bubble,
+          alignRight ? styles.bubbleMine : styles.bubbleTheirs,
+          item.is_awaiting && styles.bubbleAwaiting,
+        ]}>
+          {item.is_awaiting ? (
+            <Text style={styles.awaitingLabel}>⏳ AWAITING YOUR RESPONSE</Text>
+          ) : (
+            <Text style={styles.bubbleLabel}>{item.label.toUpperCase()}</Text>
+          )}
           <Text style={styles.bubblePrice}>{item.price_display}</Text>
           {!!item.note && <Text style={styles.bubbleNote}>{item.note}</Text>}
-          {!!item.payment_terms && item.round_number === 1 && (
+          {!!item.payment_terms && (
             <View style={styles.chip}>
               <Text style={styles.chipText}>{item.payment_terms}</Text>
             </View>
@@ -108,6 +155,10 @@ const Bubble = ({ item }: { item: ChatBubble }) => {
   );
 };
 
+// ─── Main screen ───────────────────────────────────────────────────────────────
+
+const STEP = 50;
+
 const NegotiationScreen = ({ navigation, route }: Props) => {
   const { offerId, mode: routeMode } = route.params;
   const user = useAppSelector(s => s.auth.user);
@@ -117,9 +168,14 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Counter offer sheet
   const [counterVisible, setCounterVisible] = useState(false);
-  const [counterPrice, setCounterPrice] = useState('');
+  const [counterTab, setCounterTab] = useState<'price' | 'note'>('price');
+  const [counterPrice, setCounterPrice] = useState(0);
   const [counterNote, setCounterNote] = useState('');
+  const [noteWarning, setNoteWarning] = useState('');
+
   const scrollRef = useRef<ScrollView>(null);
 
   const fetchOffer = useCallback(async () => {
@@ -129,96 +185,87 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
         ? await api.buyer.myDemandOfferDetails(offerId)
         : await api.seller.myPostOffersDetails(offerId);
       const payload = res?.data ?? res;
-      console.log('[Negotiation] API response', JSON.stringify(payload, null, 2));
-      setOffer(normalizeOffer(payload, mode));
+      console.log('[Negotiation] payload', JSON.stringify(payload, null, 2));
+      setOffer(normalizeOffer(payload));
     } catch (e: any) {
       const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to load offer';
-      console.log('[Negotiation] fetch error', msg, 'mode:', mode, 'offerId:', offerId);
+      console.log('[Negotiation] fetch error', msg);
       setFetchError(msg);
     } finally {
       setLoading(false);
     }
   }, [offerId, mode]);
 
-  useEffect(() => {
-    fetchOffer();
-  }, [fetchOffer]);
+  useEffect(() => { fetchOffer(); }, [fetchOffer]);
 
   useEffect(() => {
     joinOfferRoom(offerId);
-
     onCounterOffer(() => fetchOffer());
     onOfferAccepted(() => fetchOffer());
     onOfferRejected(() => fetchOffer());
-
-    return () => {
-      offNegotiationEvents();
-    };
+    return () => { offNegotiationEvents(); };
   }, [offerId, fetchOffer]);
 
   useEffect(() => {
-    if (offer) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    if (offer?.history.length) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
     }
   }, [offer?.history.length]);
 
-  const goBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs', params: { screen: 'Post', params: { initialTab: 'offers' } } }],
-      }),
-    );
+  const openCounterSheet = () => {
+    setCounterPrice(offer?.lastPrice ?? 2500);
+    setCounterNote('');
+    setNoteWarning('');
+    setCounterTab('price');
+    setCounterVisible(true);
+  };
+
+  const handleNoteChange = (text: string) => {
+    setCounterNote(text);
+    const hit = detectPersonalInfo(text);
+    setNoteWarning(hit ? `Sharing a ${hit} is not allowed — keep negotiations anonymous` : '');
+  };
+
+  const adjustPrice = (delta: number) => {
+    setCounterPrice(prev => Math.max(STEP, prev + delta));
   };
 
   const handleCounter = async () => {
-    const price = parseFloat(counterPrice.replace(/[^0-9.]/g, ''));
-    if (!price || isNaN(price)) {
+    if (!counterPrice || counterPrice <= 0) {
       Alert.alert('Enter a valid price');
+      return;
+    }
+    if (noteWarning) {
+      Alert.alert('Note blocked', 'Remove personal information from your note before sending.');
       return;
     }
     setActionLoading(true);
     try {
-      if (mode === 'buyer') {
-        await api.buyer.counterOffer(offerId, { offered_price: price, note: counterNote || undefined });
-      } else {
-        await api.seller.counterOffer(offerId, { offered_price: price, note: counterNote || undefined });
-      }
+      const payload = { offered_price: counterPrice, note: counterNote.trim() || undefined };
+      mode === 'buyer'
+        ? await api.buyer.counterOffer(offerId, payload)
+        : await api.seller.counterOffer(offerId, payload);
       setCounterVisible(false);
-      setCounterPrice('');
-      setCounterNote('');
       fetchOffer();
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Counter offer failed');
+      Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Counter offer failed');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleAccept = () => {
-    Alert.alert('Accept Offer', 'This will create a Deal. Confirm?', [
+    Alert.alert('Accept Offer', 'This will create a Deal instantly. Continue?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Accept',
-        style: 'default',
-        onPress: async () => {
+        text: 'Accept', onPress: async () => {
           setActionLoading(true);
           try {
-            if (mode === 'buyer') {
-              await api.buyer.acceptOffer(offerId);
-            } else {
-              await api.seller.acceptOffer(offerId);
-            }
+            mode === 'buyer' ? await api.buyer.acceptOffer(offerId) : await api.seller.acceptOffer(offerId);
             fetchOffer();
           } catch (e: any) {
-            Alert.alert('Error', e?.message ?? 'Accept failed');
-          } finally {
-            setActionLoading(false);
-          }
+            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
+          } finally { setActionLoading(false); }
         },
       },
     ]);
@@ -228,35 +275,35 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
     Alert.alert('Reject Offer', 'Are you sure you want to reject?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
+        text: 'Reject', style: 'destructive', onPress: async () => {
           setActionLoading(true);
           try {
-            if (mode === 'buyer') {
-              await api.buyer.rejectOffer(offerId);
-            } else {
-              await api.seller.rejectOffer(offerId);
-            }
+            mode === 'buyer' ? await api.buyer.rejectOffer(offerId) : await api.seller.rejectOffer(offerId);
             fetchOffer();
           } catch (e: any) {
-            Alert.alert('Error', e?.message ?? 'Reject failed');
-          } finally {
-            setActionLoading(false);
-          }
+            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Reject failed');
+          } finally { setActionLoading(false); }
         },
       },
     ]);
   };
 
-  const headerSub = offer
-    ? [offer.millName, offer.commodityName].filter(Boolean).join(' · ')
-    : '';
+  const goBack = () => {
+    if (navigation.canGoBack()) { navigation.goBack(); return; }
+    navigation.dispatch(CommonActions.reset({
+      index: 0,
+      routes: [{ name: 'MainTabs', params: { screen: 'Post', params: { initialTab: 'offers' } } }],
+    }));
+  };
+
+  const headerSub = offer ? [offer.millName, offer.commodityName].filter(Boolean).join(' · ') : '';
+  const formattedCounter = `PKR ${counterPrice.toLocaleString('en-PK')}`;
 
   return (
     <View style={styles.container}>
       <MockStatusBar backgroundColor="#0D3B1F" textColor="#FFFFFF" />
 
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn} activeOpacity={0.8}>
@@ -272,6 +319,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
         </View>
       </View>
 
+      {/* Chat area */}
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#1A6B34" />
@@ -290,55 +338,35 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
         >
-          {offer?.history.length === 0 && (
+          {!offer?.history.length && (
             <Text style={styles.emptyText}>No messages yet.</Text>
           )}
-          {offer?.history.map((item, i) => (
-            <Bubble key={i} item={item} />
-          ))}
+          {offer?.history.map((item, i) => <Bubble key={i} item={item} />)}
         </ScrollView>
       )}
 
+      {/* Bottom action bar */}
       {!loading && offer && (
         <View style={styles.bottomBar}>
-          {offer.isYourTurn ? (
-            <Text style={styles.disclaimer}>Your turn — respond now</Text>
-          ) : (
-            <Text style={styles.disclaimer}>Waiting for counterparty…</Text>
-          )}
+          <Text style={styles.disclaimer}>
+            {offer.isYourTurn ? 'Your turn — respond now' : 'Waiting for counterparty…'}
+          </Text>
           <View style={styles.actionRow}>
             {offer.canReject && (
-              <TouchableOpacity
-                style={styles.rejectBtn}
-                onPress={handleReject}
-                disabled={actionLoading}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.rejectBtn} onPress={handleReject} disabled={actionLoading} activeOpacity={0.85}>
                 <Text style={styles.rejectBtnText}>Reject</Text>
               </TouchableOpacity>
             )}
             {offer.canCounter && (
-              <TouchableOpacity
-                style={styles.counterBtn}
-                onPress={() => setCounterVisible(true)}
-                disabled={actionLoading}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.counterBtn} onPress={openCounterSheet} disabled={actionLoading} activeOpacity={0.85}>
                 <Text style={styles.counterBtnText}>Counter</Text>
               </TouchableOpacity>
             )}
             {offer.canAccept && (
-              <TouchableOpacity
-                style={styles.acceptBtn}
-                onPress={handleAccept}
-                disabled={actionLoading}
-                activeOpacity={0.85}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.acceptBtnText}>Accept → Deal ✓</Text>
-                )}
+              <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={actionLoading} activeOpacity={0.85}>
+                {actionLoading
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.acceptBtnText}>Accept → Deal ✓</Text>}
               </TouchableOpacity>
             )}
             {!offer.canCounter && !offer.canAccept && !offer.canReject && (
@@ -350,56 +378,94 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
         </View>
       )}
 
-      {/* Counter offer modal */}
-      <Modal
-        visible={counterVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCounterVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Counter Offer</Text>
-            <Text style={styles.modalLabel}>Your Price (PKR per 40kg)</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="e.g. 2800"
-              keyboardType="numeric"
-              value={counterPrice}
-              onChangeText={setCounterPrice}
-              placeholderTextColor="#9CA3AF"
-            />
-            <Text style={styles.modalLabel}>Note (optional)</Text>
-            <TextInput
-              style={[styles.modalInput, styles.modalNoteInput]}
-              placeholder="Add a note…"
-              value={counterNote}
-              onChangeText={setCounterNote}
-              multiline
-              placeholderTextColor="#9CA3AF"
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancel}
-                onPress={() => setCounterVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSubmit}
-                onPress={handleCounter}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.modalSubmitText}>Send Counter</Text>
-                )}
+      {/* Counter offer bottom sheet */}
+      <Modal visible={counterVisible} transparent animationType="slide" onRequestClose={() => setCounterVisible(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.sheet}>
+
+            {/* Sheet header */}
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Send Counter</Text>
+              <TouchableOpacity style={styles.sheetCancel} onPress={() => setCounterVisible(false)}>
+                <Text style={styles.sheetCancelText}>Cancel</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Tab selector */}
+            <View style={styles.tabBar}>
+              <TouchableOpacity
+                style={[styles.tab, counterTab === 'price' && styles.tabActive]}
+                onPress={() => setCounterTab('price')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabText, counterTab === 'price' && styles.tabTextActive]}>Price</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, counterTab === 'note' && styles.tabActive]}
+                onPress={() => setCounterTab('note')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabText, counterTab === 'note' && styles.tabTextActive]}>Note</Text>
+              </TouchableOpacity>
+            </View>
+
+            {counterTab === 'price' ? (
+              /* Price tab */
+              <View style={styles.priceTab}>
+                <Text style={styles.priceDisplay}>{formattedCounter}</Text>
+                <Text style={styles.priceUnit}>per 40kg bag</Text>
+
+                <View style={styles.stepper}>
+                  <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(-STEP)} activeOpacity={0.75}>
+                    <Text style={styles.stepBtnText}>−</Text>
+                  </TouchableOpacity>
+                  <View style={styles.stepCenter}>
+                    <Text style={styles.stepValue}>{formattedCounter}</Text>
+                    <Text style={styles.stepHint}>tap ± PKR {STEP}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(STEP)} activeOpacity={0.75}>
+                    <Text style={styles.stepBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              /* Note tab */
+              <View style={styles.noteTab}>
+                <View style={styles.privacyBanner}>
+                  <AppIcon name="shield" size={13} color="#1A6B34" />
+                  <Text style={styles.privacyBannerText}>
+                    Do not share personal info — phone numbers, emails, or social handles are blocked to keep both parties anonymous.
+                  </Text>
+                </View>
+                <TextInput
+                  style={[styles.noteInput, !!noteWarning && styles.noteInputError]}
+                  placeholder="Add a short note about your offer…"
+                  value={counterNote}
+                  onChangeText={handleNoteChange}
+                  multiline
+                  maxLength={200}
+                  placeholderTextColor="#9CA3AF"
+                />
+                {!!noteWarning && (
+                  <View style={styles.warningRow}>
+                    <Text style={styles.warningText}>🚫 {noteWarning}</Text>
+                  </View>
+                )}
+                <Text style={styles.charCount}>{counterNote.length}/200</Text>
+              </View>
+            )}
+
+            {/* Submit button */}
+            <TouchableOpacity
+              style={[styles.submitBtn, (actionLoading || !!noteWarning) && styles.submitBtnDisabled]}
+              onPress={handleCounter}
+              disabled={actionLoading || !!noteWarning}
+              activeOpacity={0.85}
+            >
+              {actionLoading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.submitBtnText}>Submit Counter — {formattedCounter}</Text>}
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -407,185 +473,86 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   );
 };
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EEF2EE' },
-  header: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    backgroundColor: '#0D3B1F',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
-  },
-  backBtn: {
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    borderRadius: 10,
-    padding: 8,
-  },
+  header: { paddingHorizontal: 14, paddingBottom: 14, backgroundColor: '#0D3B1F' },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  backBtn: { backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 10, padding: 8 },
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   headerSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  anonymousBadge: {
-    backgroundColor: 'rgba(255,255,255,0.094)',
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
+  anonymousBadge: { backgroundColor: 'rgba(255,255,255,0.094)', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
   anonymousText: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.53)' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 40, fontSize: 13 },
+  retryBtn: { backgroundColor: '#1A6B34', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   chat: { flex: 1 },
   chatContent: { padding: 14, paddingBottom: 24, gap: 16 },
-  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 40, fontSize: 13 },
-  retryBtn: {
-    marginTop: 14,
-    backgroundColor: '#1A6B34',
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   row: { flexDirection: 'row' },
   rowRight: { justifyContent: 'flex-end' },
   rowLeft: { justifyContent: 'flex-start' },
   bubbleWrap: { maxWidth: '82%' },
   timeLabel: { fontSize: 9, color: '#9CA3AF', marginBottom: 3 },
-  bubble: {
-    borderRadius: 16,
-    padding: 12,
-    minWidth: 180,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
+  bubble: { borderRadius: 16, padding: 12, minWidth: 180, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   bubbleMine: { backgroundColor: '#1A6B34', borderTopRightRadius: 4 },
   bubbleTheirs: { backgroundColor: '#145228', borderTopLeftRadius: 4 },
-  bubbleLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 0.3,
-    marginBottom: 6,
-  },
-  bubblePrice: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
+  bubbleAwaiting: { borderWidth: 2, borderColor: '#F7DB4A' },
+  awaitingLabel: { fontSize: 9, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.3, marginBottom: 6 },
+  bubbleLabel: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.3, marginBottom: 6 },
+  bubblePrice: { fontSize: 22, fontWeight: '900', color: '#FFFFFF', marginBottom: 4, letterSpacing: -0.5 },
   bubbleNote: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 7,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    marginTop: 4,
-  },
+  chip: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 7, paddingHorizontal: 9, paddingVertical: 4, alignSelf: 'flex-start', marginTop: 4 },
   chipText: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
-  bottomBar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 28,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
-  },
+  bottomBar: { backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 28, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
   disclaimer: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginBottom: 8 },
   actionRow: { flexDirection: 'row', gap: 8 },
-  rejectBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    borderRadius: 11,
-    alignItems: 'center',
-  },
+  rejectBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 11, alignItems: 'center' },
   rejectBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
-  counterBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: '#FFFDE6',
-    borderWidth: 1,
-    borderColor: 'rgba(243,205,3,0.33)',
-    borderRadius: 11,
-    alignItems: 'center',
-  },
+  counterBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#FFFDE6', borderWidth: 1, borderColor: 'rgba(243,205,3,0.33)', borderRadius: 11, alignItems: 'center' },
   counterBtnText: { fontSize: 12, fontWeight: '700', color: '#92400E' },
-  acceptBtn: {
-    flex: 2,
-    paddingVertical: 12,
-    backgroundColor: '#1A6B34',
-    borderRadius: 11,
-    alignItems: 'center',
-    shadowColor: '#1A6B34',
-    shadowOpacity: 0.33,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
+  acceptBtn: { flex: 2, paddingVertical: 12, backgroundColor: '#1A6B34', borderRadius: 11, alignItems: 'center', shadowColor: '#1A6B34', shadowOpacity: 0.33, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   acceptBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  terminalBadge: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 11,
-    alignItems: 'center',
-  },
+  terminalBadge: { flex: 1, paddingVertical: 12, backgroundColor: '#F3F4F6', borderRadius: 11, alignItems: 'center' },
   terminalText: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 36,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 16 },
-  modalLabel: { fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 6 },
-  modalInput: {
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111827',
-    marginBottom: 12,
-  },
-  modalNoteInput: { height: 80, textAlignVertical: 'top' },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  modalCancel: {
-    flex: 1,
-    paddingVertical: 13,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalCancelText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
-  modalSubmit: {
-    flex: 2,
-    paddingVertical: 13,
-    backgroundColor: '#1A6B34',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalSubmitText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
+  // Modal / sheet
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 36, borderWidth: 2, borderColor: '#7FD4A0' },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  sheetTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  sheetCancel: { backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
+  sheetCancelText: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  // Tabs
+  tabBar: { flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: 10, padding: 3, marginBottom: 16 },
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  tabActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  tabText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
+  tabTextActive: { fontWeight: '700', color: '#111827' },
+  // Price tab
+  priceTab: { alignItems: 'center', marginBottom: 16 },
+  priceDisplay: { fontSize: 36, fontWeight: '900', color: '#1A6B34', letterSpacing: -1 },
+  priceUnit: { fontSize: 11, color: '#9CA3AF', marginTop: 2, marginBottom: 20 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' },
+  stepBtn: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
+  stepBtnText: { fontSize: 24, fontWeight: '700', color: '#111827', lineHeight: 28 },
+  stepCenter: { flex: 1, alignItems: 'center' },
+  stepValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  stepHint: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },
+  // Note tab
+  noteTab: { marginBottom: 16 },
+  privacyBanner: { flexDirection: 'row', gap: 8, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, marginBottom: 12, alignItems: 'flex-start' },
+  privacyBannerText: { flex: 1, fontSize: 11, color: '#166534', lineHeight: 16 },
+  noteInput: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#111827', height: 90, textAlignVertical: 'top' },
+  noteInputError: { borderColor: '#EF4444' },
+  warningRow: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 8, marginTop: 6 },
+  warningText: { fontSize: 11, color: '#DC2626', fontWeight: '600' },
+  charCount: { fontSize: 10, color: '#9CA3AF', textAlign: 'right', marginTop: 4 },
+  // Submit
+  submitBtn: { backgroundColor: '#1A6B34', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  submitBtnDisabled: { opacity: 0.5 },
+  submitBtnText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 });
 
 export default NegotiationScreen;

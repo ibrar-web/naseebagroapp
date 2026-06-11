@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import store from './store';
 import AppNavigator from './navigation/AppNavigator';
+import './utils/sockets'; // initializes socket auto-connect via store subscription
 import { useHydrateLanguage } from './localization';
 
 const AppContent = () => {

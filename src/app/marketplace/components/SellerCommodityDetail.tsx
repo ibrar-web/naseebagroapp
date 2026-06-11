@@ -18,14 +18,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CommodityDetail'>;
 
 type DemandMill = {
   id: string;
-  mill?: {
-    name?: string;
-    location_label?: string;
-  };
-  price_display?: string;
-  available_quantity_label?: string;
+  name?: string;
+  city?: string;
+  price_per_unit?: string;
+  available_quantity?: string;
+  is_cheapest?: boolean;
+  is_default_selected?: boolean;
 };
-
 type DemandDetail = {
   listing_id: string;
   code?: string;
@@ -100,7 +99,8 @@ const normalizeDemandDetail = (response: any): DemandDetail | null => {
 const toStr = (val: any, fallback = ''): string => {
   if (val == null) return fallback;
   if (typeof val === 'string') return val || fallback;
-  if (typeof val === 'object' && typeof val.label === 'string') return val.label || fallback;
+  if (typeof val === 'object' && typeof val.label === 'string')
+    return val.label || fallback;
   return String(val) || fallback;
 };
 
@@ -111,19 +111,19 @@ const MillRow = ({ item, last }: { item: DemandMill; last?: boolean }) => (
     </View>
     <View style={styles.millMiddle}>
       <Text style={styles.millName} numberOfLines={1}>
-        {toStr(item.mill?.name, 'Mill')}
+        {toStr(item?.name, 'Mill')}
       </Text>
       <View style={styles.millLocationRow}>
         <AppIcon name="profileCity" size={10} color="#9CA3AF" />
         <Text style={styles.millLocation} numberOfLines={1}>
-          {toStr(item.mill?.location_label, 'Location not available')}
+          {toStr(item?.city, 'Location not available')}
         </Text>
       </View>
     </View>
     <View style={styles.millRight}>
-      <Text style={styles.millPrice}>{toStr(item.price_display, 'Ask')}</Text>
+      <Text style={styles.millPrice}>{toStr(item.price_per_unit, 'Ask')}</Text>
       <Text style={styles.millQuantity} numberOfLines={1}>
-        {toStr(item.available_quantity_label)}
+        {toStr(item.available_quantity)}
       </Text>
     </View>
   </View>
@@ -240,14 +240,58 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
   const mills = detail.mills?.available_mills ?? [];
 
   const requestRows: Array<{ key: string; label: string; value: string }> = [
-    detail.code ? { key: 'code', label: 'Listing Code', value: detail.code } : null,
-    detail.pricing?.price_range_label ? { key: 'price', label: 'Price', value: detail.pricing.price_range_label } : null,
-    detail.total_quantity?.label ? { key: 'quantity', label: 'Quantity', value: detail.total_quantity.label } : null,
-    detail.payment_terms?.label ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label } : null,
-    detail.payment_terms?.method ? { key: 'payment_method', label: 'Payment Method', value: detail.payment_terms.method } : null,
-    detail.delivery_option?.label ? { key: 'delivery', label: 'Delivery', value: detail.delivery_option.label } : null,
-    detail.delivery_option?.terms ? { key: 'delivery_terms', label: 'Delivery Terms', value: detail.delivery_option.terms } : null,
-    detail.valid_date?.label ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label } : null,
+    detail.code
+      ? { key: 'code', label: 'Listing Code', value: detail.code }
+      : null,
+    detail.pricing?.price_range_label
+      ? {
+          key: 'price',
+          label: 'Price',
+          value: detail.pricing.price_range_label,
+        }
+      : null,
+    detail.total_quantity?.label
+      ? {
+          key: 'quantity',
+          label: 'Quantity',
+          value: detail.total_quantity.label,
+        }
+      : null,
+    detail.payment_terms?.label
+      ? {
+          key: 'payment_terms',
+          label: 'Payment Terms',
+          value: detail.payment_terms.label,
+        }
+      : null,
+    detail.payment_terms?.method
+      ? {
+          key: 'payment_method',
+          label: 'Payment Method',
+          value: detail.payment_terms.method,
+        }
+      : null,
+    detail.delivery_option?.label
+      ? {
+          key: 'delivery',
+          label: 'Delivery',
+          value: detail.delivery_option.label,
+        }
+      : null,
+    detail.delivery_option?.terms
+      ? {
+          key: 'delivery_terms',
+          label: 'Delivery Terms',
+          value: detail.delivery_option.terms,
+        }
+      : null,
+    detail.valid_date?.label
+      ? {
+          key: 'valid_until',
+          label: 'Valid Until',
+          value: detail.valid_date.label,
+        }
+      : null,
   ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
 
   const ctaLabel = 'Send Offer';
@@ -279,7 +323,9 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           </View>
 
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{toStr(detail.code ?? detail.listing_id)}</Text>
+            <Text style={styles.heroId}>
+              {toStr(detail.code ?? detail.listing_id)}
+            </Text>
             <Text style={styles.heroName} numberOfLines={1}>
               {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
@@ -317,7 +363,9 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           <AppIcon name="approved" size={18} color="#217A3C" />
           <Text style={styles.brokerText}>
             <Text style={styles.brokerStrong}>Broker Protected</Text>
-            {' — Buyer identity is private. All offers go through Naseeb team for review and negotiation.'}
+            {
+              ' — Buyer identity is private. All offers go through Naseeb team for review and negotiation.'
+            }
           </Text>
         </View>
 
@@ -334,7 +382,9 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
                 key={row.key}
                 label={toStr(row.label)}
                 value={toStr(row.value)}
-                highlight={row.key.includes('price') || row.key.includes('budget')}
+                highlight={
+                  row.key.includes('price') || row.key.includes('budget')
+                }
                 mono={row.key.includes('id')}
                 last={index === requestRows.length - 1}
               />

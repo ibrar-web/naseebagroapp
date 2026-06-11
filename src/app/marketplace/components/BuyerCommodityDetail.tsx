@@ -19,7 +19,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CommodityDetail'>;
 
 export type BuyerCommodityDetailProps = Props;
 
-
 type SupplySummaryCard = {
   key: string;
   label: string;
@@ -29,12 +28,10 @@ type SupplySummaryCard = {
 
 type SupplyMill = {
   id: string;
-  mill?: {
-    name?: string;
-    location_label?: string;
-  };
-  price_display?: string;
-  available_quantity_label?: string;
+  name?: string;
+  city?: string;
+  price_per_unit?: string;
+  available_quantity?: string;
   is_cheapest?: boolean;
   is_default_selected?: boolean;
 };
@@ -113,7 +110,8 @@ const normalizeSupplyDetail = (response: any): SupplyDetail | null => {
 const toStr = (val: any, fallback = ''): string => {
   if (val == null) return fallback;
   if (typeof val === 'string') return val || fallback;
-  if (typeof val === 'object' && typeof val.label === 'string') return val.label || fallback;
+  if (typeof val === 'object' && typeof val.label === 'string')
+    return val.label || fallback;
   return String(val) || fallback;
 };
 
@@ -239,19 +237,19 @@ const MillRow = ({ item, last }: { item: SupplyMill; last?: boolean }) => {
       </View>
       <View style={styles.millMiddle}>
         <Text style={styles.millName} numberOfLines={1}>
-          {toStr(item.mill?.name, 'Mill')}
+          {toStr(item?.name, 'Mill')}
         </Text>
         <View style={styles.millLocationRow}>
           <AppIcon name="profileCity" size={10} color="#9CA3AF" />
           <Text style={styles.millLocation} numberOfLines={1}>
-            {toStr(item.mill?.location_label, 'Location not available')}
+            {toStr(item?.city, 'Location not available')}
           </Text>
         </View>
       </View>
       <View style={styles.millRight}>
-        <Text style={styles.millPrice}>{toStr(item.price_display, 'Ask')}</Text>
+        <Text style={styles.millPrice}>{toStr(item.price_per_unit, 'Ask')}</Text>
         <Text style={styles.millQuantity} numberOfLines={1}>
-          {toStr(item.available_quantity_label, 'Available')}
+          {toStr(item.available_quantity, 'Available')}
         </Text>
       </View>
     </View>
@@ -337,38 +335,93 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
 
   const infoCards: SupplySummaryCard[] = [
     detail.pricing?.price_range_label
-      ? { key: 'price', label: 'Price', value: detail.pricing.price_range_label, is_highlighted: true }
+      ? {
+          key: 'price',
+          label: 'Price',
+          value: detail.pricing.price_range_label,
+          is_highlighted: true,
+        }
       : null,
     detail.total_quantity?.label
-      ? { key: 'stock', label: 'Total Quantity', value: detail.total_quantity.label }
+      ? {
+          key: 'stock',
+          label: 'Total Quantity',
+          value: detail.total_quantity.label,
+        }
       : null,
     detail.location?.label
       ? { key: 'location', label: 'Location', value: detail.location.label }
       : null,
     detail.valid_date?.label
-      ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label }
+      ? {
+          key: 'valid_until',
+          label: 'Valid Until',
+          value: detail.valid_date.label,
+        }
       : null,
   ].filter(Boolean) as SupplySummaryCard[];
 
   const termCards: SupplySummaryCard[] = [
     detail.payment_terms?.label
-      ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label }
+      ? {
+          key: 'payment_terms',
+          label: 'Payment Terms',
+          value: detail.payment_terms.label,
+        }
       : null,
     detail.delivery_option?.label
-      ? { key: 'delivery_terms', label: 'Delivery', value: detail.delivery_option.label }
+      ? {
+          key: 'delivery_terms',
+          label: 'Delivery',
+          value: detail.delivery_option.label,
+        }
       : null,
   ].filter(Boolean) as SupplySummaryCard[];
 
   const mills = detail.mills?.available_mills ?? [];
 
   const rows: Array<{ key: string; label: string; value: string }> = [
-    detail.code ? { key: 'code', label: 'Listing Code', value: detail.code } : null,
-    detail.payment_terms?.method ? { key: 'payment_method', label: 'Payment Method', value: detail.payment_terms.method } : null,
-    detail.payment_terms?.label ? { key: 'payment_terms', label: 'Payment Terms', value: detail.payment_terms.label } : null,
-    detail.delivery_option?.label ? { key: 'delivery', label: 'Delivery', value: detail.delivery_option.label } : null,
-    detail.delivery_option?.terms ? { key: 'delivery_terms', label: 'Delivery Terms', value: detail.delivery_option.terms } : null,
-    detail.created_date?.label ? { key: 'posted', label: 'Posted', value: detail.created_date.label } : null,
-    detail.valid_date?.label ? { key: 'valid_until', label: 'Valid Until', value: detail.valid_date.label } : null,
+    detail.code
+      ? { key: 'code', label: 'Listing Code', value: detail.code }
+      : null,
+    detail.payment_terms?.method
+      ? {
+          key: 'payment_method',
+          label: 'Payment Method',
+          value: detail.payment_terms.method,
+        }
+      : null,
+    detail.payment_terms?.label
+      ? {
+          key: 'payment_terms',
+          label: 'Payment Terms',
+          value: detail.payment_terms.label,
+        }
+      : null,
+    detail.delivery_option?.label
+      ? {
+          key: 'delivery',
+          label: 'Delivery',
+          value: detail.delivery_option.label,
+        }
+      : null,
+    detail.delivery_option?.terms
+      ? {
+          key: 'delivery_terms',
+          label: 'Delivery Terms',
+          value: detail.delivery_option.terms,
+        }
+      : null,
+    detail.created_date?.label
+      ? { key: 'posted', label: 'Posted', value: detail.created_date.label }
+      : null,
+    detail.valid_date?.label
+      ? {
+          key: 'valid_until',
+          label: 'Valid Until',
+          value: detail.valid_date.label,
+        }
+      : null,
   ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
 
   const ctaLabel = 'Request to Purchase';
@@ -408,7 +461,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
             />
           </TouchableOpacity>
           <View style={styles.heroBottom}>
-            <Text style={styles.heroId}>{toStr(detail.code ?? detail.listing_id)}</Text>
+            <Text style={styles.heroId}>
+              {toStr(detail.code ?? detail.listing_id)}
+            </Text>
             <Text style={styles.heroName} numberOfLines={1}>
               {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
@@ -422,7 +477,10 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
                 <View style={styles.verifiedRow}>
                   <AppIcon name="approved" size={11} color="#7FD4A0" />
                   <Text style={styles.verifiedText}>
-                    {toStr(detail.supply_condition.verified_label, 'Naseeb Verified')}
+                    {toStr(
+                      detail.supply_condition.verified_label,
+                      'Naseeb Verified',
+                    )}
                   </Text>
                 </View>
               ) : null}
@@ -471,10 +529,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           </View>
         ) : null}
 
-        <SectionCard
-          title="Available Mills"
-          icon="business"
-        >
+        <SectionCard title="Available Mills" icon="business">
           {mills.length ? (
             mills.map((mill, index) => (
               <MillRow
@@ -488,10 +543,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           )}
         </SectionCard>
 
-        <SectionCard
-          title="POST DETAILS"
-          icon="document"
-        >
+        <SectionCard title="POST DETAILS" icon="document">
           {rows.map((row, index) => (
             <DetailRow
               key={row.key}

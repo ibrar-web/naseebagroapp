@@ -20,9 +20,10 @@ type PriceOption = 'USE_ORIGINAL' | 'MAKE_OFFER';
 
 type SupplyMill = {
   id: string;
-  mill?: { id?: string; name?: string; location_label?: string };
-  price_display?: string;
-  available_quantity_label?: string;
+  name?: string;
+  city?: string;
+  price_per_unit?: string;
+  available_quantity?: string;
   is_cheapest?: boolean;
   is_default_selected?: boolean;
 };
@@ -38,9 +39,15 @@ type SupplyDetail = {
   category?: { id?: string; name?: string; image?: string };
   commodity?: { id?: string; name?: string; image?: string };
   mills?: { is_mill_based: boolean; available_mills: SupplyMill[] };
-  pricing?: { starting_price?: string; starting_price_label?: string; price_range_label?: string };
+  pricing?: {
+    starting_price?: string;
+    starting_price_label?: string;
+    price_range_label?: string;
+  };
   available_mills_section?: { mills?: SupplyMill[] };
-  post_details?: { rows?: Array<{ key: string; label: string; value: string }> };
+  post_details?: {
+    rows?: Array<{ key: string; label: string; value: string }>;
+  };
 };
 
 const normalizeSupply = (response: any): SupplyDetail | null => {
@@ -175,11 +182,12 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
     (detail.mills?.is_mill_based ?? false) &&
     (detail.mills?.available_mills?.length ?? 0) > 0;
   const mills = hasMills
-    ? (detail.mills?.available_mills ?? detail.available_mills_section?.mills ?? [])
-    : (detail.available_mills_section?.mills ?? []);
+    ? detail.mills?.available_mills ??
+      detail.available_mills_section?.mills ??
+      []
+    : detail.available_mills_section?.mills ?? [];
   const listingPrice =
-    detail.pricing?.starting_price_label ??
-    detail.pricing?.price_range_label;
+    detail.pricing?.starting_price_label ?? detail.pricing?.price_range_label;
   const badge = detail.badge_label ?? detail.badge;
   const heroImage =
     detail.category?.image ??
@@ -189,12 +197,12 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       detail.title ?? 'Listing',
     )}`;
   const selectedMillData = mills.find(m => m.id === selectedMill);
-  const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
+  const selectedMillName = selectedMillData?.name ?? 'Selected mill';
   const submittedPrice =
     priceMode === 'MAKE_OFFER'
       ? parseNumber(offerPrice)
       : hasMills
-      ? parseNumber(selectedMillData?.price_display)
+      ? parseNumber(selectedMillData?.price_per_unit)
       : parseNumber(detail.pricing?.starting_price);
   const canSubmit = Boolean(
     (!hasMills || selectedMill) &&
@@ -214,7 +222,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
 
     const payload = {
       listing_id: listingId,
-      ...(hasMills && selectedMill ? { mill_id: selectedMillData?.mill?.id ?? selectedMill } : {}),
+      ...(hasMills && selectedMill
+        ? { mill_id: selectedMillData?.id ?? selectedMill }
+        : {}),
       quantity: parseNumber(quantity),
       price_option: priceMode,
       offered_price_per_unit: submittedPrice,
@@ -334,20 +344,27 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      isSelected && styles.radioOuterSelected,
+                    ]}
+                  >
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
-                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
+                    <Text style={styles.millName}>{mill?.name ?? 'Mill'}</Text>
+                    <Text style={styles.millLocation}>{mill?.city ?? ''}</Text>
                   </View>
                   <View style={styles.millRowEnd}>
                     <Text style={styles.millPrice}>
-                      {mill.price_display ?? 'Ask'}
+                      {mill.price_per_unit ?? 'Ask'}
                       <Text style={styles.millUnit}>/40kg</Text>
                     </Text>
-                    {mill.available_quantity_label ? (
-                      <Text style={styles.millAvail}>{mill.available_quantity_label} available</Text>
+                    {mill.available_quantity ? (
+                      <Text style={styles.millAvail}>
+                        {mill.available_quantity} available
+                      </Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
@@ -359,7 +376,9 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
             <Text style={styles.sectionTitle}>1. Listing Price</Text>
             <View style={styles.priceInfoBox}>
               <Text style={styles.priceInfoLabel}>Starting Price</Text>
-              <Text style={styles.priceInfoValue}>{listingPrice ?? 'Contact seller'}</Text>
+              <Text style={styles.priceInfoValue}>
+                {listingPrice ?? 'Contact seller'}
+              </Text>
             </View>
           </View>
         )}
@@ -382,7 +401,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
               <View style={styles.calcRow}>
                 <Text style={styles.calcLabel}>Unit Price</Text>
                 <Text style={styles.calcValue}>
-                  {selectedMillData.price_display ?? 'Ask'} / 40kg
+                  {selectedMillData.price_per_unit ?? 'Ask'} / 40kg
                 </Text>
               </View>
               <View style={styles.calcRow}>
@@ -426,7 +445,7 @@ const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
                     ]}
                   >
                     {option.value === 'USE_ORIGINAL'
-                      ? selectedMillData?.price_display ?? 'Select mill first'
+                      ? selectedMillData?.price_per_unit ?? 'Select mill first'
                       : option.subLabel}
                   </Text>
                 </TouchableOpacity>

@@ -20,10 +20,12 @@ type PriceOption = 'USE_ORIGINAL' | 'MAKE_OFFER';
 
 type DemandMill = {
   id: string;
-  mill?: { id?: string; name?: string; location_label?: string };
-  price_display?: string;
-  price_unit_label?: string;
-  requested_quantity_label?: string;
+  name?: string;
+  city?: string;
+  price_per_unit?: string;
+  available_quantity?: string;
+  is_cheapest?: boolean;
+  is_default_selected?: boolean;
 };
 
 type DemandDetail = {
@@ -190,11 +192,11 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
     ]
   ).filter(s => s.value);
   const selectedMillData = mills.find(m => m.id === selectedMill);
-  const selectedMillName = selectedMillData?.mill?.name ?? 'Selected mill';
+  const selectedMillName = selectedMillData?.name ?? 'Selected mill';
   const submittedPrice =
     priceMode === 'MAKE_OFFER'
       ? parseNumber(counterPrice)
-      : parseNumber(selectedMillData?.price_display);
+      : parseNumber(selectedMillData?.price_per_unit);
   const canSubmit = Boolean(
     (!hasMills || selectedMill) &&
       quantity &&
@@ -213,7 +215,9 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
 
     const payload = {
       demand_id: listingId,
-      ...(hasMills && selectedMill ? { mill_id: selectedMillData?.mill?.id ?? selectedMill } : {}),
+      ...(hasMills && selectedMill
+        ? { mill_id: selectedMillData?.id ?? selectedMill }
+        : {}),
       supply_quantity: parseNumber(quantity),
       price_option: priceMode,
       counter_price_per_unit: submittedPrice,
@@ -341,22 +345,29 @@ const SendOfferScreen = ({ navigation, route }: Props) => {
                   style={[styles.millRow, isSelected && styles.millRowSelected]}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      isSelected && styles.radioOuterSelected,
+                    ]}
+                  >
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
                   <View style={styles.millInfo}>
-                    <Text style={styles.millName}>{mill.mill?.name ?? 'Mill'}</Text>
-                    <Text style={styles.millLocation}>{mill.mill?.location_label ?? ''}</Text>
+                    <Text style={styles.millName}>{mill?.name ?? 'Mill'}</Text>
+                    <Text style={styles.millLocation}>{mill?.city ?? ''}</Text>
                   </View>
                   <View style={styles.millPriceCol}>
                     <Text style={styles.millPrice}>
-                      {mill.price_display ?? 'Ask'}
-                      {mill.price_unit_label ? (
-                        <Text style={styles.millUnit}>{mill.price_unit_label}</Text>
+                      {mill.price_per_unit ?? 'Ask'}
+                      {mill?.name ? (
+                        <Text style={styles.millUnit}>{mill.name}</Text>
                       ) : null}
                     </Text>
-                    {mill.requested_quantity_label ? (
-                      <Text style={styles.millAvail}>{mill.requested_quantity_label}</Text>
+                    {mill.price_per_unit ? (
+                      <Text style={styles.millAvail}>
+                        {mill.price_per_unit}
+                      </Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>

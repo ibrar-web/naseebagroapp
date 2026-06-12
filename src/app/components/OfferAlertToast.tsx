@@ -1,13 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Toast from 'react-native-toast-message';
 import { navigationRef } from '../../navigation/AppNavigator';
+import { useAppSelector } from '../../store';
+import { getSocket, connectSocket } from '../../utils/sockets';
 import {
   CounterOfferPayload,
   NewOfferPayload,
-  onCounterOffer,
-  onNewOffer,
-  onOfferAccepted,
-  onOfferRejected,
   OfferStatusPayload,
 } from '../../utils/sockets/negotiations';
 
@@ -28,35 +26,72 @@ export const showOfferToast = (offerId: string, title: string, body?: string) =>
   });
 };
 
+// Attach offer event listeners directly to the socket instance.
+// Returns a cleanup function that removes them.
+const attachListeners = () => {
+  const socket = getSocket();
+  if (!socket) return () => {};
+
+  const onNew = (data: NewOfferPayload) => {
+    showOfferToast(data.offer_id, 'New Offer Received', `Offer ${data.code ?? ''}`);
+  };
+  const onCounter = (data: CounterOfferPayload) => {
+    showOfferToast(
+      data.offer_id,
+      'Counter Offer Received',
+      `Round ${data.round} — PKR ${Number(data.offered_price).toLocaleString('en-PK')}`,
+    );
+  };
+  const onAccepted = (data: OfferStatusPayload) => {
+    showOfferToast(data.offer_id, 'Offer Accepted', 'A deal has been created');
+  };
+  const onRejected = (data: OfferStatusPayload) => {
+    showOfferToast(data.offer_id, 'Offer Rejected');
+  };
+
+  socket.on('offer.created', onNew);
+  socket.on('offer.countered', onCounter);
+  socket.on('offer.accepted', onAccepted);
+  socket.on('offer.rejected', onRejected);
+
+  return () => {
+    socket.off('offer.created', onNew);
+    socket.off('offer.countered', onCounter);
+    socket.off('offer.accepted', onAccepted);
+    socket.off('offer.rejected', onRejected);
+  };
+};
+
 const OfferAlertToast = () => {
+  const token = useAppSelector(s => s.auth.token);
+  const cleanupRef = useRef<() => void>(() => {});
+
   useEffect(() => {
-    const unsubNew = onNewOffer((data: NewOfferPayload) => {
-      showOfferToast(data.offer_id, 'New Offer Received', `Offer ${data.code ?? ''}`);
-    });
+    if (!token) return;
 
-    const unsubCounter = onCounterOffer((data: CounterOfferPayload) => {
-      showOfferToast(
-        data.offer_id,
-        'Counter Offer Received',
-        `Round ${data.round} — PKR ${Number(data.offered_price).toLocaleString('en-PK')}`,
-      );
-    });
+    // Ensure socket exists (no-op if already connected)
+    connectSocket();
 
-    const unsubAccepted = onOfferAccepted((data: OfferStatusPayload) => {
-      showOfferToast(data.offer_id, '✅ Offer Accepted', 'A deal has been created');
-    });
+    const socket = getSocket();
+    if (!socket) return;
 
-    const unsubRejected = onOfferRejected((data: OfferStatusPayload) => {
-      showOfferToast(data.offer_id, 'Offer Rejected');
-    });
+    // Clean up any previous listeners before re-attaching
+    cleanupRef.current();
+    cleanupRef.current = attachListeners();
+
+    // Re-attach on every reconnect (handles network drops)
+    const handleReconnect = () => {
+      cleanupRef.current();
+      cleanupRef.current = attachListeners();
+    };
+    socket.on('connect', handleReconnect);
 
     return () => {
-      unsubNew();
-      unsubCounter();
-      unsubAccepted();
-      unsubRejected();
+      socket.off('connect', handleReconnect);
+      cleanupRef.current();
+      cleanupRef.current = () => {};
     };
-  }, []);
+  }, [token]);
 
   return null;
 };

@@ -212,8 +212,10 @@ const STEP = 50;
 const NegotiationScreen = ({ navigation, route }: Props) => {
   const { offerId, mode: routeMode } = route.params;
   const user = useAppSelector(s => s.auth.user);
-  const mode = routeMode ?? (user?.role as 'buyer' | 'seller') ?? 'buyer';
 
+  const [mode, setMode] = useState<'buyer' | 'seller'>(
+    routeMode ?? (user?.role as 'buyer' | 'seller') ?? 'buyer',
+  );
   const [offer, setOffer] = useState<OfferState | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
@@ -229,16 +231,24 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  const fetchOffer = useCallback(async () => {
+  const fetchOffer = useCallback(async (overrideMode?: 'buyer' | 'seller') => {
+    const m = overrideMode ?? mode;
     try {
       setFetchError('');
-      const res: any = mode === 'buyer'
+      const res: any = m === 'buyer'
         ? await api.buyer.myDemandOfferDetails(offerId)
         : await api.seller.myPostOffersDetails(offerId);
       const payload = res?.data ?? res;
-      console.log('[Negotiation] payload', JSON.stringify(payload, null, 2));
       setOffer(normalizeOffer(payload));
     } catch (e: any) {
+      const status = e?.response?.status ?? e?.status;
+      if (status === 403 && !overrideMode) {
+        // Wrong role — try the other side automatically
+        const alt: 'buyer' | 'seller' = m === 'buyer' ? 'seller' : 'buyer';
+        setMode(alt);
+        fetchOffer(alt);
+        return;
+      }
       const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to load offer';
       console.log('[Negotiation] fetch error', msg);
       setFetchError(msg);
@@ -371,7 +381,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
       ) : fetchError && !offer ? (
         <View style={styles.loadingWrap}>
           <Text style={styles.emptyText}>{fetchError}</Text>
-          <TouchableOpacity onPress={fetchOffer} style={styles.retryBtn}>
+          <TouchableOpacity onPress={() => fetchOffer()} style={styles.retryBtn}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>

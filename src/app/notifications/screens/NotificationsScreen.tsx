@@ -22,6 +22,7 @@ type ApiNotification = {
   type: string;
   entity_type: string | null;
   entity_id: string | null;
+  recipient_role: 'buyer' | 'seller' | null;
   is_read: boolean;
   created_at: string;
 };
@@ -122,7 +123,8 @@ const NotificationsScreen = ({ navigation }: any) => {
   const handleTap = (item: ApiNotification) => {
     if (!item.is_read) markRead(item.id);
     if (item.entity_type === 'offer' && item.entity_id) {
-      navigation.navigate('Negotiation', { offerId: item.entity_id, mode });
+      const offerMode = item.recipient_role ?? mode;
+      navigation.navigate('Negotiation', { offerId: item.entity_id, mode: offerMode });
     }
   };
 

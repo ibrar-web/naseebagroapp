@@ -162,6 +162,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       if (!isRefresh) setLoading(true);
       try {
         const response = await api.profile.personal.get();
+        console.log('response user info :', response);
         const data = unwrapApiData(response) ?? {};
         const personal = data.user ?? data.profile ?? data;
         const loaded: PersonalForm = {

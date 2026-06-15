@@ -2,6 +2,7 @@ import { Get, Post, Patch, Delete } from '../http';
 
 const byId = (basePath: string, id: string | number) => `${basePath}/${id}`;
 const protectedRequest = { authRequired: true };
+const optionalAuthRequest = { authOptional: true };
 
 type MyPostsListParams = {
   status?: string;
@@ -72,6 +73,10 @@ export const api = {
       Patch('profile/notifications/list/read-all', undefined, protectedRequest),
     savedListings: (params?: { limit?: number; offset?: number }) =>
       Get('profile/saved-listings', params, protectedRequest),
+    addSavedListing: (listingId: string) =>
+      Post(`profile/saved-listings/${listingId}`, undefined, protectedRequest),
+    removeSavedListing: (listingId: string) =>
+      Delete(`profile/saved-listings/${listingId}`, undefined, protectedRequest),
   },
 
   marketplace: {
@@ -88,18 +93,18 @@ export const api = {
         Get('public/featured-categories', params),
       // market place screen with filters for buyer
       listMarketSuppliesListing: (params?: Record<string, any>) =>
-        Get('public/supplies', params),
+        Get('public/supplies', params, optionalAuthRequest),
       DetailMarketSuppliesListing: (
         id: string | number,
         params?: Record<string, any>,
-      ) => Get(byId('public/supplies', id), params),
+      ) => Get(byId('public/supplies', id), params, optionalAuthRequest),
       // market place api for seller
       listMarketDemandsListing: (params?: Record<string, any>) =>
-        Get('public/demand', params),
+        Get('public/demand', params, optionalAuthRequest),
       DetailMarketDemandsListing: (
         id: string | number,
         params?: Record<string, any>,
-      ) => Get(byId('public/demand', id), params),
+      ) => Get(byId('public/demand', id), params, optionalAuthRequest),
       listCategories: () => Get('public/categories'),
     },
   },
@@ -126,16 +131,6 @@ export const api = {
       Patch(`buyer/notifications/${id}/read`, undefined, protectedRequest),
     markAllNotificationsRead: () =>
       Patch('buyer/notifications/read-all', undefined, protectedRequest),
-    markFavouriteSupply: (id: string | number) =>
-      Post(byId('buyer/supplies/favourites', id), undefined, protectedRequest),
-    removeFavouriteSupply: (id: string | number) =>
-      Delete(
-        byId('buyer/supplies/favourites', id),
-        undefined,
-        protectedRequest,
-      ),
-    listFavourites: (params?: { limit?: number; offset?: number }) =>
-      Get('buyer/supplies/favourites', params, protectedRequest),
     // get category form
     getBuyerCategoryform: (id: string) =>
       Get(byId('public/buyer/form', id), undefined),

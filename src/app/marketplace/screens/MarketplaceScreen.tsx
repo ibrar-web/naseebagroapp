@@ -81,7 +81,6 @@ type MarketListing = {
     name?: string;
   };
   seller?: {
-    fullName?: string;
     is_verified?: boolean;
     rating?: string;
     deals_count?: number;
@@ -236,8 +235,8 @@ const getListingLocation = (item: MarketListing): string => {
   return parts.length ? parts.join(', ') : 'Multiple mills';
 };
 
-const getSellerName = (item: MarketListing, isBuyer: boolean): string =>
-  toStr(item.seller?.fullName) || (isBuyer ? 'Verified seller' : 'Verified buyer');
+const getSellerName = (_item: MarketListing, isBuyer: boolean): string =>
+  isBuyer ? 'Verified seller' : 'Verified buyer';
 
 const getMillRows = (item: MarketListing): ListingMillPrice[] => {
   if (item.mill_prices_preview?.length) {

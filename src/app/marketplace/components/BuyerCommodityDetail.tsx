@@ -459,9 +459,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
               setSavingFav(true);
               try {
                 if (next) {
-                  await api.buyer.markFavouriteSupply(listingId);
+                  await api.profile.addSavedListing(listingId);
                 } else {
-                  await api.buyer.removeFavouriteSupply(listingId);
+                  await api.profile.removeSavedListing(listingId);
                 }
               } catch {
                 setSaved(!next);

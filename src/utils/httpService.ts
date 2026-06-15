@@ -8,18 +8,21 @@ import { showAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 
 type HttpServiceOptions = {
   authRequired?: boolean;
+  authOptional?: boolean;
 };
 
 class HttpService {
   service: any;
   private authRequired: boolean;
+  private authOptional: boolean;
 
   constructor(options: HttpServiceOptions = {}) {
     this.authRequired = Boolean(options.authRequired);
+    this.authOptional = Boolean(options.authOptional);
 
     const token = store.getState().auth.token;
     const headers: Record<string, string> = {};
-    if (token && this.authRequired) {
+    if (token && (this.authRequired || this.authOptional)) {
       headers.Authorization = `Bearer ${token}`;
     }
 
@@ -105,6 +108,14 @@ class HttpService {
   }
 
   ensureAuthorized() {
+    if (this.authOptional) {
+      const token = store.getState().auth.token;
+      if (token) {
+        this.service.defaults.headers.Authorization = `Bearer ${token}`;
+      }
+      return null;
+    }
+
     if (!this.authRequired) {
       return null;
     }

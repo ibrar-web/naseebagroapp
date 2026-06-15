@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -260,6 +261,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<SupplyDetail | null>(null);
   const [saved, setSaved] = useState(false);
+  const [savingFav, setSavingFav] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -450,15 +452,36 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
             <AppIcon name="back" size={20} color="#111827" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSaved(current => !current)}
+            onPress={async () => {
+              if (savingFav) return;
+              const next = !saved;
+              setSaved(next);
+              setSavingFav(true);
+              try {
+                if (next) {
+                  await api.buyer.markFavouriteSupply(listingId);
+                } else {
+                  await api.buyer.removeFavouriteSupply(listingId);
+                }
+              } catch {
+                setSaved(!next);
+                Alert.alert('Error', next ? 'Could not save listing.' : 'Could not remove from saved.');
+              } finally {
+                setSavingFav(false);
+              }
+            }}
             style={styles.heartBtn}
             activeOpacity={0.85}
           >
-            <AppIcon
-              name="heart"
-              size={17}
-              color={saved ? '#EF4444' : '#6B7280'}
-            />
+            {savingFav ? (
+              <ActivityIndicator size="small" color={saved ? '#EF4444' : '#6B7280'} />
+            ) : (
+              <AppIcon
+                name="heart"
+                size={17}
+                color={saved ? '#EF4444' : '#6B7280'}
+              />
+            )}
           </TouchableOpacity>
           <View style={styles.heroBottom}>
             <Text style={styles.heroId}>

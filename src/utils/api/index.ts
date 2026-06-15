@@ -64,6 +64,14 @@ export const api = {
       update: (data: any) =>
         Patch('profile/notifications', data, protectedRequest),
     },
+    notificationList: (params?: { limit?: number; offset?: number }) =>
+      Get('profile/notifications/list', params, protectedRequest),
+    markNotificationRead: (id: string) =>
+      Patch(`profile/notifications/list/${id}/read`, undefined, protectedRequest),
+    markAllNotificationsRead: () =>
+      Patch('profile/notifications/list/read-all', undefined, protectedRequest),
+    savedListings: (params?: { limit?: number; offset?: number }) =>
+      Get('profile/saved-listings', params, protectedRequest),
   },
 
   marketplace: {
@@ -126,6 +134,8 @@ export const api = {
         undefined,
         protectedRequest,
       ),
+    listFavourites: (params?: { limit?: number; offset?: number }) =>
+      Get('buyer/supplies/favourites', params, protectedRequest),
     // get category form
     getBuyerCategoryform: (id: string) =>
       Get(byId('public/buyer/form', id), undefined),

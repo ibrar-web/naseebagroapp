@@ -17,6 +17,7 @@ import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import { useAppSelector } from '../../../store';
 import api from '../../../utils/api';
+import { OfferCard, OfferItem, normalizeOfferItem } from '../components/postsShared';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostDetail'>;
 type AppMode = 'buyer' | 'seller';
@@ -46,20 +47,6 @@ type StatCard = {
   color: string;
 };
 
-type PostOffer = {
-  id: string;
-  code: string;
-  partyId: string;
-  partyName: string;
-  price: string;
-  qty: string;
-  payment: string;
-  delivery: string;
-  status: string;
-  time: string;
-  prompt?: string;
-};
-
 type MenuOption = {
   key: string;
   label: string;
@@ -77,7 +64,7 @@ type PostDetail = {
   buyer_notes: { title: string; body: string | null; has_content: boolean };
   price_freshness: { show_warning: boolean; hours_since_update: number };
   mills_specified: { title: string; has_mills: boolean; mills: MillItem[] };
-  offers_received: { stats: { title_cards: StatCard[] }; items: PostOffer[] };
+  offers_received: { stats: { title_cards: StatCard[] }; items: OfferItem[] };
   actions: { menu_options: MenuOption[] };
   fallback: string;
 };
@@ -94,84 +81,6 @@ const stringify = (value: any, fallback = '') => {
   return resolved === undefined ? fallback : String(resolved);
 };
 
-const titleCaseStatus = (status?: string) => {
-  const raw = stringify(status, 'Pending').replace(/_/g, ' ').trim();
-  if (!raw) return 'Pending';
-  return raw
-    .split(' ')
-    .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-    .join(' ');
-};
-
-const formatDateLabel = (value?: string) => {
-  if (!value) return 'Recently';
-  if (value.includes('ago') || value.includes('Posted') || value.includes('Sent'))
-    return value.replace('Posted ', '').replace('Sent ', '');
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-const priceDisplay = (item: any) => {
-  const explicit = firstValue(
-    item.price_display, item.budget_display, item.asking_price_display,
-    item.counter_price_display, item.offer_price_display,
-  );
-  if (explicit) return String(explicit);
-  if (item.price) return `PKR ${item.price}`;
-  return 'Ask';
-};
-
-const normalizeOffer = (item: any, index: number, mode: AppMode): PostOffer => {
-  const id = stringify(
-    firstValue(item.id, item.offer_id, item.negotiation_id, item.uuid),
-    `${mode}-offer-${index}`,
-  );
-  const status = titleCaseStatus(firstValue(item.status_label, item.status));
-  return {
-    id,
-    code: stringify(firstValue(item.code, item.offer_code), id),
-    partyId: stringify(
-      firstValue(item.seller?.code, item.buyer?.code, item.seller_id, item.buyer_id),
-      mode === 'buyer' ? 'Seller' : 'Buyer',
-    ),
-    partyName: stringify(
-      firstValue(
-        item.mill?.name, item.seller?.business_name, item.seller?.fullName,
-        item.buyer?.business_name, item.buyer?.fullName, item.counterparty_name,
-      ),
-      mode === 'buyer' ? 'Seller' : 'Buyer',
-    ),
-    price: priceDisplay(item),
-    qty: stringify(
-      firstValue(item.quantity_label, item.supply_quantity_label, item.quantity),
-      'Quantity not set',
-    ),
-    payment: stringify(
-      firstValue(
-        item.payment_terms_label, item.counter_payment_terms?.label,
-        item.payment_terms?.label,
-        item.payment_days ? `${item.payment_days} Days` : undefined,
-      ),
-      'Payment not set',
-    ),
-    delivery: stringify(
-      firstValue(
-        item.delivery_terms_label, item.counter_delivery_terms?.label,
-        item.delivery_terms?.label,
-        item.delivery_days ? `${item.delivery_days} Days` : undefined,
-      ),
-      'Delivery not set',
-    ),
-    status,
-    time: stringify(firstValue(item.time_label, item.created_at, item.updated_at), 'Recently'),
-    prompt:
-      status.toLowerCase().includes('awaiting') || status.toLowerCase().includes('counter')
-        ? 'Tap to review and respond'
-        : undefined,
-  };
-};
-
 const normalizePostDetail = (
   response: any,
   id: string,
@@ -182,7 +91,7 @@ const normalizePostDetail = (
   if (!payload || typeof payload !== 'object') return null;
 
   const offerItems = Array.isArray(payload.offers_received?.items)
-    ? payload.offers_received.items.map((o: any, i: number) => normalizeOffer(o, i, mode))
+    ? payload.offers_received.items.map((o: any, i: number) => normalizeOfferItem(o, i, mode))
     : [];
 
   return {
@@ -270,65 +179,6 @@ const rowValueColor = (valueColor?: string, isHighlighted?: boolean) => {
   if (valueColor === 'red') return '#EF4444';
   if (valueColor === 'orange') return '#D97706';
   return '#111827';
-};
-
-const offerStatusConfig = (status: string) => {
-  const n = status.toLowerCase();
-  if (n.includes('awaiting') || n.includes('counter'))
-    return { bg: '#FEF3C7', dot: '#92400E', text: '#92400E', border: 'rgba(46,158,82,0.2)', footerBg: 'rgba(46,158,82,0.05)', footerBorder: 'rgba(46,158,82,0.13)' };
-  if (n.includes('rejected') || n.includes('cancelled'))
-    return { bg: '#FEE2E2', dot: '#EF4444', text: '#EF4444', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
-  if (n.includes('accepted'))
-    return { bg: '#E8F7EE', dot: '#1A6B34', text: '#1A6B34', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
-  return { bg: '#F3F4F6', dot: '#9CA3AF', text: '#4B5563', border: '#F3F4F6', footerBg: '#FFFFFF', footerBorder: '#FFFFFF' };
-};
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const OfferCard = ({ offer, onPress }: { offer: PostOffer; onPress: () => void }) => {
-  const config = offerStatusConfig(offer.status);
-  return (
-    <TouchableOpacity
-      style={[styles.offerCard, { borderColor: config.border }]}
-      activeOpacity={0.88}
-      onPress={onPress}
-    >
-      <View style={[styles.offerCardHeader, { backgroundColor: config.bg }]}>
-        <View style={[styles.offerDot, { backgroundColor: config.dot }]} />
-        <Text style={[styles.offerStatus, { color: config.text }]}>{offer.status}</Text>
-        <Text style={styles.offerTime}>{formatDateLabel(offer.time)}</Text>
-      </View>
-      <View style={styles.offerCardBody}>
-        <View style={styles.offerMainRow}>
-          <View style={styles.offerLeft}>
-            <Text style={styles.offerId}>{offer.partyId} - {offer.code}</Text>
-            <Text style={styles.offerMill}>{offer.partyName}</Text>
-            <Text style={styles.offerPrice}>{offer.price}</Text>
-          </View>
-          <View style={styles.offerRight}>
-            <Text style={styles.offerQty}>{offer.qty}</Text>
-            <AppIcon name="chevronRight" size={18} color="#D1D5DB" />
-          </View>
-        </View>
-        <View style={styles.offerChipsRow}>
-          <View style={styles.offerChip}>
-            <AppIcon name="bank" size={10} color="#9CA3AF" />
-            <Text style={styles.offerChipText}>{offer.payment}</Text>
-          </View>
-          <View style={styles.offerChip}>
-            <AppIcon name="notificationLogistics" size={10} color="#9CA3AF" />
-            <Text style={styles.offerChipText}>{offer.delivery}</Text>
-          </View>
-        </View>
-      </View>
-      {offer.prompt ? (
-        <View style={[styles.offerFooter, { backgroundColor: config.footerBg, borderTopColor: config.footerBorder }]}>
-          <AppIcon name="notificationWarning" size={12} color="#217A3C" />
-          <Text style={styles.offerPrompt}>{offer.prompt}</Text>
-        </View>
-      ) : null}
-    </TouchableOpacity>
-  );
 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -534,7 +384,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           {post.offers_received.items.map(offer => (
             <OfferCard
               key={offer.id}
-              offer={offer}
+              item={offer}
               onPress={() => navigation.navigate('OfferDetail', { offerId: offer.id, mode })}
             />
           ))}

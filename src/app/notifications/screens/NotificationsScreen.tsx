@@ -92,9 +92,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res: any = mode === 'buyer'
-        ? await api.buyer.listNotifications({ limit: 50, offset: 0 })
-        : await api.seller.listNotifications({ limit: 50, offset: 0 });
+      const res: any = await api.profile.notificationList({ limit: 50, offset: 0 });
       const data = res?.data ?? res;
       setNotifications(data?.items ?? []);
       setUnread(data?.unread ?? 0);
@@ -104,15 +102,13 @@ const NotificationsScreen = ({ navigation }: any) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [mode]);
+  }, []);
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   const markRead = async (id: string) => {
     try {
-      mode === 'buyer'
-        ? await api.buyer.markNotificationRead(id)
-        : await api.seller.markNotificationRead(id);
+      await api.profile.markNotificationRead(id);
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n),
       );
@@ -130,9 +126,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   const markAllRead = async () => {
     try {
-      mode === 'buyer'
-        ? await api.buyer.markAllNotificationsRead()
-        : await api.seller.markAllNotificationsRead();
+      await api.profile.markAllNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnread(0);
     } catch {}

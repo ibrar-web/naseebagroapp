@@ -1,115 +1,281 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   FlatList,
-  TouchableOpacity,
+  RefreshControl,
   StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../../../assets/icons';
-import { useAppSelector } from '../../../store';
-import { useTranslation } from '../../../localization';
+import api from '../../../utils/api';
 
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.05,
-  shadowRadius: 18,
-  elevation: 3,
+type SavedListing = {
+  id: string;
+  listing_id: string;
+  saved_at: string;
+  listing: {
+    id: string;
+    code: string | null;
+    post_type?: string;
+    badge?: string | null;
+    price_per_unit?: number | null;
+    location?: string | null;
+    status?: string;
+    commodity?: {
+      id?: string;
+      name?: string;
+      image_url?: string | null;
+    } | null;
+  } | null;
+};
+
+const SavedListingCard = ({
+  item,
+  onPress,
+}: {
+  item: SavedListing;
+  onPress: () => void;
+}) => {
+  const name = item.listing?.commodity?.name ?? 'Listing';
+  const code = item.listing?.code ?? item.listing_id.slice(0, 8).toUpperCase();
+  const price = item.listing?.price_per_unit;
+  const location = item.listing?.location;
+  const status = item.listing?.status;
+
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      activeOpacity={0.88}
+    >
+      <View style={styles.cardIconBox}>
+        <AppIcon name="listing" size={26} color="#1A6B34" />
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardName} numberOfLines={1}>{name}</Text>
+        <Text style={styles.cardCode} numberOfLines={1}>{code}</Text>
+        {location ? (
+          <View style={styles.cardLocationRow}>
+            <AppIcon name="profileCity" size={10} color="#9CA3AF" />
+            <Text style={styles.cardLocation} numberOfLines={1}>{location}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.cardRight}>
+        {price != null ? (
+          <Text style={styles.cardPrice}>Rs {price.toLocaleString()}</Text>
+        ) : null}
+        {status ? (
+          <View style={[styles.statusBadge, status === 'approved' && styles.statusApproved]}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
+        ) : null}
+        <AppIcon name="heart" size={16} color="#EF4444" />
+      </View>
+    </TouchableOpacity>
+  );
 };
 
 const SavedListingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const savedListings = useAppSelector(state => state.app.savedListings);
-  const { t } = useTranslation();
+  const [items, setItems] = useState<SavedListing[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchSaved = useCallback(async () => {
+    setError('');
+    try {
+      const res: any = await api.profile.savedListings({ limit: 50, offset: 0 });
+      const data = res?.data ?? res;
+      setItems(data?.items ?? []);
+      setTotal(data?.total ?? 0);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? 'Failed to load saved listings.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSaved(); }, [fetchSaved]);
+
+  const onRefresh = () => { setRefreshing(true); fetchSaved(); };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="rgb(255, 255, 255)"
-        translucent={false}
-      />
-      <View style={{ height: insets.top, backgroundColor: '#FFFFFF' }} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#145228" translucent={false} />
+      <View style={{ height: insets.top, backgroundColor: '#145228' }} />
 
-      <View className="bg-green-800 px-10 pb-10 pt-16">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="h-16 w-16 items-center justify-center rounded-2xl bg-white/20"
-            activeOpacity={0.75}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <AppIcon name="back" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View className="ml-6 flex-1">
-            <Text className="text-white text-3xl font-extrabold">
-              {t('saved.title')}
-            </Text>
-            <Text className="mt-2 text-green-200 text-lg font-medium">
-              {t('saved.count', { count: savedListings.length })}
-            </Text>
-          </View>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.75}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <AppIcon name="back" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Saved Listings</Text>
+          <Text style={styles.headerSubtitle}>
+            {loading ? 'Loading...' : `${total} saved`}
+          </Text>
         </View>
       </View>
 
-      {savedListings.length === 0 ? (
-        <View className="flex-1 items-center px-10 pt-32">
-          <View className="h-40 w-40 items-center justify-center rounded-full bg-green-50">
-            <AppIcon name="savedEmpty" size={68} color="#45B86A" />
+      {loading ? (
+        <View style={styles.centerWrap}>
+          <ActivityIndicator color="#217A3C" size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centerWrap}>
+          <AppIcon name="notificationWarning" size={34} color="#D97706" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchSaved} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyIconBox}>
+            <AppIcon name="savedEmpty" size={54} color="#45B86A" />
           </View>
-          <Text className="mt-12 text-center text-gray-900 text-2xl font-extrabold">
-            {t('saved.emptyTitle')}
-          </Text>
-          <Text className="mt-6 text-center text-gray-500 text-lg leading-7">
-            {t('saved.emptyBody')}
+          <Text style={styles.emptyTitle}>No saved listings</Text>
+          <Text style={styles.emptyBody}>
+            Browse the marketplace and save listings you are interested in.
           </Text>
           <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('MainTabs', { screen: 'Market' })
-            }
-            className="mt-10 rounded-3xl bg-green-700 px-9 py-5 shadow-2xl shadow-green-900/20"
+            style={styles.browseBtn}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Market' })}
             activeOpacity={0.85}
           >
-            <Text className="text-white text-lg font-extrabold">
-              {t('common.browseMarketplace')}
-            </Text>
+            <Text style={styles.browseBtnText}>Browse Marketplace</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={savedListings}
-          keyExtractor={item => item}
-          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+          data={items}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#217A3C" />
+          }
           renderItem={({ item }) => (
-            <TouchableOpacity
+            <SavedListingCard
+              item={item}
               onPress={() =>
-                navigation.navigate('CommodityDetail', { listingId: item })
+                navigation.navigate('CommodityDetail', { listingId: item.listing_id })
               }
-              className="mb-3 flex-row items-center rounded-2xl bg-white p-4"
-              style={CARD_SHADOW}
-              activeOpacity={0.88}
-            >
-              <View className="h-14 w-14 items-center justify-center rounded-xl bg-green-50">
-                <AppIcon name="listing" size={28} color="#1A6B34" />
-              </View>
-              <View className="ml-3 flex-1">
-                <Text className="text-gray-900 text-base font-bold">
-                  {item}
-                </Text>
-                <Text className="mt-1 text-gray-400 text-sm">
-                  {t('saved.title')}
-                </Text>
-              </View>
-              <AppIcon name="heart" size={20} color="#EF4444" />
-            </TouchableOpacity>
+            />
           )}
         />
       )}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  header: {
+    backgroundColor: '#145228',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerText: { flex: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
+  centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  errorText: { fontSize: 13, color: '#6B7280', textAlign: 'center', paddingHorizontal: 32 },
+  retryBtn: {
+    backgroundColor: '#217A3C',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  retryBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  emptyWrap: { flex: 1, alignItems: 'center', paddingHorizontal: 32, paddingTop: 60 },
+  emptyIconBox: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#111827', textAlign: 'center' },
+  emptyBody: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 21,
+  },
+  browseBtn: {
+    marginTop: 24,
+    backgroundColor: '#1A6B34',
+    borderRadius: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+  },
+  browseBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  listContent: { padding: 16, paddingBottom: 48 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  cardIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardBody: { flex: 1 },
+  cardName: { fontSize: 14, fontWeight: '800', color: '#111827' },
+  cardCode: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  cardLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  cardLocation: { fontSize: 11, color: '#6B7280', flex: 1 },
+  cardRight: { alignItems: 'flex-end', gap: 4, flexShrink: 0 },
+  cardPrice: { fontSize: 13, fontWeight: '900', color: '#1A6B34' },
+  statusBadge: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  statusApproved: { backgroundColor: '#DCFCE7' },
+  statusText: { fontSize: 9, fontWeight: '700', color: '#374151', textTransform: 'capitalize' },
+});
 
 export default SavedListingsScreen;

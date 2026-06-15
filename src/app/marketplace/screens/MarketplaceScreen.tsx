@@ -99,6 +99,7 @@ type MarketListing = {
   rating_display?: string;
   min_order_quantity?: number | null;
   payment_term_type?: string | null;
+  is_favorited?: boolean;
   created_at?: string;
 };
 
@@ -973,8 +974,9 @@ const MarketplaceListingCard = ({
             className="w-9 h-9 rounded-lg bg-white items-center justify-center"
             style={cardShadow.heart}
             activeOpacity={0.8}
+            onPress={() => onPress()}
           >
-            <AppIcon name="heart" size={17} color="#6B7280" />
+            <AppIcon name="heart" size={17} color={item.is_favorited ? '#EF4444' : '#6B7280'} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1 rounded-xl bg-yellow-400 py-3 flex-row items-center justify-center"

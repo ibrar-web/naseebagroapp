@@ -131,16 +131,24 @@ export const api = {
       Patch(`buyer/notifications/${id}/read`, undefined, protectedRequest),
     markAllNotificationsRead: () =>
       Patch('buyer/notifications/read-all', undefined, protectedRequest),
-    // get category form
     getBuyerCategoryform: (id: string) =>
       Get(byId('public/buyer/form', id), undefined),
-    // submit demand request
     createBuyDemandPost: (data?: any) =>
       Post('buyer/demands/create', data, protectedRequest),
+    // ── Deals ──────────────────────────────────────────────────────────────
+    listDeals: (params?: { status?: string; search?: string; skip?: number; limit?: number }) =>
+      Get('buyer/buydeals', params, protectedRequest),
+    getDeal: (id: string) =>
+      Get(byId('buyer/buydeals', id), undefined, protectedRequest),
+    addPayment: (id: string, data: FormData) =>
+      Post(`buyer/buydeals/${id}/payments`, data, protectedRequest),
+    getPayments: (id: string) =>
+      Get(`buyer/buydeals/${id}/payments`, undefined, protectedRequest),
+    updateDealCompany: (id: string, data: { buyer_company_name: string }) =>
+      Patch(`buyer/buydeals/${id}/company`, data, protectedRequest),
   },
 
   seller: {
-    //this api use in market place to send offer on demand
     sendDemandOffer: (id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
     ListMyPosts: (params?: MyPostsListParams) =>
@@ -163,12 +171,21 @@ export const api = {
       Patch(`seller/notifications/${id}/read`, undefined, protectedRequest),
     markAllNotificationsRead: () =>
       Patch('seller/notifications/read-all', undefined, protectedRequest),
-    // get category form
     getSellerCategoryform: (id: string) =>
       Get(byId('public/seller/form', id), undefined),
-    // submit supply request
     createSupplyPost: (data?: any) =>
       Post('seller/supplies/create', data, protectedRequest),
+    // ── Deals ──────────────────────────────────────────────────────────────
+    listDeals: (params?: { status?: string; search?: string; skip?: number; limit?: number }) =>
+      Get('seller/selldeals', params, protectedRequest),
+    getDeal: (id: string) =>
+      Get(byId('seller/selldeals', id), undefined, protectedRequest),
+    getDealTrucks: (id: string) =>
+      Get(`seller/selldeals/${id}/trucks`, undefined, protectedRequest),
+    addTruck: (id: string, data: { truck_number: string; driver_name?: string }) =>
+      Post(`seller/selldeals/${id}/trucks`, data, protectedRequest),
+    getDealPayments: (id: string) =>
+      Get(`seller/selldeals/${id}/payments`, undefined, protectedRequest),
   },
 };
 

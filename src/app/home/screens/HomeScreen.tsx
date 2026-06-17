@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Image,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
+import { useNetInfo } from '../../../utils/useNetInfo';
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { switchMode } from '../../../store/slices/appSlice';
 import { useTranslation } from '../../../localization';
@@ -61,6 +63,18 @@ const HomeScreen = ({ navigation }: any) => {
   const user = useAppSelector(s => s.auth.user);
   const { t } = useTranslation();
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const { isConnected } = useNetInfo();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // MarketRates component handles its own fetch on mount;
+    // trigger a re-mount key to force reload on pull-to-refresh
+    setRefreshKey(k => k + 1);
+    setRefreshing(false);
+  }, []);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isBuyer = mode === 'buyer';
 
@@ -217,13 +231,28 @@ const HomeScreen = ({ navigation }: any) => {
         ))}
       </View>
 
+      {/* ── OFFLINE BANNER ── */}
+      {!isConnected && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>No internet connection</Text>
+        </View>
+      )}
+
       {/* ── SCROLL CONTENT ── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#217A3C"
+            colors={['#217A3C']}
+          />
+        }
       >
-        {/* Market Rates */}
-        <MarketRates navigation={navigation} />
+        {/* Market Rates — key forces remount on pull-to-refresh */}
+        <MarketRates key={refreshKey} navigation={navigation} />
 
         {isBuyer ? (
           <>
@@ -290,6 +319,18 @@ const HomeScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  // Offline banner
+  offlineBanner: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  offlineBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 
   // Header
   header: {

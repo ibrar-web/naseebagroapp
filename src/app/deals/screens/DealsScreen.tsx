@@ -1,235 +1,152 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
   ImageBackground,
   ScrollView,
-  StyleSheet,
 } from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
 import MockStatusBar from '../../components/MockStatusBar';
+import api from '../../../utils/api';
 
-type StageStatus = 'done' | 'current' | 'pending';
+type DealStatus = 'open' | 'matched' | 'closed' | 'cancelled' | 'disputed';
 
-interface Stage {
-  label: string;
-  status: StageStatus;
-}
-
-interface Deal {
+interface DealListItem {
   id: string;
-  commodity: string;
-  qty: string;
-  unitRate: string;
-  amount: string;
-  counterparty: string;
-  location: string;
-  stages: Stage[];
-  currentStageIndex: number;
-  statusLabel: string;
-  statusDesc: string;
-  actionType: 'naseeb' | 'seller' | 'buyer' | 'done';
-  actionLabel: string;
-  status: 'Active' | 'Closed';
-  image: string;
-  fallback: string;
+  code: string | null;
+  status: DealStatus;
+  total_amount: number;
+  created_at: string;
+  buyer_company_name?: string | null;
+  current_stage?: number;
+  total_stages?: number;
+  offer?: {
+    quantity?: number;
+    current_buyer_price?: number;
+    current_seller_price?: number;
+    payment_term_type?: string | null;
+  };
+  commodity?: {
+    id: string;
+    name: string;
+    image_url?: string | null;
+  } | null;
 }
-
-const DEALS: Deal[] = [
-  {
-    id: 'DEL-001',
-    commodity: 'Premium Wheat',
-    qty: '400 bags',
-    unitRate: 'PKR 280/40kg',
-    amount: 'PKR 112,000',
-    counterparty: 'Asad Traders',
-    location: 'Lahore → Karachi',
-    currentStageIndex: 0,
-    stages: [
-      { label: 'Deal Created', status: 'current' },
-      { label: 'Dispatch Prep', status: 'pending' },
-      { label: 'In Transit', status: 'pending' },
-      { label: 'Delivery', status: 'pending' },
-      { label: 'Payment', status: 'pending' },
-      { label: 'Complete', status: 'pending' },
-    ],
-    statusLabel: 'Deal Created',
-    statusDesc: 'Waiting for dispatch preparation',
-    actionType: 'naseeb',
-    actionLabel: 'Naseeb Processing',
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=80',
-    fallback: '#C29A4A',
-  },
-  {
-    id: 'DEL-002',
-    commodity: 'IRRI-6 Rice',
-    qty: '200 bags',
-    unitRate: 'PKR 420/40kg',
-    amount: 'PKR 84,000',
-    counterparty: 'Punjab Agri Co',
-    location: 'Sheikhupura → Lahore',
-    currentStageIndex: 2,
-    stages: [
-      { label: 'Deal Created', status: 'done' },
-      { label: 'Dispatch Prep', status: 'done' },
-      { label: 'In Transit', status: 'current' },
-      { label: 'Delivery', status: 'pending' },
-      { label: 'Payment', status: 'pending' },
-      { label: 'Complete', status: 'pending' },
-    ],
-    statusLabel: 'Out for Delivery',
-    statusDesc: 'Confirm delivery when received',
-    actionType: 'buyer',
-    actionLabel: 'Your Action',
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=900&q=80',
-    fallback: '#8A9A5B',
-  },
-  {
-    id: 'DEL-003',
-    commodity: 'Desi Cotton',
-    qty: '125 bags',
-    unitRate: 'PKR 850/40kg',
-    amount: 'PKR 106,250',
-    counterparty: 'Cotton King',
-    location: 'Multan → Faisalabad',
-    currentStageIndex: 3,
-    stages: [
-      { label: 'Deal Created', status: 'done' },
-      { label: 'Dispatch Prep', status: 'done' },
-      { label: 'In Transit', status: 'done' },
-      { label: 'Delivery', status: 'current' },
-      { label: 'Payment', status: 'pending' },
-      { label: 'Complete', status: 'pending' },
-    ],
-    statusLabel: 'Dispatch Preparation',
-    statusDesc: 'Seller is preparing the shipment',
-    actionType: 'seller',
-    actionLabel: 'Seller Action',
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=900&q=80',
-    fallback: '#D8D6C7',
-  },
-  {
-    id: 'DEL-004',
-    commodity: 'Yellow Maize',
-    qty: '750 bags',
-    unitRate: 'PKR 260/40kg',
-    amount: 'PKR 195,000',
-    counterparty: 'Farm Fresh Ltd',
-    location: 'Faisalabad → Karachi',
-    currentStageIndex: 5,
-    stages: [
-      { label: 'Deal Created', status: 'done' },
-      { label: 'Dispatch Prep', status: 'done' },
-      { label: 'In Transit', status: 'done' },
-      { label: 'Delivery', status: 'done' },
-      { label: 'Payment', status: 'done' },
-      { label: 'Complete', status: 'done' },
-    ],
-    statusLabel: 'Payment In Progress',
-    statusDesc: 'Transaction completed successfully',
-    actionType: 'done',
-    actionLabel: 'Completed',
-    status: 'Closed',
-    image: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=900&q=80',
-    fallback: '#DCA640',
-  },
-];
 
 const TABS = ['All', 'Active', 'Closed'] as const;
 type TabType = (typeof TABS)[number];
 
-const stageCircleStyle = (status: StageStatus) => {
-  if (status === 'done') {
-    return { bg: '#45B86A', border: '#7FD4A0' };
-  }
-  if (status === 'current') {
-    return { bg: '#F3CD03', border: '#F7DB4A' };
-  }
-  return { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.133)' };
+const STAGE_NAMES = ['Created', 'Dispatch', 'Transit', 'Delivery', 'Payment', 'Complete'];
+
+const STATUS_COLORS: Record<DealStatus, { bg: string; text: string }> = {
+  matched: { bg: '#F3CD03', text: '#0D3B1F' },
+  open: { bg: 'rgba(255,255,255,0.22)', text: '#FFFFFF' },
+  closed: { bg: '#F2FBF5', text: '#1A6B34' },
+  cancelled: { bg: '#FEF2F2', text: '#EF4444' },
+  disputed: { bg: '#FFF7ED', text: '#F97316' },
 };
 
-const actionBadgeStyle = (type: Deal['actionType']) => {
-  if (type === 'naseeb') return { bg: '#FFFDE6', dot: '#D4AE02', text: '#D4AE02' };
-  if (type === 'seller') return { bg: '#F2FBF5', dot: '#1A6B34', text: '#1A6B34' };
-  if (type === 'buyer') return { bg: '#EEF6FF', dot: '#3B82F6', text: '#3B82F6' };
-  return { bg: '#F3F4F6', dot: '#9CA3AF', text: '#9CA3AF' };
+const STATUS_LABELS: Record<DealStatus, string> = {
+  matched: 'Matched',
+  open: 'Active',
+  closed: 'Closed',
+  cancelled: 'Cancelled',
+  disputed: 'Disputed',
 };
 
-const StageTimeline = ({ stages }: { stages: Stage[] }) => (
+const isActive = (s: DealStatus) =>
+  s === 'matched' || s === 'open' || s === 'disputed';
+const isClosed = (s: DealStatus) => s === 'closed' || s === 'cancelled';
+const formatPKR = (n: number) =>
+  'PKR ' + Math.round(n).toLocaleString('en-PK');
+
+const StageTimeline = ({ currentStage }: { currentStage: number }) => (
   <ScrollView
     horizontal
     showsHorizontalScrollIndicator={false}
-    style={styles.timelineScroll}
+    style={styles.timeline}
     contentContainerStyle={styles.timelineContent}
   >
-    {stages.map((stage, i) => {
-      const circle = stageCircleStyle(stage.status);
-      const isLast = i === stages.length - 1;
-      const lineDone = stage.status === 'done' || stage.status === 'current';
+    {STAGE_NAMES.map((name, idx) => {
+      const stageNum = idx + 1;
+      const isCompleted = stageNum < currentStage;
+      const isCurrent = stageNum === currentStage;
+      const leftLineActive = stageNum > 1 && currentStage >= stageNum;
+      const rightLineActive = stageNum < 6 && currentStage > stageNum;
 
       return (
-        <React.Fragment key={stage.label}>
-          <View style={styles.stageNode}>
+        <View key={name} style={styles.stageItem}>
+          <View style={styles.stageCircleRow}>
+            {idx > 0 ? (
+              <View
+                style={[
+                  styles.stageLine,
+                  leftLineActive && styles.stageLineActive,
+                ]}
+              />
+            ) : (
+              <View style={styles.stageLineSpacer} />
+            )}
             <View
               style={[
                 styles.stageCircle,
-                { backgroundColor: circle.bg, borderColor: circle.border },
+                isCurrent || isCompleted
+                  ? styles.stageCircleActive
+                  : styles.stageCirclePending,
               ]}
             >
-              {stage.status === 'done' && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-              {stage.status === 'current' && (
-                <View style={styles.currentDot} />
-              )}
+              {isCompleted ? (
+                <Text style={styles.stageCheckmark}>✓</Text>
+              ) : isCurrent ? (
+                <View style={styles.stageDot} />
+              ) : null}
             </View>
-            <Text
-              style={[
-                styles.stageLabel,
-                stage.status === 'pending' && styles.stageLabelPending,
-              ]}
-            >
-              {stage.label}
-            </Text>
+            {idx < STAGE_NAMES.length - 1 ? (
+              <View
+                style={[
+                  styles.stageLine,
+                  rightLineActive && styles.stageLineActive,
+                ]}
+              />
+            ) : (
+              <View style={styles.stageLineSpacer} />
+            )}
           </View>
-          {!isLast && (
-            <View
-              style={[
-                styles.connector,
-                { backgroundColor: lineDone ? '#45B86A' : 'rgba(255,255,255,0.133)' },
-              ]}
-            />
-          )}
-        </React.Fragment>
+          <Text
+            style={[
+              styles.stageName,
+              (isCurrent || isCompleted) && styles.stageNameActive,
+            ]}
+          >
+            {name}
+          </Text>
+        </View>
       );
     })}
   </ScrollView>
 );
 
-const DataPill = ({
-  label,
-  highlight,
+const DealCard = ({
+  item,
+  onPress,
 }: {
-  label: string;
-  highlight?: boolean;
-}) => (
-  <View
-    style={[styles.dataPill, highlight && styles.dataPillHighlight]}
-  >
-    <Text style={[styles.dataPillText, highlight && styles.dataPillTextHighlight]}>
-      {label}
-    </Text>
-  </View>
-);
-
-const DealCard = ({ item, onPress }: { item: Deal; onPress: () => void }) => {
-  const badge = actionBadgeStyle(item.actionType);
+  item: DealListItem;
+  onPress: () => void;
+}) => {
+  const statusColor =
+    STATUS_COLORS[item.status] ?? STATUS_COLORS.matched;
+  const qty = item.offer?.quantity;
+  const price =
+    item.offer?.current_buyer_price ?? item.offer?.current_seller_price;
+  const currentStage = item.current_stage ?? 1;
+  const imageUri = item.commodity?.image_url ?? null;
+  const stageName = STAGE_NAMES[(currentStage - 1) % STAGE_NAMES.length];
 
   return (
     <TouchableOpacity
@@ -238,76 +155,95 @@ const DealCard = ({ item, onPress }: { item: Deal; onPress: () => void }) => {
       activeOpacity={0.88}
     >
       <ImageBackground
-        source={{ uri: item.image }}
+        source={imageUri ? { uri: imageUri } : undefined}
         style={styles.cardImage}
-        resizeMode="cover"
-        imageStyle={{ backgroundColor: item.fallback }}
+        imageStyle={styles.cardImageStyle}
       >
-        <View style={styles.imageOverlay} />
-
-        {/* Top-left: step badge */}
-        <View style={styles.stepBadge}>
-          <Text style={styles.stepBadgeText}>
-            Step {item.currentStageIndex + 1}/6 · {item.stages[item.currentStageIndex].label}
-          </Text>
-        </View>
-
-        {/* Top-right: status badge */}
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusBadgeText}>{item.statusLabel}</Text>
-        </View>
-
-        {/* Stage timeline */}
-        <View style={styles.timelineWrapper}>
-          <StageTimeline stages={item.stages} />
-        </View>
-      </ImageBackground>
-
-      <View style={styles.cardBody}>
-        {/* Data pills */}
-        <View style={styles.pillsRow}>
-          <DataPill label={item.qty} />
-          <DataPill label={item.unitRate} />
-          <DataPill label={item.amount} highlight />
-        </View>
-
-        {/* Status footer */}
-        <View style={styles.statusFooter}>
-          <View style={styles.statusInfo}>
-            <Text style={styles.statusTitle}>{item.statusLabel}</Text>
-            <Text style={styles.statusDesc} numberOfLines={2}>
-              {item.statusDesc}
-            </Text>
-            <View style={styles.locationRow}>
-              <Text style={styles.locationPin}>📍</Text>
-              <Text style={styles.locationText}>
-                {item.counterparty} · {item.location}
+        {!imageUri && <View style={styles.cardImageFallback} />}
+        <View style={styles.cardImageOverlay}>
+          <View style={styles.cardImageTopRow}>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>
+                Step {currentStage}/6 · {stageName}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: statusColor.bg },
+              ]}
+            >
+              <Text
+                style={[styles.statusBadgeText, { color: statusColor.text }]}
+              >
+                {STATUS_LABELS[item.status] ?? item.status}
               </Text>
             </View>
           </View>
-          <View style={[styles.actionBadge, { backgroundColor: badge.bg }]}>
-            <View style={[styles.actionDot, { backgroundColor: badge.dot }]} />
-            <Text style={[styles.actionText, { color: badge.text }]}>
-              {item.actionLabel}
+          <View style={styles.cardImageBottom}>
+            <Text style={styles.cardCommodityName} numberOfLines={1}>
+              {item.commodity?.name ?? 'Commodity'}
+            </Text>
+            <Text style={styles.cardDealCode}>
+              {item.code ?? item.id.slice(0, 8)}
             </Text>
           </View>
         </View>
+      </ImageBackground>
+
+      <View style={styles.pillsRow}>
+        {qty != null && (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>{qty} bags</Text>
+          </View>
+        )}
+        {price != null && (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>
+              PKR {Number(price).toLocaleString()}/40kg
+            </Text>
+          </View>
+        )}
+        <View style={[styles.pill, styles.pillGreen]}>
+          <Text style={styles.pillGreenText}>
+            {formatPKR(Number(item.total_amount))}
+          </Text>
+        </View>
+      </View>
+
+      <StageTimeline currentStage={currentStage} />
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.footerDate}>
+          {new Date(item.created_at).toLocaleDateString('en-PK', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </Text>
+        <Text style={styles.footerArrow}>›</Text>
       </View>
     </TouchableOpacity>
   );
 };
 
-const TabBadge = ({ count, active }: { count: number; active: boolean }) => (
+const TabBadge = ({
+  count,
+  active,
+}: {
+  count: number;
+  active: boolean;
+}) => (
   <View
     style={[
       styles.tabBadge,
-      { backgroundColor: active ? '#E8F7EE' : '#F3F4F6' },
+      active ? styles.tabBadgeActive : styles.tabBadgeInactive,
     ]}
   >
     <Text
       style={[
         styles.tabBadgeText,
-        { color: active ? '#1A6B34' : '#9CA3AF' },
+        active ? styles.tabBadgeTextActive : styles.tabBadgeTextInactive,
       ]}
     >
       {count}
@@ -318,19 +254,49 @@ const TabBadge = ({ count, active }: { count: number; active: boolean }) => (
 const DealsScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const { t } = useTranslation();
+  const [deals, setDeals] = useState<DealListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('All');
 
-  const activeCount = DEALS.filter(d => d.status === 'Active').length;
-  const closedCount = DEALS.filter(d => d.status === 'Closed').length;
+  const fetchDeals = useCallback(async () => {
+    try {
+      const res = (
+        mode === 'buyer'
+          ? await api.buyer.listDeals()
+          : await api.seller.listDeals()
+      ) as { data?: DealListItem[] } | undefined;
+      setDeals(res?.data ?? []);
+    } catch {
+      // keep existing data on failure
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchDeals().finally(() => setLoading(false));
+  }, [fetchDeals]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDeals();
+    setRefreshing(false);
+  }, [fetchDeals]);
+
+  const filtered = deals.filter(d => {
+    if (activeTab === 'Active') return isActive(d.status);
+    if (activeTab === 'Closed') return isClosed(d.status);
+    return true;
+  });
+
+  const activeCount = deals.filter(d => isActive(d.status)).length;
+  const closedCount = deals.filter(d => isClosed(d.status)).length;
 
   const tabCount = (tab: TabType) => {
-    if (tab === 'All') return DEALS.length;
+    if (tab === 'All') return deals.length;
     if (tab === 'Active') return activeCount;
     return closedCount;
   };
-
-  const filtered =
-    activeTab === 'All' ? DEALS : DEALS.filter(d => d.status === activeTab);
 
   return (
     <View style={styles.screen}>
@@ -340,74 +306,83 @@ const DealsScreen = ({ navigation }: any) => {
           {mode === 'buyer' ? t('deals.myDeals') : t('deals.myOrders')}
         </Text>
         <Text style={styles.headerSubtitle}>
-          {DEALS.length} total · {activeCount} active
+          {deals.length} total · {activeCount} active
         </Text>
       </View>
 
       <View style={styles.tabBar}>
         {TABS.map(tab => {
-          const isActive = activeTab === tab;
+          const isActiveTab = activeTab === tab;
           return (
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              style={[styles.tabItem, isActive && styles.tabItemActive]}
+              style={[styles.tabItem, isActiveTab && styles.tabItemActive]}
               activeOpacity={0.75}
             >
               <Text
-                style={[styles.tabLabel, isActive && styles.tabLabelActive]}
+                style={[
+                  styles.tabLabel,
+                  isActiveTab && styles.tabLabelActive,
+                ]}
               >
                 {tab}
               </Text>
-              <TabBadge count={tabCount(tab)} active={isActive} />
+              <TabBadge count={tabCount(tab)} active={isActiveTab} />
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={d => d.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <DealCard
-            item={item}
-            onPress={() =>
-              navigation.navigate('DealDetail', { dealId: item.id })
-            }
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyTitle}>{t('deals.noDeals')}</Text>
-            <Text style={styles.emptySubtitle}>
-              {t('deals.differentFilter')}
-            </Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#217A3C" />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={d => d.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#217A3C']}
+            />
+          }
+          renderItem={({ item }) => (
+            <DealCard
+              item={item}
+              onPress={() =>
+                navigation.navigate('DealDetail', { dealId: item.id })
+              }
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>📭</Text>
+              <Text style={styles.emptyTitle}>{t('deals.noDeals')}</Text>
+              <Text style={styles.emptySubtitle}>
+                {t('deals.differentFilter')}
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
+  screen: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
     backgroundColor: '#145228',
     paddingTop: 10,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
   headerSubtitle: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
@@ -428,33 +403,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabItemActive: {
-    borderBottomColor: '#217A3C',
-  },
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  tabLabelActive: {
-    fontWeight: '700',
-    color: '#1A6B34',
-  },
+  tabItemActive: { borderBottomColor: '#217A3C' },
+  tabLabel: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
+  tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
   tabBadge: {
     marginLeft: 5,
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 1,
   },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-    gap: 14,
-  },
+  tabBadgeActive: { backgroundColor: '#E8F7EE' },
+  tabBadgeInactive: { backgroundColor: '#F3F4F6' },
+  tabBadgeText: { fontSize: 11, fontWeight: '700' },
+  tabBadgeTextActive: { color: '#1A6B34' },
+  tabBadgeTextInactive: { color: '#9CA3AF' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  listContent: { padding: 16, paddingBottom: 100, gap: 14 },
+
+  // Card
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -466,204 +432,143 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cardImage: {
-    width: '100%',
-    minHeight: 180,
+    height: 100,
+    justifyContent: 'space-between',
   },
-  imageOverlay: {
+  cardImageStyle: { borderRadius: 0 },
+  cardImageFallback: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#145228',
+  },
+  cardImageOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  cardImageTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   stepBadge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 2,
-    backgroundColor: 'rgba(0,0,0,0.42)',
-    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 7,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
-  stepBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.85)',
-  },
+  stepBadgeText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
   statusBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    backgroundColor: '#F3CD03',
     borderRadius: 8,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0D3B1F',
-  },
-  timelineWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 8,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  timelineScroll: {
-    flexGrow: 0,
-  },
-  timelineContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 2,
-  },
-  stageNode: {
-    alignItems: 'center',
-    minWidth: 52,
-  },
-  stageCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 3,
-  },
-  checkmark: {
+  statusBadgeText: { fontSize: 11, fontWeight: '700' },
+  cardImageBottom: { gap: 2 },
+  cardCommodityName: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  cardDealCode: {
     fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    lineHeight: 13,
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'monospace',
   },
-  currentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  stageLabel: {
-    fontSize: 8,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 10,
-  },
-  stageLabelPending: {
-    color: 'rgba(255,255,255,0.4)',
-    fontWeight: '500',
-  },
-  connector: {
-    flex: 1,
-    height: 2,
-    minWidth: 8,
-    marginBottom: 14,
-  },
-  cardBody: {
-    padding: 14,
-  },
+
+  // Pills
   pillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 10,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
-  dataPill: {
+  pill: {
     backgroundColor: '#F3F4F6',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  dataPillHighlight: {
-    backgroundColor: '#F2FBF5',
+  pillText: { fontSize: 11, fontWeight: '600', color: '#4B5563' },
+  pillGreen: { backgroundColor: '#F2FBF5' },
+  pillGreenText: { fontSize: 11, fontWeight: '800', color: '#1A6B34' },
+
+  // Stage timeline
+  timeline: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  timelineContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: 'flex-start',
   },
-  dataPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#4B5563',
+  stageItem: { alignItems: 'center', width: 56 },
+  stageCircleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
   },
-  dataPillTextHighlight: {
-    fontWeight: '800',
-    color: '#1A6B34',
+  stageLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#E5E7EB',
   },
-  statusFooter: {
+  stageLineSpacer: { flex: 1 },
+  stageLineActive: { backgroundColor: '#F3CD03' },
+  stageCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageCircleActive: {
+    backgroundColor: '#F3CD03',
+    borderColor: '#F3CD03',
+  },
+  stageCirclePending: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+  },
+  stageCheckmark: { fontSize: 11, fontWeight: '800', color: '#0D3B1F' },
+  stageDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#0D3B1F',
+  },
+  stageName: {
+    fontSize: 9,
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  stageNameActive: { color: '#D4AE02', fontWeight: '700' },
+
+  // Footer
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  statusInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  statusTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statusDesc: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 1,
-    lineHeight: 15,
-  },
-  locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  locationPin: {
-    fontSize: 10,
-  },
-  locationText: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-  actionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    flexShrink: 0,
-    alignSelf: 'flex-start',
-  },
-  actionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  actionText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 64,
-    gap: 12,
-  },
-  emptyEmoji: {
-    fontSize: 40,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
+  footerDate: { fontSize: 12, color: '#9CA3AF' },
+  footerArrow: { fontSize: 18, color: '#D1D5DB' },
+
+  // Empty state
+  emptyState: { alignItems: 'center', paddingTop: 64, gap: 12 },
+  emptyEmoji: { fontSize: 40 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
+  emptySubtitle: { fontSize: 13, color: '#9CA3AF' },
 });
 
 export default DealsScreen;

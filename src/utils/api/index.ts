@@ -146,6 +146,12 @@ export const api = {
       Get(`buyer/buydeals/${id}/payments`, undefined, protectedRequest),
     updateDealCompany: (id: string, data: { buyer_company_name: string }) =>
       Patch(`buyer/buydeals/${id}/company`, data, protectedRequest),
+    getTrucks: (dealId: string) =>
+      Get(`buyer/buydeals/${dealId}/trucks`, undefined, protectedRequest),
+    updateTruck: (dealId: string, truckId: string, data: { freight_amount?: number; unloaded_weight_tons?: number }) =>
+      Patch(`buyer/buydeals/${dealId}/trucks/${truckId}`, data, protectedRequest),
+    addTruckDocument: (dealId: string, truckId: string, data: FormData) =>
+      Post(`buyer/buydeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
   },
 
   seller: {
@@ -186,6 +192,8 @@ export const api = {
       Post(`seller/selldeals/${id}/trucks`, data, protectedRequest),
     getDealPayments: (id: string) =>
       Get(`seller/selldeals/${id}/payments`, undefined, protectedRequest),
+    addTruckDoc: (dealId: string, truckId: string, data: FormData) =>
+      Post(`seller/selldeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
   },
 };
 

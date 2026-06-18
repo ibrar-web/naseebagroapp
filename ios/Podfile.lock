@@ -1555,6 +1555,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-pager-view (8.0.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - SwiftUIIntrospect (~> 1.0)
+    - Yoga
   - react-native-safe-area-context (5.7.0):
     - hermes-engine
     - RCTRequired
@@ -2109,6 +2132,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - SwiftUIIntrospect (1.3.0)
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2156,6 +2180,7 @@ DEPENDENCIES:
   - react-native-encrypted-storage (from `../node_modules/react-native-encrypted-storage`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
+  - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-vector-icons-feather (from `../node_modules/@react-native-vector-icons/feather`)"
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -2212,6 +2237,7 @@ SPEC REPOS:
     - MMKVCore
     - nanopb
     - PromisesObjC
+    - SwiftUIIntrospect
 
 EXTERNAL SOURCES:
   FBLazyVector:
@@ -2301,6 +2327,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-image-picker"
   react-native-netinfo:
     :path: "../node_modules/@react-native-community/netinfo"
+  react-native-pager-view:
+    :path: "../node_modules/react-native-pager-view"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-vector-icons-feather:
@@ -2441,6 +2469,7 @@ SPEC CHECKSUMS:
   react-native-encrypted-storage: db300a3f2f0aba1e818417c1c0a6be549038deb7
   react-native-image-picker: 7793e84ad7b802351cf687c18bb42ad30150b29b
   react-native-netinfo: 13886ae458c33dbb849592dcd75e1795e3d70842
+  react-native-pager-view: 03421bd6b4b3964eb6feccec19c7259dcfc79288
   react-native-safe-area-context: 29044d05d61f2c60d0828c373bd0ebe17eed58d0
   react-native-vector-icons-feather: 76dcd7caba65d8799a0587bd298c256c3687b96c
   React-NativeModulesApple: b94faa2dce6d8c0a9d722ed7ee27b996d28b62d1
@@ -2482,6 +2511,7 @@ SPEC CHECKSUMS:
   RNFBMessaging: 67ede2b8c07a00902f24dd5819b2c75901a75669
   RNGestureHandler: eb2f4f545ed5e6b597d60b6515e193cf63a2c1ba
   RNScreens: 088d923c4327c63c9f8c942cae17a9d038f47d97
+  SwiftUIIntrospect: fee9aa07293ee280373a591e1824e8ddc869ba5d
   Yoga: c0b3f2c7e8d3e327e450223a2414ca3fa296b9a2
 
 PODFILE CHECKSUM: 7e7a775f32af835473e1771d11f1df5ffa076ffa

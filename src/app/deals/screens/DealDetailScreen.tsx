@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Alert,
   RefreshControl,
   ImageBackground,
+  useWindowDimensions,
 } from 'react-native';
+import { TabView, TabBar } from 'react-native-tab-view';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -32,11 +34,11 @@ interface DealDetail extends DealSummaryData {
 interface AddTruckData {
   truck_number: string;
   driver_name?: string;
-  weight?: number;
+  weight_tons?: number;
 }
 
-const TABS = ['Summary', 'Trucks', 'Payment', 'Stages'] as const;
-type TabType = (typeof TABS)[number];
+type RouteKey = 'summary' | 'trucks' | 'payment' | 'stages';
+type TabRoute = { key: RouteKey; title: string };
 
 const STATUS_LABEL_MAP: Record<string, string> = {
   matched: 'Deal Created',
@@ -54,13 +56,14 @@ const HEADER_HEIGHT = 140;
 const DealDetailScreen = ({ navigation, route }: Props) => {
   const { dealId } = route.params;
   const mode = useAppSelector(s => s.app.mode);
+  const layout = useWindowDimensions();
+
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [paymentSummary, setPaymentSummary] =
-    useState<PaymentSummaryData | null>(null);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('Summary');
+  const [tabIndex, setTabIndex] = useState(0);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -70,15 +73,6 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
           : await api.seller.getDeal(dealId)
       ) as DealDetail | undefined;
       if (detailRes) setDeal(detailRes);
-
-      if (mode === 'seller') {
-        const truckRes = (await api.seller.getDealTrucks(dealId)) as
-          | Truck[]
-          | undefined;
-        setTrucks(truckRes ?? []);
-      } else {
-        setTrucks(detailRes?.trucks ?? []);
-      }
 
       const payRes = (
         mode === 'buyer'
@@ -142,22 +136,135 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   };
 
   const handleContactAdmin = () => {
-    Alert.alert(
-      'Contact Admin',
-      'Please reach out via WhatsApp or call our support team.',
-    );
+    Alert.alert('Contact Admin', 'Please reach out via WhatsApp or call our support team.');
   };
 
+  // Routes update the Trucks tab title when truck count changes
+  const routes = useMemo(
+    () => [
+      { key: 'summary' as RouteKey, title: 'Summary' },
+      { key: 'trucks' as RouteKey, title: trucks.length > 0 ? `Trucks (${trucks.length})` : 'Trucks' },
+      { key: 'payment' as RouteKey, title: 'Payment' },
+      { key: 'stages' as RouteKey, title: 'Stages' },
+    ],
+    [trucks.length],
+  );
+
+  const renderScene = ({ route: r }: { route: TabRoute }) => {
+    const withRefresh = (
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor="#217A3C"
+        colors={['#217A3C']}
+      />
+    );
+
+    switch (r.key) {
+      case 'summary':
+        return (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={withRefresh}
+          >
+            {deal ? (
+              <SummaryTab
+                deal={deal}
+                mode={mode}
+                trucks={trucks}
+                onAddCompany={handleAddCompany}
+                onContactAdmin={handleContactAdmin}
+              />
+            ) : null}
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        );
+
+      case 'trucks':
+        return (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={withRefresh}
+          >
+            {deal ? (
+              <TrucksTab
+                deal={deal}
+                mode={mode}
+                onAddTruck={handleAddTruck}
+                onTrucksLoaded={loaded => setTrucks(loaded as Truck[])}
+              />
+            ) : null}
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        );
+
+      case 'payment':
+        return (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={withRefresh}
+          >
+            <PaymentTab
+              paymentSummary={paymentSummary}
+              mode={mode}
+              onAddPayment={handleAddPayment}
+            />
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        );
+
+      case 'stages':
+        return (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {deal ? <StagesTab deal={deal} mode={mode} /> : null}
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderTabBar = (props: any) => (
+    <TabBar
+      {...props}
+      style={styles.tabBar}
+      indicatorStyle={styles.tabIndicator}
+      pressColor="rgba(33,122,60,0.08)"
+      renderTabBarItem={({ route: r, focused, onPress, onLongPress, style }: any) => (
+        <TouchableOpacity
+          key={r.key}
+          style={[style, styles.tabItem]}
+          onPress={onPress}
+          onLongPress={onLongPress}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+            {r.title}
+          </Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
   const imageUri = deal?.commodity?.image_url ?? null;
-  const statusLabel =
-    STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
+  const statusLabel = STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
 
   const summaryLine = [
     deal?.offer?.quantity ? `${deal.offer.quantity} bags` : null,
     deal?.total_amount ? formatPKR(Number(deal.total_amount)) : null,
-    trucks.length > 0
-      ? `${trucks.length} truck${trucks.length !== 1 ? 's' : ''}`
-      : null,
+    trucks.length > 0 ? `${trucks.length} truck${trucks.length !== 1 ? 's' : ''}` : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -173,6 +280,8 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   return (
     <View style={styles.container}>
       <MockStatusBar />
+
+      {/* Hero banner */}
       <View style={styles.heroWrap}>
         <ImageBackground
           source={imageUri ? { uri: imageUri } : undefined}
@@ -182,8 +291,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
           {!imageUri && <View style={styles.heroFallback} />}
           <View style={styles.overlay} />
 
-          <View style={[styles.heroContent, { paddingTop: 10 }]}>
-            {/* Top row: back button + status badge */}
+          <View style={styles.heroContent}>
             <View style={styles.heroTopRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
@@ -199,11 +307,9 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
               </View>
             </View>
 
-            {/* Spacer pushes bottom content down */}
             <View style={styles.heroSpacer} />
 
-            {/* Bottom: code + commodity + summary */}
-            <View style={styles.heroBottom}>
+            <View>
               <Text style={styles.heroCode} numberOfLines={1}>
                 {deal?.code ?? dealId.slice(0, 8)}
               </Text>
@@ -220,66 +326,15 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
         </ImageBackground>
       </View>
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        {TABS.map(tab => {
-          const active = activeTab === tab;
-          return (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={[styles.tabItem, active && styles.tabItemActive]}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                {tab === 'Trucks' ? `Trucks (${trucks.length})` : tab}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#217A3C']}
-          />
-        }
-      >
-        {activeTab === 'Summary' && deal && (
-          <SummaryTab
-            deal={deal}
-            mode={mode}
-            trucks={trucks}
-            onAddCompany={handleAddCompany}
-            onContactAdmin={handleContactAdmin}
-          />
-        )}
-        {activeTab === 'Trucks' && deal && (
-          <TrucksTab
-            trucks={trucks}
-            deal={deal}
-            mode={mode}
-            onAddTruck={handleAddTruck}
-          />
-        )}
-        {activeTab === 'Payment' && (
-          <PaymentTab
-            paymentSummary={paymentSummary}
-            mode={mode}
-            onAddPayment={handleAddPayment}
-          />
-        )}
-        {activeTab === 'Stages' && deal && (
-          <StagesTab deal={deal} mode={mode} />
-        )}
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
+      {/* Tab view with built-in tab bar */}
+      <TabView
+        navigationState={{ index: tabIndex, routes }}
+        renderScene={renderScene}
+        renderTabBar={renderTabBar}
+        onIndexChange={setTabIndex}
+        initialLayout={{ width: layout.width }}
+        lazy={false}
+      />
     </View>
   );
 };
@@ -293,25 +348,19 @@ const styles = StyleSheet.create({
   heroImage: { resizeMode: 'cover' },
   heroFallback: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: '#145228',
   },
   overlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
 
-  // Column layout inside the hero
   heroContent: {
     flex: 1,
     paddingHorizontal: 14,
+    paddingTop: 10,
     paddingBottom: 12,
   },
   heroTopRow: {
@@ -326,12 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    lineHeight: 20,
-    fontWeight: '600',
-  },
+  backArrow: { fontSize: 18, color: '#FFFFFF', lineHeight: 20, fontWeight: '600' },
 
   statusBadgeWrap: {
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -339,45 +383,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  statusBadgeLabel: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-  },
+  statusBadgeLabel: { fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' },
   statusBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
 
-  heroBottom: {},
-  heroCode: {
-    fontSize: 9,
-    color: 'rgba(255,255,255)',
-    fontFamily: 'monospace',
-    marginBottom: 2,
-  },
+  heroCode: { fontSize: 9, color: '#FFFFFF', fontFamily: 'monospace', marginBottom: 2 },
   heroCommodity: { fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
-  heroSummaryLine: {
-    fontSize: 11,
-    color: 'rgba(255,255,255)',
-    marginTop: 2,
-  },
+  heroSummaryLine: { fontSize: 11, color: '#FFFFFF', marginTop: 2 },
 
+  // TabBar styles (passed into <TabBar>)
   tabBar: {
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderBottomWidth: 2.5,
-    borderBottomColor: 'transparent',
-  },
-  tabItemActive: { borderBottomColor: '#217A3C' },
+  tabItem: { paddingVertical: 4 },
+  tabIndicator: { backgroundColor: '#217A3C', height: 2.5 },
   tabLabel: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
   tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
 
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: '#F9FAFB' },
   scrollContent: { padding: 14 },
   bottomSpacer: { height: 40 },
 });

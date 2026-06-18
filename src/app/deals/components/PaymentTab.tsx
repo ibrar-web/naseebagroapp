@@ -10,6 +10,16 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import {
+  launchImageLibrary,
+  type ImagePickerResponse,
+} from 'react-native-image-picker';
+
+interface ReceiptFile {
+  uri: string;
+  type: string;
+  name: string;
+}
 
 interface PaymentReceipt {
   id: string;
@@ -80,13 +90,30 @@ const getReceiptStatus = (
 interface Props {
   paymentSummary: PaymentSummaryData | null;
   mode: 'buyer' | 'seller';
-  onAddPayment: (amount: number) => Promise<void>;
+  onAddPayment: (amount: number, receipt?: ReceiptFile) => Promise<void>;
 }
 
 const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => {
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState('');
+  const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const pickReceipt = () => {
+    launchImageLibrary(
+      { mediaType: 'mixed', quality: 1, includeBase64: false },
+      (res: ImagePickerResponse) => {
+        if (res.didCancel || res.errorCode) return;
+        const asset = res.assets?.[0];
+        if (!asset?.uri) return;
+        setReceipt({
+          uri: asset.uri,
+          type: asset.type ?? 'image/jpeg',
+          name: asset.fileName ?? 'receipt.jpg',
+        });
+      },
+    );
+  };
 
   if (!paymentSummary) {
     return <Text style={s.empty}>No payment data.</Text>;
@@ -111,8 +138,9 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
-      await onAddPayment(Number(amount));
+      await onAddPayment(Number(amount), receipt ?? undefined);
       setAmount('');
+      setReceipt(null);
       setShowModal(false);
     } finally {
       setSubmitting(false);
@@ -121,6 +149,7 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
 
   const handleCloseModal = () => {
     setAmount('');
+    setReceipt(null);
     setShowModal(false);
   };
 
@@ -285,15 +314,24 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
                 </View>
 
                 <Text style={[s.payFieldLabel, { marginTop: 14 }]}>
-                  Payment Receipt <Text style={s.required}>*</Text>
+                  Payment Receipt{' '}
+                  <Text style={s.payFieldSubLabel}>(optional)</Text>
                 </Text>
-                <View style={s.uploadArea}>
-                  <Text style={s.uploadIcon}>☁</Text>
-                  <Text style={s.uploadTitle}>Upload Receipt</Text>
-                  <Text style={s.uploadSub}>
-                    Screenshot, PDF or photo of the receipt
+                <TouchableOpacity
+                  style={[s.uploadArea, receipt && s.uploadAreaDone]}
+                  onPress={pickReceipt}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.uploadIcon}>{receipt ? '✓' : '☁'}</Text>
+                  <Text style={[s.uploadTitle, receipt && s.uploadTitleDone]}>
+                    {receipt ? receipt.name : 'Upload Receipt'}
                   </Text>
-                </View>
+                  <Text style={s.uploadSub}>
+                    {receipt
+                      ? 'Tap to change'
+                      : 'Screenshot, PDF or photo of the receipt'}
+                  </Text>
+                </TouchableOpacity>
 
                 <View style={s.infoNote}>
                   <Text style={s.infoText}>
@@ -604,6 +642,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  uploadAreaDone: {
+    borderColor: '#7FD4A0',
+    backgroundColor: '#F2FBF5',
+    borderStyle: 'solid',
+  },
   uploadIcon: { fontSize: 24, color: '#9CA3AF' },
   uploadTitle: {
     fontSize: 14,
@@ -611,7 +654,9 @@ const s = StyleSheet.create({
     color: '#374151',
     marginTop: 4,
   },
+  uploadTitleDone: { color: '#1A6B34' },
   uploadSub: { fontSize: 11, color: '#9CA3AF' },
+  payFieldSubLabel: { fontSize: 11, fontWeight: '400', color: '#9CA3AF' },
   infoNote: {
     backgroundColor: '#EEF6FF',
     borderRadius: 10,

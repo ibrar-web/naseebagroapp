@@ -104,7 +104,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
 
   const handleAddCompany = async (name: string) => {
     try {
-      await (api.buyer as any).updateDealCompany(dealId, name);
+      await api.buyer.updateDealCompany(dealId, { buyer_company_name: name });
       await fetchAll();
     } catch {
       Alert.alert('Error', 'Failed to update company name');
@@ -113,16 +113,28 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
 
   const handleAddTruck = async (data: AddTruckData) => {
     try {
-      await (api.seller as any).addTruck(dealId, data);
+      await api.seller.addTruck(dealId, data);
       await fetchAll();
     } catch {
       Alert.alert('Error', 'Failed to add truck');
     }
   };
 
-  const handleAddPayment = async (amount: number) => {
+  const handleAddPayment = async (
+    amount: number,
+    receipt?: { uri: string; type: string; name: string },
+  ) => {
     try {
-      await (api.buyer as any).addPayment(dealId, { amount });
+      const form = new FormData();
+      form.append('amount', String(amount));
+      if (receipt) {
+        form.append('file', {
+          uri: receipt.uri,
+          type: receipt.type,
+          name: receipt.name,
+        } as any);
+      }
+      await api.buyer.addPayment(dealId, form);
       await fetchAll();
     } catch {
       Alert.alert('Error', 'Failed to submit payment');

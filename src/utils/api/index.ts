@@ -182,7 +182,7 @@ export const api = {
       Get(byId('seller/selldeals', id), undefined, protectedRequest),
     getDealTrucks: (id: string) =>
       Get(`seller/selldeals/${id}/trucks`, undefined, protectedRequest),
-    addTruck: (id: string, data: { truck_number: string; driver_name?: string }) =>
+    addTruck: (id: string, data: { truck_number: string; driver_name?: string; weight_tons?: number }) =>
       Post(`seller/selldeals/${id}/trucks`, data, protectedRequest),
     getDealPayments: (id: string) =>
       Get(`seller/selldeals/${id}/payments`, undefined, protectedRequest),

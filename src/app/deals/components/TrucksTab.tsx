@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../../../utils/api';
+import DocumentViewerModal from './DocumentViewerModal';
 
 export interface TruckDocument {
   id: string;
@@ -52,10 +52,28 @@ interface Props {
   onTrucksLoaded?: (trucks: FullTruck[]) => void;
 }
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; border: string; text: string }> = {
-  registered: { label: 'Upcoming',   bg: '#F9FAFB', border: '#E5E7EB', text: '#9CA3AF' },
-  dispatched:  { label: 'Dispatched', bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8' },
-  delivered:   { label: 'Delivered',  bg: '#F2FBF5', border: '#7FD4A0', text: '#1A6B34' },
+const STATUS_BADGE: Record<
+  string,
+  { label: string; bg: string; border: string; text: string }
+> = {
+  registered: {
+    label: 'Upcoming',
+    bg: '#F9FAFB',
+    border: '#E5E7EB',
+    text: '#9CA3AF',
+  },
+  dispatched: {
+    label: 'Dispatched',
+    bg: '#EFF6FF',
+    border: '#BFDBFE',
+    text: '#1D4ED8',
+  },
+  delivered: {
+    label: 'Delivered',
+    bg: '#F2FBF5',
+    border: '#7FD4A0',
+    text: '#1A6B34',
+  },
 };
 
 const DOC_LABELS: Record<string, string> = {
@@ -66,7 +84,12 @@ const DOC_LABELS: Record<string, string> = {
 
 const fmtNum = (n: number) => Math.round(n).toLocaleString('en-PK');
 
-const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) => {
+const TrucksTab: React.FC<Props> = ({
+  deal,
+  mode,
+  onAddTruck,
+  onTrucksLoaded,
+}) => {
   const [trucks, setTrucks] = useState<FullTruck[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -82,6 +105,10 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
   const [savingFields, setSavingFields] = useState(false);
 
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [viewerDoc, setViewerDoc] = useState<{
+    url: string;
+    name: string;
+  } | null>(null);
 
   const loadTrucks = useCallback(async () => {
     try {
@@ -89,7 +116,9 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
         mode === 'buyer'
           ? await api.buyer.getTrucks(deal.deal_id)
           : await api.seller.getDealTrucks(deal.deal_id);
-      const list: FullTruck[] = Array.isArray(resp) ? resp : (resp?.data ?? []);
+      const list: FullTruck[] = Array.isArray(resp) ? resp : resp?.data ?? [];
+
+      console.log('list :', list);
       setTrucks(list);
       onTrucksLoaded?.(list);
     } catch {
@@ -108,8 +137,14 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
       setExpandedId(null);
     } else {
       setExpandedId(truck.id);
-      setEditFreight(truck.freight_amount != null ? String(truck.freight_amount) : '');
-      setEditUnloaded(truck.unloaded_weight_tons != null ? String(truck.unloaded_weight_tons) : '');
+      setEditFreight(
+        truck.freight_amount != null ? String(truck.freight_amount) : '',
+      );
+      setEditUnloaded(
+        truck.unloaded_weight_tons != null
+          ? String(truck.unloaded_weight_tons)
+          : '',
+      );
     }
   };
 
@@ -148,9 +183,12 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
     }
   };
 
-  const handleUploadDoc = (truckId: string, docType: 'bilti' | 'waybill' | 'pohnch') => {
+  const handleUploadDoc = (
+    truckId: string,
+    docType: 'bilti' | 'waybill' | 'pohnch',
+  ) => {
     const key = `${truckId}_${docType}`;
-    launchImageLibrary({ mediaType: 'mixed', quality: 1 }, async (response) => {
+    launchImageLibrary({ mediaType: 'mixed', quality: 1 }, async response => {
       if (response.didCancel || !response.assets?.length) return;
       const asset = response.assets[0];
       if (!asset.uri) return;
@@ -179,14 +217,9 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
     });
   };
 
-  const openDocument = (signedUrl: string | null) => {
-    if (!signedUrl) return;
-    Linking.openURL(signedUrl).catch(() =>
-      Alert.alert('Error', 'Could not open document.'),
-    );
-  };
-
-  // Doc chip: shows different states based on upload + verification status
+  // Visibility rules:
+  // - Own docs (uploaded_by_role === mode): always visible regardless of status
+  // - Other party's docs: only visible when status === 'verified'
   const renderDocChipRow = (
     truck: FullTruck,
     docType: 'bilti' | 'waybill' | 'pohnch',
@@ -199,29 +232,52 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
     const isUploading = uploadingDoc === uploadKey;
     const label = DOC_LABELS[docType];
 
+    const isOwn = doc?.uploaded_by_role === mode;
+    const isVerified = doc?.status === 'verified';
+    // Can view: own doc always, other party's only when verified
+    const canView = !!doc && (isOwn || isVerified);
+
+    const openViewer = () => {
+      if (doc?.signed_url) {
+        setViewerDoc({ url: doc.signed_url, name: doc.document_name });
+      }
+    };
+
     return (
       <View key={docType} style={s.docRow}>
-        {/* Chip */}
         {doc ? (
-          doc.status === 'verified' ? (
-            // Verified — green chip, tappable to view/download
-            <TouchableOpacity
-              style={s.chipGreen}
-              onPress={() => openDocument(doc.signed_url)}
-              activeOpacity={0.75}
-            >
-              <Text style={s.chipCheck}>✓</Text>
-              <Text style={s.chipGreenLabel}>{label}</Text>
-              <Text style={s.chipFileName} numberOfLines={1}>
-                {doc.document_name}
-              </Text>
-            </TouchableOpacity>
+          canView ? (
+            isVerified ? (
+              // Verified — green chip, tappable
+              <TouchableOpacity
+                style={s.chipGreen}
+                onPress={openViewer}
+                activeOpacity={0.75}
+              >
+                <Text style={s.chipCheck}>✓</Text>
+                <Text style={s.chipGreenLabel}>{label}</Text>
+                <Text style={s.chipFileName} numberOfLines={1}>
+                  {doc.document_name}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // Own doc, pending review — amber chip, still tappable
+              <TouchableOpacity
+                style={s.chipAmber}
+                onPress={openViewer}
+                activeOpacity={0.75}
+              >
+                <Text style={s.chipPendingDot}>●</Text>
+                <Text style={s.chipAmberLabel}>{label}</Text>
+                <Text style={s.chipPendingText}>Pending review</Text>
+              </TouchableOpacity>
+            )
           ) : (
-            // Uploaded but pending admin review — amber chip
-            <View style={s.chipAmber}>
-              <Text style={s.chipPendingDot}>●</Text>
-              <Text style={s.chipAmberLabel}>{label}</Text>
-              <Text style={s.chipPendingText}>Pending review</Text>
+            // Other party uploaded but not yet verified — gray placeholder
+            <View style={s.chipGray}>
+              <View style={s.fileIconBox} />
+              <Text style={s.chipGrayLabel}>{label}</Text>
+              <Text style={s.chipAwaitingText}>Awaiting approval</Text>
             </View>
           )
         ) : (
@@ -232,7 +288,7 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
           </View>
         )}
 
-        {/* Upload button — only if canUpload and not uploaded at all */}
+        {/* Upload button — only if canUpload and not yet uploaded */}
         {canUpload && !doc && (
           <TouchableOpacity
             style={[s.uploadBtn, { backgroundColor: uploadBtnBg }]}
@@ -243,7 +299,9 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
             {isUploading ? (
               <ActivityIndicator size="small" color={uploadBtnTextColor} />
             ) : (
-              <Text style={[s.uploadBtnText, { color: uploadBtnTextColor }]}>Upload</Text>
+              <Text style={[s.uploadBtnText, { color: uploadBtnTextColor }]}>
+                Upload
+              </Text>
             )}
           </TouchableOpacity>
         )}
@@ -335,7 +393,11 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
           </TouchableOpacity>
 
           {/* DISPATCH DOCUMENTS — buyer sees seller docs when verified */}
-          {truck.documents.some(d => (d.doc_type === 'bilti' || d.doc_type === 'waybill') && d.status === 'verified') && (
+          {truck.documents.some(
+            d =>
+              (d.doc_type === 'bilti' || d.doc_type === 'waybill') &&
+              d.status === 'verified',
+          ) && (
             <View style={s.docSectionTop}>
               <Text style={s.sectionHead}>DISPATCH DOCUMENTS</Text>
               {renderDocChipRow(truck, 'bilti', false, '#217A3C', '#FFFFFF')}
@@ -348,7 +410,9 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
   );
 
   const total = trucks.length;
-  const dispatched = trucks.filter(t => t.status === 'dispatched' || t.status === 'delivered').length;
+  const dispatched = trucks.filter(
+    t => t.status === 'dispatched' || t.status === 'delivered',
+  ).length;
   const delivered = trucks.filter(t => t.status === 'delivered').length;
   const totalAmount = Number(deal.total_amount ?? 0);
   const paymentLabel = deal.offer?.payment_term_type
@@ -377,12 +441,16 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
         <View style={s.statsRow}>
           <View>
             <Text style={s.statLabel}>DISPATCHED</Text>
-            <Text style={s.statValue}>{dispatched}/{total}</Text>
+            <Text style={s.statValue}>
+              {dispatched}/{total}
+            </Text>
           </View>
           <View style={s.statDivider} />
           <View>
             <Text style={s.statLabel}>DELIVERED</Text>
-            <Text style={s.statValue}>{delivered}/{total}</Text>
+            <Text style={s.statValue}>
+              {delivered}/{total}
+            </Text>
           </View>
           <View style={s.statDivider} />
           <View>
@@ -402,7 +470,9 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
           const subtitle = [
             truck.truck_number,
             truck.weight_tons != null ? `${truck.weight_tons} tons` : null,
-            truck.calculated_amount != null ? `PKR ${fmtNum(truck.calculated_amount)}` : null,
+            truck.calculated_amount != null
+              ? `PKR ${fmtNum(truck.calculated_amount)}`
+              : null,
           ]
             .filter(Boolean)
             .join(' · ');
@@ -519,7 +589,10 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text
-                    style={[s.submitBtnText, !vehicleNo.trim() && s.submitBtnTextDisabled]}
+                    style={[
+                      s.submitBtnText,
+                      !vehicleNo.trim() && s.submitBtnTextDisabled,
+                    ]}
                   >
                     Add Truck
                   </Text>
@@ -537,13 +610,25 @@ const TrucksTab: React.FC<Props> = ({ deal, mode, onAddTruck, onTrucksLoaded }) 
           )}
         </>
       )}
+
+      <DocumentViewerModal
+        visible={viewerDoc !== null}
+        url={viewerDoc?.url ?? null}
+        fileName={viewerDoc?.name ?? ''}
+        onClose={() => setViewerDoc(null)}
+      />
     </View>
   );
 };
 
 const s = StyleSheet.create({
   loaderWrap: { paddingVertical: 40, alignItems: 'center' },
-  empty: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 24 },
+  empty: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
 
   // Summary header
   summaryHeader: {
@@ -560,7 +645,11 @@ const s = StyleSheet.create({
   },
   summaryTitle: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
   statsRow: { flexDirection: 'row', gap: 14, alignItems: 'center' },
-  statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.13)' },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+  },
   statLabel: { fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2 },
   statValue: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
 
@@ -719,6 +808,12 @@ const s = StyleSheet.create({
     color: '#B45309',
     fontStyle: 'italic',
   },
+  chipAwaitingText: {
+    marginLeft: 'auto',
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
 
   // Upload button
   uploadBtn: {
@@ -788,7 +883,12 @@ const s = StyleSheet.create({
   },
   cancelChipText: { fontSize: 11, color: '#6B7280' },
   formField: { marginBottom: 10 },
-  formFieldLabel: { fontSize: 11, fontWeight: '600', color: '#4B5563', marginBottom: 4 },
+  formFieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 4,
+  },
   formInput: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',

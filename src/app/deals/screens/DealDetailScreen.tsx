@@ -60,7 +60,8 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
 
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [paymentSummary, setPaymentSummary] = useState<PaymentSummaryData | null>(null);
+  const [paymentSummary, setPaymentSummary] =
+    useState<PaymentSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
@@ -136,14 +137,20 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   };
 
   const handleContactAdmin = () => {
-    Alert.alert('Contact Admin', 'Please reach out via WhatsApp or call our support team.');
+    Alert.alert(
+      'Contact Admin',
+      'Please reach out via WhatsApp or call our support team.',
+    );
   };
 
   // Routes update the Trucks tab title when truck count changes
   const routes = useMemo(
     () => [
       { key: 'summary' as RouteKey, title: 'Summary' },
-      { key: 'trucks' as RouteKey, title: trucks.length > 0 ? `Trucks (${trucks.length})` : 'Trucks' },
+      {
+        key: 'trucks' as RouteKey,
+        title: trucks.length > 0 ? `Trucks (${trucks.length})` : 'Trucks',
+      },
       { key: 'payment' as RouteKey, title: 'Payment' },
       { key: 'stages' as RouteKey, title: 'Stages' },
     ],
@@ -239,32 +246,27 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   const renderTabBar = (props: any) => (
     <TabBar
       {...props}
+      scrollEnabled={false}
       style={styles.tabBar}
+      tabStyle={styles.tabItem}
       indicatorStyle={styles.tabIndicator}
       pressColor="rgba(33,122,60,0.08)"
-      renderTabBarItem={({ route: r, focused, onPress, onLongPress, style }: any) => (
-        <TouchableOpacity
-          key={r.key}
-          style={[style, styles.tabItem]}
-          onPress={onPress}
-          onLongPress={onLongPress}
-          activeOpacity={0.75}
-        >
-          <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-            {r.title}
-          </Text>
-        </TouchableOpacity>
-      )}
+      activeColor="#1A6B34"
+      inactiveColor="#9CA3AF"
+      labelStyle={styles.tabLabel}
     />
   );
 
   const imageUri = deal?.commodity?.image_url ?? null;
-  const statusLabel = STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
+  const statusLabel =
+    STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
 
   const summaryLine = [
     deal?.offer?.quantity ? `${deal.offer.quantity} bags` : null,
     deal?.total_amount ? formatPKR(Number(deal.total_amount)) : null,
-    trucks.length > 0 ? `${trucks.length} truck${trucks.length !== 1 ? 's' : ''}` : null,
+    trucks.length > 0
+      ? `${trucks.length} truck${trucks.length !== 1 ? 's' : ''}`
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -348,12 +350,18 @@ const styles = StyleSheet.create({
   heroImage: { resizeMode: 'cover' },
   heroFallback: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#145228',
   },
   overlay: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
 
@@ -375,7 +383,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { fontSize: 18, color: '#FFFFFF', lineHeight: 20, fontWeight: '600' },
+  backArrow: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: 20,
+    fontWeight: '600',
+  },
 
   statusBadgeWrap: {
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -383,10 +396,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  statusBadgeLabel: { fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' },
+  statusBadgeLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+  },
   statusBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
 
-  heroCode: { fontSize: 9, color: '#FFFFFF', fontFamily: 'monospace', marginBottom: 2 },
+  heroCode: {
+    fontSize: 9,
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
   heroCommodity: { fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
   heroSummaryLine: { fontSize: 11, color: '#FFFFFF', marginTop: 2 },
 
@@ -398,10 +420,15 @@ const styles = StyleSheet.create({
     elevation: 0,
     shadowOpacity: 0,
   },
-  tabItem: { paddingVertical: 4 },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    minHeight: 44,
+  },
   tabIndicator: { backgroundColor: '#217A3C', height: 2.5 },
-  tabLabel: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
-  tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
+  tabLabel: { fontSize: 11, fontWeight: '700' },
 
   scroll: { flex: 1, backgroundColor: '#F9FAFB' },
   scrollContent: { padding: 14 },

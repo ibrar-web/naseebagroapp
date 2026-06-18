@@ -1,5 +1,15 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 
 export interface Truck {
   id: string;
@@ -59,7 +69,7 @@ interface Props {
   deal: DealSummaryData;
   mode: 'buyer' | 'seller';
   trucks: Truck[];
-  onAddCompany: () => void;
+  onAddCompany: (name: string) => Promise<void>;
   onContactAdmin: () => void;
 }
 
@@ -70,6 +80,10 @@ const SummaryTab: React.FC<Props> = ({
   onAddCompany,
   onContactAdmin,
 }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const stageMsg = STAGE_MSG[deal.status] ?? STAGE_MSG.open;
   const qty = deal.offer?.quantity;
   const price = deal.offer?.price_per_unit;
@@ -86,6 +100,25 @@ const SummaryTab: React.FC<Props> = ({
     if (t === 'fixed') return 'Fixed full payment';
     if (t === 'weekly') return 'Weekly payment';
     return deal.offer?.payment_term_type ?? '—';
+  };
+
+  const canSave = companyName.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!canSave || saving) return;
+    setSaving(true);
+    try {
+      await onAddCompany(companyName.trim());
+      setCompanyName('');
+      setShowModal(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setCompanyName('');
+    setShowModal(false);
   };
 
   return (
@@ -160,7 +193,7 @@ const SummaryTab: React.FC<Props> = ({
           </Text>
           <TouchableOpacity
             style={s.companyBtn}
-            onPress={onAddCompany}
+            onPress={() => setShowModal(true)}
             activeOpacity={0.85}
           >
             <Text style={s.companyBtnText}>+ Add Company Name →</Text>
@@ -175,6 +208,70 @@ const SummaryTab: React.FC<Props> = ({
       >
         <Text style={s.contactBtnText}>📞  Contact Admin</Text>
       </TouchableOpacity>
+
+      {/* Company name bottom-sheet modal */}
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCloseModal}
+      >
+        <View style={s.overlay}>
+          <TouchableOpacity
+            style={s.overlayBg}
+            onPress={handleCloseModal}
+            activeOpacity={1}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View style={s.sheet}>
+              <View style={s.dragHandle} />
+              <Text style={s.sheetTitle}>Add Company Name for Bilti</Text>
+              <Text style={s.sheetSubtitle}>
+                This name will appear on the bill of lading. Usually your
+                business name.
+              </Text>
+              <TextInput
+                style={s.sheetInput}
+                placeholder="e.g. Asad Agri Traders (Pvt Ltd)"
+                placeholderTextColor="#9CA3AF"
+                value={companyName}
+                onChangeText={setCompanyName}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+              />
+              <TouchableOpacity
+                style={[s.saveBtn, !canSave && s.saveBtnDisabled]}
+                onPress={handleSave}
+                disabled={!canSave || saving}
+                activeOpacity={0.85}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#0D3B1F" size="small" />
+                ) : (
+                  <Text
+                    style={[
+                      s.saveBtnText,
+                      !canSave && s.saveBtnTextDisabled,
+                    ]}
+                  >
+                    Save & Send to Seller →
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.cancelSheetBtn}
+                onPress={handleCloseModal}
+                activeOpacity={0.75}
+              >
+                <Text style={s.cancelSheetBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -288,6 +385,75 @@ const s = StyleSheet.create({
     elevation: 1,
   },
   contactBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
+
+  // Modal / bottom-sheet
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  overlayBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  sheetSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  sheetInput: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#111827',
+    marginBottom: 14,
+  },
+  saveBtn: {
+    backgroundColor: '#F3CD03',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  saveBtnDisabled: { backgroundColor: '#E5E7EB' },
+  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#0D3B1F' },
+  saveBtnTextDisabled: { color: '#9CA3AF' },
+  cancelSheetBtn: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelSheetBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
 });
 
 export default SummaryTab;

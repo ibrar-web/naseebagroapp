@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 
 export interface Truck {
   id: string;
@@ -10,10 +17,7 @@ export interface Truck {
   delivered_at?: string | null;
 }
 
-const TRUCK_STATUS: Record<
-  string,
-  { label: string; bg: string; text: string }
-> = {
+const TRUCK_STATUS: Record<string, { label: string; bg: string; text: string }> = {
   registered: { label: 'Registered', bg: '#F3F4F6', text: '#6B7280' },
   dispatched: { label: 'Dispatched', bg: '#EEF6FF', text: '#3B82F6' },
   delivered: { label: 'Delivered', bg: '#F2FBF5', text: '#1A6B34' },
@@ -22,17 +26,26 @@ const TRUCK_STATUS: Record<
 const formatPKR = (n: number) =>
   'PKR ' + Math.round(Number(n)).toLocaleString('en-PK');
 
+interface AddTruckData {
+  truck_number: string;
+  driver_name?: string;
+  weight?: number;
+}
+
 interface Props {
   trucks: Truck[];
-  deal: {
-    total_amount: number;
-    offer?: { payment_term_type?: string | null };
-  };
+  deal: { total_amount: number; offer?: { payment_term_type?: string | null } };
   mode: 'buyer' | 'seller';
-  onAddTruck: () => void;
+  onAddTruck: (data: AddTruckData) => Promise<void>;
 }
 
 const TrucksTab: React.FC<Props> = ({ trucks, deal, mode, onAddTruck }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [vehicleNo, setVehicleNo] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [weight, setWeight] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   const total = trucks.length;
   const dispatched = trucks.filter(
     t => t.status === 'dispatched' || t.status === 'delivered',
@@ -46,8 +59,36 @@ const TrucksTab: React.FC<Props> = ({ trucks, deal, mode, onAddTruck }) => {
         deal.offer.payment_term_type.slice(1).toLowerCase()
       : '—';
 
+  const canSubmit = vehicleNo.trim().length > 0;
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      await onAddTruck({
+        truck_number: vehicleNo.trim(),
+        driver_name: driverName.trim() || undefined,
+        weight: weight ? Number(weight) : undefined,
+      });
+      setVehicleNo('');
+      setDriverName('');
+      setWeight('');
+      setShowForm(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setVehicleNo('');
+    setDriverName('');
+    setWeight('');
+    setShowForm(false);
+  };
+
   return (
     <View>
+      {/* Dark green stats header */}
       <View style={s.header}>
         <View style={s.headerTopRow}>
           <Text style={s.headerTotal}>
@@ -62,16 +103,12 @@ const TrucksTab: React.FC<Props> = ({ trucks, deal, mode, onAddTruck }) => {
         <View style={s.statsRow}>
           <View>
             <Text style={s.statLabel}>DISPATCHED</Text>
-            <Text style={s.statValue}>
-              {dispatched}/{total}
-            </Text>
+            <Text style={s.statValue}>{dispatched}/{total}</Text>
           </View>
           <View style={s.statDivider} />
           <View>
             <Text style={s.statLabel}>DELIVERED</Text>
-            <Text style={s.statValue}>
-              {delivered}/{total}
-            </Text>
+            <Text style={s.statValue}>{delivered}/{total}</Text>
           </View>
           <View style={s.statDivider} />
           <View>
@@ -81,7 +118,8 @@ const TrucksTab: React.FC<Props> = ({ trucks, deal, mode, onAddTruck }) => {
         </View>
       </View>
 
-      {trucks.length === 0 ? (
+      {/* Truck list */}
+      {trucks.length === 0 && !showForm ? (
         <Text style={s.empty}>No trucks added yet.</Text>
       ) : (
         trucks.map(truck => {
@@ -107,14 +145,87 @@ const TrucksTab: React.FC<Props> = ({ trucks, deal, mode, onAddTruck }) => {
         })
       )}
 
+      {/* Seller: Add truck form or button */}
       {mode === 'seller' && (
-        <TouchableOpacity
-          style={s.addBtn}
-          onPress={onAddTruck}
-          activeOpacity={0.85}
-        >
-          <Text style={s.addBtnText}>+ Add Another Truck</Text>
-        </TouchableOpacity>
+        <>
+          {showForm ? (
+            <View style={s.formCard}>
+              <View style={s.formHeader}>
+                <Text style={s.formTitle}>New Truck</Text>
+                <TouchableOpacity
+                  style={s.cancelChip}
+                  onPress={handleCancel}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.cancelChipText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={s.fieldWrap}>
+                <Text style={s.fieldLabel}>Vehicle No.</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. LHR-5001"
+                  placeholderTextColor="#9CA3AF"
+                  value={vehicleNo}
+                  onChangeText={setVehicleNo}
+                  autoCapitalize="characters"
+                />
+              </View>
+
+              <View style={s.fieldWrap}>
+                <Text style={s.fieldLabel}>Driver Name</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. Ali Hassan"
+                  placeholderTextColor="#9CA3AF"
+                  value={driverName}
+                  onChangeText={setDriverName}
+                />
+              </View>
+
+              <View style={s.fieldWrap}>
+                <Text style={s.fieldLabel}>Weight (tons)</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="e.g. 10"
+                  placeholderTextColor="#9CA3AF"
+                  value={weight}
+                  onChangeText={setWeight}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]}
+                onPress={handleSubmit}
+                disabled={!canSubmit || submitting}
+                activeOpacity={0.85}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text
+                    style={[
+                      s.submitBtnText,
+                      !canSubmit && s.submitBtnTextDisabled,
+                    ]}
+                  >
+                    Add Truck to Dispatch
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={s.addBtn}
+              onPress={() => setShowForm(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={s.addBtnText}>+ Add Another Truck</Text>
+            </TouchableOpacity>
+          )}
+        </>
       )}
     </View>
   );
@@ -189,12 +300,64 @@ const s = StyleSheet.create({
   truckInfo: { flex: 1 },
   truckNumber: { fontSize: 13, fontWeight: '700', color: '#111827' },
   truckDriver: { fontSize: 11, color: '#6B7280', marginTop: 2 },
-  truckBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
+  truckBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   truckBadgeText: { fontSize: 11, fontWeight: '700' },
+
+  // Add truck form
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#7FD4A0',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+    marginTop: 4,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  formTitle: { fontSize: 13, fontWeight: '800', color: '#111827' },
+  cancelChip: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  cancelChipText: { fontSize: 11, color: '#6B7280' },
+  fieldWrap: { marginBottom: 10 },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 9,
+    paddingVertical: 9,
+    paddingHorizontal: 11,
+    fontSize: 12,
+    color: '#111827',
+  },
+  submitBtn: {
+    backgroundColor: '#217A3C',
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  submitBtnDisabled: { backgroundColor: '#E5E7EB' },
+  submitBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  submitBtnTextDisabled: { color: '#9CA3AF' },
+
+  // Add button
   addBtn: {
     borderWidth: 1.5,
     borderColor: '#45B86A',

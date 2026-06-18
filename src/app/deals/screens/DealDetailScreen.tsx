@@ -8,40 +8,52 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  ImageBackground,
 } from 'react-native';
+
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import MockStatusBar from '../../components/MockStatusBar';
 import { useAppSelector } from '../../../store';
 import api from '../../../utils/api';
 import SummaryTab, { DealSummaryData, Truck } from '../components/SummaryTab';
 import TrucksTab from '../components/TrucksTab';
 import PaymentTab, { PaymentSummaryData } from '../components/PaymentTab';
+import StagesTab from '../components/StagesTab';
+import { MockStatusBar } from '../../components';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DealDetail'>;
 
 interface DealDetail extends DealSummaryData {
   trucks?: Truck[];
+  current_stage?: number;
+  total_stages?: number;
 }
 
-const TABS = ['Summary', 'Trucks', 'Payment'] as const;
+interface AddTruckData {
+  truck_number: string;
+  driver_name?: string;
+  weight?: number;
+}
+
+const TABS = ['Summary', 'Trucks', 'Payment', 'Stages'] as const;
 type TabType = (typeof TABS)[number];
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  matched: { bg: '#FFFDE6', text: '#D4AE02' },
-  open: { bg: '#EEF6FF', text: '#3B82F6' },
-  closed: { bg: '#F2FBF5', text: '#1A6B34' },
-  cancelled: { bg: '#FEF2F2', text: '#EF4444' },
-  disputed: { bg: '#FFF7ED', text: '#F97316' },
+const STATUS_LABEL_MAP: Record<string, string> = {
+  matched: 'Deal Created',
+  open: 'In Progress',
+  closed: 'Complete',
+  cancelled: 'Cancelled',
+  disputed: 'Disputed',
 };
 
 const formatPKR = (n: number) =>
   'PKR ' + Math.round(Number(n)).toLocaleString('en-PK');
 
+const HEADER_HEIGHT = 140;
+
 const DealDetailScreen = ({ navigation, route }: Props) => {
   const { dealId } = route.params;
   const mode = useAppSelector(s => s.app.mode);
-
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [paymentSummary, setPaymentSummary] =
@@ -60,9 +72,9 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
       if (detailRes) setDeal(detailRes);
 
       if (mode === 'seller') {
-        const truckRes = (await api.seller.getDealTrucks(
-          dealId,
-        )) as Truck[] | undefined;
+        const truckRes = (await api.seller.getDealTrucks(dealId)) as
+          | Truck[]
+          | undefined;
         setTrucks(truckRes ?? []);
       } else {
         setTrucks(detailRes?.trucks ?? []);
@@ -90,74 +102,53 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
     setRefreshing(false);
   }, [fetchAll]);
 
-  const handleAddCompany = () => {
-    Alert.prompt(
-      'Company Name',
-      'Enter company name for Bilti',
-      async text => {
-        if (!text?.trim()) return;
-        try {
-          await (api.buyer as any).updateDealCompany(dealId, text.trim());
-          await fetchAll();
-        } catch {
-          Alert.alert('Error', 'Failed to update company name');
-        }
-      },
-      'plain-text',
-      deal?.buyer_company_name ?? '',
-    );
+  const handleAddCompany = async (name: string) => {
+    try {
+      await (api.buyer as any).updateDealCompany(dealId, name);
+      await fetchAll();
+    } catch {
+      Alert.alert('Error', 'Failed to update company name');
+    }
   };
 
-  const handleAddTruck = () => {
-    Alert.prompt(
-      'Add Truck',
-      'Enter truck registration number',
-      async text => {
-        if (!text?.trim()) return;
-        try {
-          await (api.seller as any).addTruck(dealId, {
-            truck_number: text.trim(),
-          });
-          await fetchAll();
-        } catch {
-          Alert.alert('Error', 'Failed to add truck');
-        }
-      },
-      'plain-text',
-    );
+  const handleAddTruck = async (data: AddTruckData) => {
+    try {
+      await (api.seller as any).addTruck(dealId, data);
+      await fetchAll();
+    } catch {
+      Alert.alert('Error', 'Failed to add truck');
+    }
   };
 
-  const handleAddPayment = () => {
-    Alert.prompt(
-      'Add Payment',
-      'Enter payment amount (PKR)',
-      async text => {
-        const amount = Number(text);
-        if (!text || isNaN(amount) || amount <= 0) return;
-        try {
-          await (api.buyer as any).addPayment(dealId, { amount });
-          await fetchAll();
-        } catch {
-          Alert.alert('Error', 'Failed to submit payment');
-        }
-      },
-      'plain-text',
-    );
+  const handleAddPayment = async (amount: number) => {
+    try {
+      await (api.buyer as any).addPayment(dealId, { amount });
+      await fetchAll();
+    } catch {
+      Alert.alert('Error', 'Failed to submit payment');
+    }
   };
 
   const handleContactAdmin = () => {
-    Alert.alert('Contact Admin', 'Please reach out via WhatsApp or call our support team.');
+    Alert.alert(
+      'Contact Admin',
+      'Please reach out via WhatsApp or call our support team.',
+    );
   };
 
-  const statusColor = STATUS_COLORS[deal?.status ?? ''] ?? STATUS_COLORS.matched;
-  const totalLabel = mode === 'buyer' ? 'Total Amount' : 'Payable to You';
-  const totalValue = deal
-    ? formatPKR(
-        mode === 'seller' && deal.payable_to_seller != null
-          ? Number(deal.payable_to_seller)
-          : Number(deal.total_amount),
-      )
-    : '—';
+  const imageUri = deal?.commodity?.image_url ?? null;
+  const statusLabel =
+    STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
+
+  const summaryLine = [
+    deal?.offer?.quantity ? `${deal.offer.quantity} bags` : null,
+    deal?.total_amount ? formatPKR(Number(deal.total_amount)) : null,
+    trucks.length > 0
+      ? `${trucks.length} truck${trucks.length !== 1 ? 's' : ''}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   if (loading) {
     return (
@@ -169,38 +160,52 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
 
   return (
     <View style={styles.container}>
-      <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-          activeOpacity={0.85}
+      <MockStatusBar />
+      <View style={styles.heroWrap}>
+        <ImageBackground
+          source={imageUri ? { uri: imageUri } : undefined}
+          style={styles.hero}
+          imageStyle={styles.heroImage}
         >
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {deal?.commodity?.name ?? 'Deal'}
-          </Text>
-          <Text style={styles.headerCode}>
-            {deal?.code ?? dealId.slice(0, 8)}
-          </Text>
-        </View>
-        <View style={[styles.headerBadge, { backgroundColor: statusColor.bg }]}>
-          <Text
-            style={[styles.headerBadgeText, { color: statusColor.text }]}
-          >
-            {deal?.status ?? '—'}
-          </Text>
-        </View>
-      </View>
+          {!imageUri && <View style={styles.heroFallback} />}
+          <View style={styles.overlay} />
 
-      {/* Amount banner */}
-      <View style={styles.amountBanner}>
-        <Text style={styles.amountLabel}>{totalLabel}</Text>
-        <Text style={styles.amountValue}>{totalValue}</Text>
+          <View style={[styles.heroContent, { paddingTop: 10 }]}>
+            {/* Top row: back button + status badge */}
+            <View style={styles.heroTopRow}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backBtn}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.backArrow}>←</Text>
+              </TouchableOpacity>
+
+              <View style={styles.statusBadgeWrap}>
+                <Text style={styles.statusBadgeLabel}>STATUS</Text>
+                <Text style={styles.statusBadgeText}>{statusLabel}</Text>
+              </View>
+            </View>
+
+            {/* Spacer pushes bottom content down */}
+            <View style={styles.heroSpacer} />
+
+            {/* Bottom: code + commodity + summary */}
+            <View style={styles.heroBottom}>
+              <Text style={styles.heroCode} numberOfLines={1}>
+                {deal?.code ?? dealId.slice(0, 8)}
+              </Text>
+              <Text style={styles.heroCommodity} numberOfLines={1}>
+                {deal?.commodity?.name ?? 'Deal'}
+              </Text>
+              {summaryLine ? (
+                <Text style={styles.heroSummaryLine} numberOfLines={1}>
+                  {summaryLine}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </ImageBackground>
       </View>
 
       {/* Tab bar */}
@@ -258,6 +263,9 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
             onAddPayment={handleAddPayment}
           />
         )}
+        {activeTab === 'Stages' && deal && (
+          <StagesTab deal={deal} mode={mode} />
+        )}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
@@ -267,56 +275,79 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
+
+  heroWrap: { height: HEADER_HEIGHT, overflow: 'hidden' },
+  hero: { flex: 1 },
+  heroImage: { resizeMode: 'cover' },
+  heroFallback: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#145228',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 14,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+
+  // Column layout inside the hero
+  heroContent: {
+    flex: 1,
     paddingHorizontal: 14,
-    gap: 10,
+    paddingBottom: 12,
   },
-  backBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 10,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: { fontSize: 18, color: '#FFFFFF', lineHeight: 20 },
-  headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
-  headerCode: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'monospace',
-    marginTop: 2,
-  },
-  headerBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  headerBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  amountBanner: {
-    backgroundColor: '#1A6B34',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  amountLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: '500',
+  heroSpacer: { flex: 1 },
+
+  backBtn: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    padding: 8,
   },
-  amountValue: { fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
+  backArrow: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+
+  statusBadgeWrap: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusBadgeLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+
+  heroBottom: {},
+  heroCode: {
+    fontSize: 9,
+    color: 'rgba(255,255,255)',
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
+  heroCommodity: { fontSize: 18, fontWeight: '900', color: '#FFFFFF' },
+  heroSummaryLine: {
+    fontSize: 11,
+    color: 'rgba(255,255,255)',
+    marginTop: 2,
+  },
+
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -325,14 +356,15 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 11,
+    paddingVertical: 10,
     alignItems: 'center',
     borderBottomWidth: 2.5,
     borderBottomColor: 'transparent',
   },
   tabItemActive: { borderBottomColor: '#217A3C' },
-  tabLabel: { fontSize: 12, fontWeight: '500', color: '#6B7280' },
+  tabLabel: { fontSize: 11, fontWeight: '500', color: '#6B7280' },
   tabLabelActive: { fontWeight: '700', color: '#1A6B34' },
+
   scroll: { flex: 1 },
   scrollContent: { padding: 14 },
   bottomSpacer: { height: 40 },

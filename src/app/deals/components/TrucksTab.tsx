@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import DocumentPicker from 'react-native-document-picker';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import api from '../../../utils/api';
 import DocumentViewerModal from './DocumentViewerModal';
 
@@ -183,43 +186,105 @@ const TrucksTab: React.FC<Props> = ({
     }
   };
 
+  const submitUpload = async (
+    truckId: string,
+    docType: 'bilti' | 'waybill' | 'pohnch',
+    file: { uri: string; type: string; name: string },
+  ) => {
+    const key = `${truckId}_${docType}`;
+    setUploadingDoc(key);
+    try {
+      const form = new FormData();
+      form.append('file', {
+        uri: file.uri,
+        type: file.type,
+        name: file.name,
+      } as any);
+      if (mode === 'seller') {
+        form.append('doc_type', docType);
+        await api.seller.addTruckDoc(deal.deal_id, truckId, form);
+      } else {
+        await api.buyer.addTruckDocument(deal.deal_id, truckId, form);
+      }
+      await loadTrucks();
+    } catch {
+      Alert.alert('Error', 'Failed to upload document.');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
   const handleUploadDoc = (
     truckId: string,
     docType: 'bilti' | 'waybill' | 'pohnch',
   ) => {
-    const key = `${truckId}_${docType}`;
-    launchImageLibrary({ mediaType: 'mixed', quality: 1 }, async response => {
-      if (response.didCancel || !response.assets?.length) return;
-      const asset = response.assets[0];
-      if (!asset.uri) return;
+    const doCamera = () =>
+      launchCamera({ mediaType: 'photo', quality: 1 }, async res => {
+        if (res.didCancel || !res.assets?.length) return;
+        const a = res.assets[0];
+        if (!a.uri) return;
+        await submitUpload(truckId, docType, {
+          uri: a.uri,
+          type: a.type ?? 'image/jpeg',
+          name: a.fileName ?? `photo_${truckId}.jpg`,
+        });
+      });
 
-      setUploadingDoc(key);
+    const doGallery = () =>
+      launchImageLibrary({ mediaType: 'photo', quality: 1 }, async res => {
+        if (res.didCancel || !res.assets?.length) return;
+        const a = res.assets[0];
+        if (!a.uri) return;
+        await submitUpload(truckId, docType, {
+          uri: a.uri,
+          type: a.type ?? 'image/jpeg',
+          name: a.fileName ?? `image_${truckId}.jpg`,
+        });
+      });
+
+    const doDocument = async () => {
       try {
-        const form = new FormData();
-        form.append('file', {
-          uri: asset.uri,
-          type: asset.type ?? 'application/octet-stream',
-          name: asset.fileName ?? `doc_${truckId}`,
-        } as any);
-
-        if (mode === 'seller') {
-          form.append('doc_type', docType);
-          await api.seller.addTruckDoc(deal.deal_id, truckId, form);
-        } else {
-          await api.buyer.addTruckDocument(deal.deal_id, truckId, form);
-        }
-        await loadTrucks();
-      } catch {
-        Alert.alert('Error', 'Failed to upload document.');
-      } finally {
-        setUploadingDoc(null);
+        const [result] = await DocumentPicker.pick({
+          type: [DocumentPicker.types.allFiles],
+          copyTo: 'cachesDirectory',
+        });
+        const uri = result.fileCopyUri ?? result.uri;
+        if (!uri) return;
+        await submitUpload(truckId, docType, {
+          uri,
+          type: result.type ?? 'application/octet-stream',
+          name: result.name ?? `doc_${truckId}`,
+        });
+      } catch (e) {
+        if (DocumentPicker.isCancel(e)) return;
+        Alert.alert('Error', 'Failed to pick document.');
       }
-    });
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Gallery', 'Choose File (PDF, etc.)'],
+          cancelButtonIndex: 0,
+        },
+        idx => {
+          if (idx === 1) doCamera();
+          else if (idx === 2) doGallery();
+          else if (idx === 3) doDocument();
+        },
+      );
+    } else {
+      Alert.alert('Upload Document', 'Choose upload method', [
+        { text: 'Take Photo', onPress: doCamera },
+        { text: 'Choose from Gallery', onPress: doGallery },
+        { text: 'Choose File (PDF, etc.)', onPress: doDocument },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
   };
 
-  // Visibility rules:
-  // - Own docs (uploaded_by_role === mode): always visible regardless of status
-  // - Other party's docs: only visible when status === 'verified'
+  // API already filters: other party's docs only arrive when verified.
+  // Own docs arrive in all statuses (pending, verified, rejected).
   const renderDocChipRow = (
     truck: FullTruck,
     docType: 'bilti' | 'waybill' | 'pohnch',
@@ -232,11 +297,6 @@ const TrucksTab: React.FC<Props> = ({
     const isUploading = uploadingDoc === uploadKey;
     const label = DOC_LABELS[docType];
 
-    const isOwn = doc?.uploaded_by_role === mode;
-    const isVerified = doc?.status === 'verified';
-    // Can view: own doc always, other party's only when verified
-    const canView = !!doc && (isOwn || isVerified);
-
     const openViewer = () => {
       if (doc?.signed_url) {
         setViewerDoc({ url: doc.signed_url, name: doc.document_name });
@@ -246,49 +306,51 @@ const TrucksTab: React.FC<Props> = ({
     return (
       <View key={docType} style={s.docRow}>
         {doc ? (
-          canView ? (
-            isVerified ? (
-              // Verified — green chip, tappable
-              <TouchableOpacity
-                style={s.chipGreen}
-                onPress={openViewer}
-                activeOpacity={0.75}
-              >
-                <Text style={s.chipCheck}>✓</Text>
-                <Text style={s.chipGreenLabel}>{label}</Text>
-                <Text style={s.chipFileName} numberOfLines={1}>
-                  {doc.document_name}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              // Own doc, pending review — amber chip, still tappable
-              <TouchableOpacity
-                style={s.chipAmber}
-                onPress={openViewer}
-                activeOpacity={0.75}
-              >
-                <Text style={s.chipPendingDot}>●</Text>
-                <Text style={s.chipAmberLabel}>{label}</Text>
-                <Text style={s.chipPendingText}>Pending review</Text>
-              </TouchableOpacity>
-            )
+          doc.status === 'verified' ? (
+            // Verified — green chip, tappable
+            <TouchableOpacity
+              style={s.chipGreen}
+              onPress={openViewer}
+              activeOpacity={0.75}
+            >
+              <Text style={s.chipCheck}>✓</Text>
+              <Text style={s.chipGreenLabel}>{label}</Text>
+              <Text style={s.chipFileName} numberOfLines={1}>
+                {doc.document_name}
+              </Text>
+            </TouchableOpacity>
+          ) : doc.status === 'rejected' ? (
+            // Rejected (own doc) — red chip, tappable to review
+            <TouchableOpacity
+              style={s.chipRed}
+              onPress={openViewer}
+              activeOpacity={0.75}
+            >
+              <Text style={s.chipRedIcon}>✕</Text>
+              <Text style={s.chipRedLabel}>{label}</Text>
+              <Text style={s.chipRejectedText}>Rejected</Text>
+            </TouchableOpacity>
           ) : (
-            // Other party uploaded but not yet verified — gray placeholder
-            <View style={s.chipGray}>
-              <View style={s.fileIconBox} />
-              <Text style={s.chipGrayLabel}>{label}</Text>
-              <Text style={s.chipAwaitingText}>Awaiting approval</Text>
-            </View>
+            // Pending (own doc awaiting admin review) — amber chip, tappable
+            <TouchableOpacity
+              style={s.chipAmber}
+              onPress={openViewer}
+              activeOpacity={0.75}
+            >
+              <Text style={s.chipPendingDot}>●</Text>
+              <Text style={s.chipAmberLabel}>{label}</Text>
+              <Text style={s.chipPendingText}>Pending review</Text>
+            </TouchableOpacity>
           )
         ) : (
-          // Not uploaded — gray chip
+          // Not uploaded (or other party's doc not yet verified by admin)
           <View style={s.chipGray}>
             <View style={s.fileIconBox} />
             <Text style={s.chipGrayLabel}>{label}</Text>
           </View>
         )}
 
-        {/* Upload button — only if canUpload and not yet uploaded */}
+        {/* Upload button — only if canUpload and no doc uploaded yet */}
         {canUpload && !doc && (
           <TouchableOpacity
             style={[s.uploadBtn, { backgroundColor: uploadBtnBg }]}
@@ -392,18 +454,12 @@ const TrucksTab: React.FC<Props> = ({
             )}
           </TouchableOpacity>
 
-          {/* DISPATCH DOCUMENTS — buyer sees seller docs when verified */}
-          {truck.documents.some(
-            d =>
-              (d.doc_type === 'bilti' || d.doc_type === 'waybill') &&
-              d.status === 'verified',
-          ) && (
-            <View style={s.docSectionTop}>
-              <Text style={s.sectionHead}>DISPATCH DOCUMENTS</Text>
-              {renderDocChipRow(truck, 'bilti', false, '#217A3C', '#FFFFFF')}
-              {renderDocChipRow(truck, 'waybill', false, '#217A3C', '#FFFFFF')}
-            </View>
-          )}
+          {/* DISPATCH DOCUMENTS — seller's bilti/waybill; API only sends when verified */}
+          <View style={s.docSectionTop}>
+            <Text style={s.sectionHead}>DISPATCH DOCUMENTS</Text>
+            {renderDocChipRow(truck, 'bilti', false, '#217A3C', '#FFFFFF')}
+            {renderDocChipRow(truck, 'waybill', false, '#217A3C', '#FFFFFF')}
+          </View>
         </>
       )}
     </View>
@@ -808,10 +864,26 @@ const s = StyleSheet.create({
     color: '#B45309',
     fontStyle: 'italic',
   },
-  chipAwaitingText: {
+
+  // Red chip (rejected)
+  chipRed: {
+    flex: 1,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 9,
+    padding: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chipRedIcon: { fontSize: 11, color: '#DC2626', fontWeight: '700' },
+  chipRedLabel: { fontSize: 12, fontWeight: '600', color: '#991B1B' },
+  chipRejectedText: {
     marginLeft: 'auto',
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#DC2626',
     fontStyle: 'italic',
   },
 

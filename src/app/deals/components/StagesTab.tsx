@@ -1,5 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  RefreshControl,
+} from 'react-native';
+import api from '../../../utils/api';
+
+interface Props {
+  dealId: string;
+  mode: 'buyer' | 'seller';
+}
 
 interface DealForStages {
   status: string;
@@ -55,17 +68,62 @@ const STATUS_TO_STAGE: Record<string, number> = {
   disputed: 2,
 };
 
-interface Props {
-  deal: DealForStages;
-  mode: 'buyer' | 'seller';
-}
+const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
+  const [deal, setDeal] = useState<DealForStages | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-const StagesTab: React.FC<Props> = ({ deal }) => {
+  const loadDeal = useCallback(async () => {
+    try {
+      const res: any =
+        mode === 'buyer'
+          ? await api.buyer.getDeal(dealId)
+          : await api.seller.getDeal(dealId);
+      if (res) setDeal(res);
+    } catch {
+      // keep existing
+    } finally {
+      setLoading(false);
+    }
+  }, [dealId, mode]);
+
+  useEffect(() => {
+    loadDeal();
+  }, [loadDeal]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadDeal();
+    setRefreshing(false);
+  }, [loadDeal]);
+
+  if (loading) {
+    return (
+      <View style={s.center}>
+        <ActivityIndicator size="large" color="#217A3C" />
+      </View>
+    );
+  }
+
+  if (!deal) return null;
+
   const currentStage = deal.current_stage ?? STATUS_TO_STAGE[deal.status] ?? 1;
   const isCancelled = deal.status === 'cancelled';
 
   return (
-    <View style={s.container}>
+    <ScrollView
+      style={s.scroll}
+      contentContainerStyle={s.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#217A3C"
+          colors={['#217A3C']}
+        />
+      }
+    >
       <View style={s.headerCard}>
         <Text style={s.headerTitle}>Deal Progress</Text>
         <Text style={s.headerSub}>
@@ -105,7 +163,6 @@ const StagesTab: React.FC<Props> = ({ deal }) => {
 
           return (
             <View key={stage.key} style={s.stageRow}>
-              {/* Left timeline column */}
               <View style={s.timelineCol}>
                 <View style={[s.circle, circleStyle]}>{circleInner}</View>
                 {!isLast && (
@@ -118,7 +175,6 @@ const StagesTab: React.FC<Props> = ({ deal }) => {
                 )}
               </View>
 
-              {/* Right content */}
               <View
                 style={[
                   s.stageContent,
@@ -149,10 +205,7 @@ const StagesTab: React.FC<Props> = ({ deal }) => {
                   )}
                 </View>
                 <Text
-                  style={[
-                    s.stageDesc,
-                    isPending && s.stageDescPending,
-                  ]}
+                  style={[s.stageDesc, isPending && s.stageDescPending]}
                 >
                   {stage.desc}
                 </Text>
@@ -170,14 +223,19 @@ const StagesTab: React.FC<Props> = ({ deal }) => {
           );
         })}
       </View>
-    </View>
+
+      <View style={s.bottomSpacer} />
+    </ScrollView>
   );
 };
 
 const CIRCLE_SIZE = 28;
 
 const s = StyleSheet.create({
-  container: { paddingBottom: 8 },
+  scroll: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 14 },
+  bottomSpacer: { height: 40 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   headerCard: {
     backgroundColor: '#145228',
@@ -186,26 +244,13 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   headerTitle: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
-  headerSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 3,
-  },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 3 },
 
   timeline: { paddingLeft: 4 },
 
-  stageRow: {
-    flexDirection: 'row',
-    gap: 14,
-    minHeight: 60,
-  },
+  stageRow: { flexDirection: 'row', gap: 14, minHeight: 60 },
 
-  // Left column
-  timelineCol: {
-    width: CIRCLE_SIZE,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
+  timelineCol: { width: CIRCLE_SIZE, alignItems: 'center', flexShrink: 0 },
   circle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
@@ -230,23 +275,12 @@ const s = StyleSheet.create({
   stageNum: { fontSize: 12, fontWeight: '800' },
   stageNumCurrent: { color: '#0D3B1F' },
   stageNumPending: { color: '#9CA3AF' },
-  connector: {
-    flex: 1,
-    width: 2,
-    marginVertical: 3,
-    borderRadius: 1,
-  },
+  connector: { flex: 1, width: 2, marginVertical: 3, borderRadius: 1 },
   connectorDone: { backgroundColor: '#217A3C' },
   connectorPending: { backgroundColor: '#E5E7EB' },
 
-  // Right content
-  stageContent: {
-    flex: 1,
-    paddingBottom: 20,
-  },
-  stageContentBordered: {
-    borderBottomWidth: 0,
-  },
+  stageContent: { flex: 1, paddingBottom: 20 },
+  stageContentBordered: { borderBottomWidth: 0 },
   stageContentCurrent: {
     backgroundColor: '#FFFDE6',
     borderRadius: 12,

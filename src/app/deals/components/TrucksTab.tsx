@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Platform,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -38,21 +40,12 @@ export interface FullTruck {
   documents: TruckDocument[];
 }
 
-interface AddTruckData {
-  truck_number: string;
-  driver_name?: string;
-  weight_tons?: number;
-}
-
 interface Props {
-  deal: {
-    deal_id: string;
-    total_amount?: number | null;
-    offer?: { payment_term_type?: string | null };
-  };
+  dealId: string;
   mode: 'buyer' | 'seller';
-  onAddTruck: (data: AddTruckData) => Promise<void>;
-  onTrucksLoaded?: (trucks: FullTruck[]) => void;
+  totalAmount?: number | null;
+  paymentTermType?: string | null;
+  onTrucksLoaded?: (count: number) => void;
 }
 
 const STATUS_BADGE: Record<
@@ -88,9 +81,10 @@ const DOC_LABELS: Record<string, string> = {
 const fmtNum = (n: number) => Math.round(n).toLocaleString('en-PK');
 
 const TrucksTab: React.FC<Props> = ({
-  deal,
+  dealId,
   mode,
-  onAddTruck,
+  totalAmount,
+  paymentTermType,
   onTrucksLoaded,
 }) => {
   const [trucks, setTrucks] = useState<FullTruck[]>([]);
@@ -107,32 +101,44 @@ const TrucksTab: React.FC<Props> = ({
   const [editUnloaded, setEditUnloaded] = useState('');
   const [savingFields, setSavingFields] = useState(false);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [viewerDoc, setViewerDoc] = useState<{
     url: string;
     name: string;
   } | null>(null);
 
+  // Use a ref so onTrucksLoaded never appears in loadTrucks deps — prevents
+  // the parent re-render loop caused by a new inline arrow on each render.
+  const onTrucksLoadedRef = useRef(onTrucksLoaded);
+  useEffect(() => {
+    onTrucksLoadedRef.current = onTrucksLoaded;
+  });
+
   const loadTrucks = useCallback(async () => {
     try {
       const resp: any =
         mode === 'buyer'
-          ? await api.buyer.getTrucks(deal.deal_id)
-          : await api.seller.getDealTrucks(deal.deal_id);
+          ? await api.buyer.getTrucks(dealId)
+          : await api.seller.getDealTrucks(dealId);
       const list: FullTruck[] = Array.isArray(resp) ? resp : resp?.data ?? [];
-
-      console.log('list :', list);
       setTrucks(list);
-      onTrucksLoaded?.(list);
+      onTrucksLoadedRef.current?.(list.length);
     } catch {
       // keep existing list
     } finally {
       setLoading(false);
     }
-  }, [deal.deal_id, mode, onTrucksLoaded]);
+  }, [dealId, mode]);
 
   useEffect(() => {
     loadTrucks();
+  }, [loadTrucks]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadTrucks();
+    setRefreshing(false);
   }, [loadTrucks]);
 
   const handleToggleExpand = (truck: FullTruck) => {
@@ -155,7 +161,7 @@ const TrucksTab: React.FC<Props> = ({
     if (!vehicleNo.trim() || submitting) return;
     setSubmitting(true);
     try {
-      await onAddTruck({
+      await api.seller.addTruck(dealId, {
         truck_number: vehicleNo.trim(),
         driver_name: driverName.trim() || undefined,
         weight_tons: weight ? Number(weight) : undefined,
@@ -165,6 +171,8 @@ const TrucksTab: React.FC<Props> = ({
       setWeight('');
       setShowForm(false);
       await loadTrucks();
+    } catch {
+      Alert.alert('Error', 'Failed to add truck.');
     } finally {
       setSubmitting(false);
     }
@@ -174,7 +182,7 @@ const TrucksTab: React.FC<Props> = ({
     if (savingFields) return;
     setSavingFields(true);
     try {
-      await api.buyer.updateTruck(deal.deal_id, truckId, {
+      await api.buyer.updateTruck(dealId, truckId, {
         freight_amount: editFreight ? Number(editFreight) : undefined,
         unloaded_weight_tons: editUnloaded ? Number(editUnloaded) : undefined,
       });
@@ -202,9 +210,9 @@ const TrucksTab: React.FC<Props> = ({
       } as any);
       if (mode === 'seller') {
         form.append('doc_type', docType);
-        await api.seller.addTruckDoc(deal.deal_id, truckId, form);
+        await api.seller.addTruckDoc(dealId, truckId, form);
       } else {
-        await api.buyer.addTruckDocument(deal.deal_id, truckId, form);
+        await api.buyer.addTruckDocument(dealId, truckId, form);
       }
       await loadTrucks();
     } catch {
@@ -388,9 +396,20 @@ const TrucksTab: React.FC<Props> = ({
         <View>
           <Text style={s.statsBarLabel}>LOAD</Text>
           <Text style={s.statsBarVal}>
-            {truck.weight_tons != null ? `${truck.weight_tons} tons` : '—'}
+            {truck.weight_tons != null ? `${truck.weight_tons} t` : '—'}
           </Text>
         </View>
+        {mode === 'seller' && truck.freight_amount != null && (
+          <>
+            <View style={s.statsBarDivider} />
+            <View>
+              <Text style={s.statsBarLabel}>FREIGHT</Text>
+              <Text style={[s.statsBarVal, s.statsBarFreight]}>
+                PKR {fmtNum(truck.freight_amount)}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
       {mode === 'seller' ? (
@@ -470,10 +489,9 @@ const TrucksTab: React.FC<Props> = ({
     t => t.status === 'dispatched' || t.status === 'delivered',
   ).length;
   const delivered = trucks.filter(t => t.status === 'delivered').length;
-  const totalAmount = Number(deal.total_amount ?? 0);
-  const paymentLabel = deal.offer?.payment_term_type
-    ? deal.offer.payment_term_type.charAt(0).toUpperCase() +
-      deal.offer.payment_term_type.slice(1).toLowerCase()
+  const totalAmountNum = Number(totalAmount ?? 0);
+  const paymentLabel = paymentTermType
+    ? paymentTermType.charAt(0).toUpperCase() + paymentTermType.slice(1).toLowerCase()
     : '—';
 
   if (loading) {
@@ -485,13 +503,25 @@ const TrucksTab: React.FC<Props> = ({
   }
 
   return (
-    <View>
+    <ScrollView
+      style={s.scroll}
+      contentContainerStyle={s.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#217A3C"
+          colors={['#217A3C']}
+        />
+      }
+    >
       {/* Summary header bar */}
       <View style={s.summaryHeader}>
         <View style={s.summaryHeaderTop}>
           <Text style={s.summaryTitle}>
             {total} Truck{total !== 1 ? 's' : ''}
-            {totalAmount > 0 ? `  ·  PKR ${fmtNum(totalAmount)}` : ''}
+            {totalAmountNum > 0 ? `  ·  PKR ${fmtNum(totalAmountNum)}` : ''}
           </Text>
         </View>
         <View style={s.statsRow}>
@@ -673,11 +703,15 @@ const TrucksTab: React.FC<Props> = ({
         fileName={viewerDoc?.name ?? ''}
         onClose={() => setViewerDoc(null)}
       />
-    </View>
+      <View style={s.bottomSpacer} />
+    </ScrollView>
   );
 };
 
 const s = StyleSheet.create({
+  scroll: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 14 },
+  bottomSpacer: { height: 40 },
   loaderWrap: { paddingVertical: 40, alignItems: 'center' },
   empty: {
     fontSize: 13,
@@ -779,6 +813,7 @@ const s = StyleSheet.create({
   },
   statsBarLabel: { fontSize: 9, color: '#9CA3AF', marginBottom: 2 },
   statsBarVal: { fontSize: 12, fontWeight: '700', color: '#1F2937' },
+  statsBarFreight: { color: '#217A3C' },
 
   // Doc sections
   docSection: { marginBottom: 12 },

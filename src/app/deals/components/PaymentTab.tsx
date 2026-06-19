@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,15 @@ import {
   Platform,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import {
   launchImageLibrary,
   type ImagePickerResponse,
 } from 'react-native-image-picker';
+import api from '../../../utils/api';
 
 interface ReceiptFile {
   uri: string;
@@ -45,12 +49,26 @@ export interface PaymentSummaryData {
   payments?: Payment[];
 }
 
+interface Props {
+  dealId: string;
+  mode: 'buyer' | 'seller';
+}
+
 const formatPKR = (n: number) =>
   'PKR ' + Math.round(Number(n)).toLocaleString('en-PK');
 
 const getReceiptStatus = (
   p: Payment,
-): { label: string; rowBg: string; iconBg: string; iconColor: string; badgeBg: string; badgeText: string; icon: string; borderColor?: string } => {
+): {
+  label: string;
+  rowBg: string;
+  iconBg: string;
+  iconColor: string;
+  badgeBg: string;
+  badgeText: string;
+  icon: string;
+  borderColor?: string;
+} => {
   const receipts = p.receipts ?? [];
   if (receipts.length === 0)
     return {
@@ -87,17 +105,40 @@ const getReceiptStatus = (
   };
 };
 
-interface Props {
-  paymentSummary: PaymentSummaryData | null;
-  mode: 'buyer' | 'seller';
-  onAddPayment: (amount: number, receipt?: ReceiptFile) => Promise<void>;
-}
+const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
+  const [paymentSummary, setPaymentSummary] =
+    useState<PaymentSummaryData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => {
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState('');
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const loadPayments = useCallback(async () => {
+    try {
+      const res: any =
+        mode === 'buyer'
+          ? await api.buyer.getPayments(dealId)
+          : await api.seller.getDealPayments(dealId);
+      if (res) setPaymentSummary(res);
+    } catch {
+      // keep existing
+    } finally {
+      setLoading(false);
+    }
+  }, [dealId, mode]);
+
+  useEffect(() => {
+    loadPayments();
+  }, [loadPayments]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadPayments();
+    setRefreshing(false);
+  }, [loadPayments]);
 
   const pickReceipt = () => {
     launchImageLibrary(
@@ -115,8 +156,62 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
     );
   };
 
+  const handleSubmit = async () => {
+    if (Number(amount) <= 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('amount', String(amount));
+      if (receipt) {
+        form.append('file', {
+          uri: receipt.uri,
+          type: receipt.type,
+          name: receipt.name,
+        } as any);
+      }
+      await api.buyer.addPayment(dealId, form);
+      setAmount('');
+      setReceipt(null);
+      setShowModal(false);
+      await loadPayments();
+    } catch {
+      Alert.alert('Error', 'Failed to submit payment.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setAmount('');
+    setReceipt(null);
+    setShowModal(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={s.center}>
+        <ActivityIndicator size="large" color="#217A3C" />
+      </View>
+    );
+  }
+
   if (!paymentSummary) {
-    return <Text style={s.empty}>No payment data.</Text>;
+    return (
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#217A3C"
+            colors={['#217A3C']}
+          />
+        }
+      >
+        <Text style={s.empty}>No payment data.</Text>
+      </ScrollView>
+    );
   }
 
   const total =
@@ -129,32 +224,25 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
   const remaining = Number(
     paymentSummary.remaining ?? Math.max(0, total - received),
   );
-  const pct = total > 0 ? Math.min(Math.round((received / total) * 100), 100) : 0;
+  const pct =
+    total > 0 ? Math.min(Math.round((received / total) * 100), 100) : 0;
   const payments = paymentSummary.payments ?? [];
-
   const canSubmit = Number(amount) > 0;
 
-  const handleSubmit = async () => {
-    if (!canSubmit || submitting) return;
-    setSubmitting(true);
-    try {
-      await onAddPayment(Number(amount), receipt ?? undefined);
-      setAmount('');
-      setReceipt(null);
-      setShowModal(false);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setAmount('');
-    setReceipt(null);
-    setShowModal(false);
-  };
-
   return (
-    <View>
+    <ScrollView
+      style={s.scroll}
+      contentContainerStyle={s.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#217A3C"
+          colors={['#217A3C']}
+        />
+      }
+    >
       {/* Progress card */}
       <View style={s.progressCard}>
         <View style={s.progressTop}>
@@ -172,12 +260,8 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
           <View style={[s.barFill, { width: `${pct}%` as any }]} />
         </View>
         <View style={s.progressFooter}>
-          <Text style={s.progressFooterText}>
-            {formatPKR(received)} received
-          </Text>
-          <Text style={s.progressFooterText}>
-            {formatPKR(remaining)} remaining
-          </Text>
+          <Text style={s.progressFooterText}>{formatPKR(received)} received</Text>
+          <Text style={s.progressFooterText}>{formatPKR(remaining)} remaining</Text>
         </View>
       </View>
 
@@ -236,7 +320,6 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
         <Text style={s.emptyHistory}>No payments recorded yet.</Text>
       )}
 
-      {/* Seller: payment releases info card */}
       {mode === 'seller' && (
         <View style={s.releasesCard}>
           <Text style={s.releasesTitle}>💰  Payment Releases</Text>
@@ -247,7 +330,6 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
         </View>
       )}
 
-      {/* Buyer: add payment button */}
       {mode === 'buyer' && (
         <TouchableOpacity
           style={s.addPayBtn}
@@ -260,6 +342,8 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
           <Text style={s.addPayBtnText}>Add Payment</Text>
         </TouchableOpacity>
       )}
+
+      <View style={s.bottomSpacer} />
 
       {/* Add Payment bottom-sheet modal */}
       <Modal
@@ -278,7 +362,6 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={s.paySheet}>
-              {/* Dark green header */}
               <View style={s.paySheetHeader}>
                 <View style={s.payDragHandle} />
                 <View style={s.payHeaderRow}>
@@ -294,7 +377,6 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
                 </View>
               </View>
 
-              {/* Content */}
               <View style={s.paySheetBody}>
                 <Text style={s.payFieldLabel}>
                   Payment Amount (PKR){' '}
@@ -376,25 +458,18 @@ const PaymentTab: React.FC<Props> = ({ paymentSummary, mode, onAddPayment }) => 
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 const s = StyleSheet.create({
-  empty: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    paddingVertical: 24,
-  },
-  emptyHistory: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
+  scroll: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 14 },
+  bottomSpacer: { height: 40 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 24 },
+  emptyHistory: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', paddingVertical: 16 },
 
-  // Progress card
   progressCard: {
     backgroundColor: '#145228',
     borderRadius: 14,
@@ -407,17 +482,9 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  progressLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.4)',
-    marginBottom: 4,
-  },
+  progressLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
   progressAmount: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
-  progressTotal: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 2,
-  },
+  progressTotal: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
   pctBox: { alignItems: 'flex-end' },
   pctText: { fontSize: 28, fontWeight: '900', color: '#F7DB4A' },
   pctLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
@@ -428,15 +495,10 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
-  barFill: {
-    height: '100%',
-    backgroundColor: '#F7DB4A',
-    borderRadius: 6,
-  },
+  barFill: { height: '100%', backgroundColor: '#F7DB4A', borderRadius: 6 },
   progressFooter: { flexDirection: 'row', justifyContent: 'space-between' },
   progressFooterText: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
 
-  // Allocation card
   allocationCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -447,15 +509,9 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  allocationTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 6,
-  },
+  allocationTitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
   allocationText: { fontSize: 11, color: '#9CA3AF', lineHeight: 16 },
 
-  // Payment history
   historyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -466,12 +522,7 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  historyTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 12,
-  },
+  historyTitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 12 },
   payRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -495,7 +546,6 @@ const s = StyleSheet.create({
   payBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   payBadgeText: { fontSize: 10, fontWeight: '700' },
 
-  // Releases card (seller)
   releasesCard: {
     backgroundColor: '#F2FBF5',
     borderWidth: 1.5,
@@ -504,15 +554,9 @@ const s = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
   },
-  releasesTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#145228',
-    marginBottom: 6,
-  },
+  releasesTitle: { fontSize: 13, fontWeight: '700', color: '#145228', marginBottom: 6 },
   releasesText: { fontSize: 11, color: '#1A6B34', opacity: 0.8, lineHeight: 16 },
 
-  // Add payment button (buyer)
   addPayBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -534,19 +578,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addPayPlusIcon: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0D3B1F',
-    lineHeight: 26,
-  },
+  addPayPlusIcon: { fontSize: 22, fontWeight: '900', color: '#0D3B1F', lineHeight: 26 },
   addPayBtnText: { fontSize: 14, fontWeight: '700', color: '#0D3B1F' },
 
-  // Modal overlay
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   overlayBg: {
     position: 'absolute',
     top: 0,
@@ -556,7 +591,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
 
-  // Payment bottom sheet
   paySheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
@@ -577,11 +611,7 @@ const s = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
-  payHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
+  payHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   payHeaderIconBox: {
     width: 44,
     height: 44,
@@ -593,21 +623,9 @@ const s = StyleSheet.create({
   payHeaderIcon: { fontSize: 20 },
   payHeaderText: { flex: 1 },
   paySheetTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
-  paySheetRemaining: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  paySheetBody: {
-    padding: 20,
-    paddingBottom: 32,
-  },
-  payFieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
+  paySheetRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  paySheetBody: { padding: 20, paddingBottom: 32 },
+  payFieldLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
   required: { color: '#EF4444' },
   amountWrap: {
     position: 'relative',
@@ -648,12 +666,7 @@ const s = StyleSheet.create({
     borderStyle: 'solid',
   },
   uploadIcon: { fontSize: 24, color: '#9CA3AF' },
-  uploadTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#374151',
-    marginTop: 4,
-  },
+  uploadTitle: { fontSize: 14, fontWeight: '700', color: '#374151', marginTop: 4 },
   uploadTitleDone: { color: '#1A6B34' },
   uploadSub: { fontSize: 11, color: '#9CA3AF' },
   payFieldSubLabel: { fontSize: 11, fontWeight: '400', color: '#9CA3AF' },
@@ -665,11 +678,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   infoText: { fontSize: 11, color: '#3B82F6', lineHeight: 16 },
-  payFooter: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
+  payFooter: { flexDirection: 'row', gap: 10, marginTop: 16 },
   cancelPayBtn: {
     flex: 1,
     borderWidth: 1.5,

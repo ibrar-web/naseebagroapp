@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,13 @@ import {
   Platform,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
+  Alert,
 } from 'react-native';
+import api from '../../../utils/api';
 
+// Keep exporting the types so navigation / other screens can still import them
 export interface Truck {
   id: string;
   truck_number: string;
@@ -39,6 +44,11 @@ export interface DealSummaryData {
   };
 }
 
+interface Props {
+  dealId: string;
+  mode: 'buyer' | 'seller';
+}
+
 const STAGE_MSG: Record<string, { title: string; desc: string }> = {
   matched: { title: 'Deal Created', desc: 'Waiting for dispatch' },
   open: { title: 'In Progress', desc: 'Deal is being fulfilled' },
@@ -65,52 +75,51 @@ const Row = ({
   </View>
 );
 
-interface Props {
-  deal: DealSummaryData;
-  mode: 'buyer' | 'seller';
-  trucks: Truck[];
-  onAddCompany: (name: string) => Promise<void>;
-  onContactAdmin: () => void;
-}
+const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
+  const [deal, setDeal] = useState<DealSummaryData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-const SummaryTab: React.FC<Props> = ({
-  deal,
-  mode,
-  trucks,
-  onAddCompany,
-  onContactAdmin,
-}) => {
   const [showModal, setShowModal] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const stageMsg = STAGE_MSG[deal.status] ?? STAGE_MSG.open;
-  const qty = deal.offer?.quantity;
-  const price = deal.offer?.price_per_unit;
-  const totalAmount =
-    mode === 'seller' && deal.payable_to_seller != null
-      ? deal.payable_to_seller
-      : deal.total_amount;
-  const truckCount = trucks.length;
-  const perTruck =
-    truckCount > 0 ? Math.round(Number(totalAmount) / truckCount) : null;
+  const loadDeal = useCallback(async () => {
+    try {
+      const res: any =
+        mode === 'buyer'
+          ? await api.buyer.getDeal(dealId)
+          : await api.seller.getDeal(dealId);
+      if (res) setDeal(res);
+    } catch {
+      // keep existing
+    } finally {
+      setLoading(false);
+    }
+  }, [dealId, mode]);
 
-  const paymentTermLabel = () => {
-    const t = deal.offer?.payment_term_type?.toLowerCase();
-    if (t === 'fixed') return 'Fixed full payment';
-    if (t === 'weekly') return 'Weekly payment';
-    return deal.offer?.payment_term_type ?? '—';
-  };
+  useEffect(() => {
+    loadDeal();
+  }, [loadDeal]);
 
-  const canSave = companyName.trim().length > 0;
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadDeal();
+    setRefreshing(false);
+  }, [loadDeal]);
 
   const handleSave = async () => {
-    if (!canSave || saving) return;
+    if (!companyName.trim() || saving) return;
     setSaving(true);
     try {
-      await onAddCompany(companyName.trim());
+      await api.buyer.updateDealCompany(dealId, {
+        buyer_company_name: companyName.trim(),
+      });
       setCompanyName('');
       setShowModal(false);
+      await loadDeal();
+    } catch {
+      Alert.alert('Error', 'Failed to update company name.');
     } finally {
       setSaving(false);
     }
@@ -121,8 +130,54 @@ const SummaryTab: React.FC<Props> = ({
     setShowModal(false);
   };
 
+  const handleContactAdmin = () => {
+    Alert.alert(
+      'Contact Admin',
+      'Please reach out via WhatsApp or call our support team.',
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={s.center}>
+        <ActivityIndicator size="large" color="#217A3C" />
+      </View>
+    );
+  }
+
+  if (!deal) return null;
+
+  const stageMsg = STAGE_MSG[deal.status] ?? STAGE_MSG.open;
+  const qty = deal.offer?.quantity;
+  const price = deal.offer?.price_per_unit;
+  const totalAmount =
+    mode === 'seller' && deal.payable_to_seller != null
+      ? deal.payable_to_seller
+      : deal.total_amount;
+
+  const paymentTermLabel = () => {
+    const t = deal.offer?.payment_term_type?.toLowerCase();
+    if (t === 'fixed') return 'Fixed full payment';
+    if (t === 'weekly') return 'Weekly payment';
+    return deal.offer?.payment_term_type ?? '—';
+  };
+
+  const canSave = companyName.trim().length > 0;
+
   return (
-    <View>
+    <ScrollView
+      style={s.scroll}
+      contentContainerStyle={s.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#217A3C"
+          colors={['#217A3C']}
+        />
+      }
+    >
       <View style={s.card}>
         {qty != null && <Row label="Quantity" value={`${qty} bags`} />}
         {price != null && (
@@ -135,14 +190,6 @@ const SummaryTab: React.FC<Props> = ({
           label={mode === 'buyer' ? 'Total Value' : 'Payable to You'}
           value={formatPKR(Number(totalAmount))}
           highlight
-        />
-        <Row
-          label="Trucks"
-          value={
-            truckCount > 0
-              ? `${truckCount} truck${truckCount !== 1 ? 's' : ''} · ${perTruck ? formatPKR(perTruck) : 'PKR —'} each`
-              : '0 trucks'
-          }
         />
         {deal.offer?.payment_term_type ? (
           <Row label="Payment Terms" value={paymentTermLabel()} />
@@ -203,11 +250,13 @@ const SummaryTab: React.FC<Props> = ({
 
       <TouchableOpacity
         style={s.contactBtn}
-        onPress={onContactAdmin}
+        onPress={handleContactAdmin}
         activeOpacity={0.85}
       >
         <Text style={s.contactBtnText}>📞  Contact Admin</Text>
       </TouchableOpacity>
+
+      <View style={s.bottomSpacer} />
 
       {/* Company name bottom-sheet modal */}
       <Modal
@@ -252,10 +301,7 @@ const SummaryTab: React.FC<Props> = ({
                   <ActivityIndicator color="#0D3B1F" size="small" />
                 ) : (
                   <Text
-                    style={[
-                      s.saveBtnText,
-                      !canSave && s.saveBtnTextDisabled,
-                    ]}
+                    style={[s.saveBtnText, !canSave && s.saveBtnTextDisabled]}
                   >
                     Save & Send to Seller →
                   </Text>
@@ -272,11 +318,16 @@ const SummaryTab: React.FC<Props> = ({
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 const s = StyleSheet.create({
+  scroll: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 14 },
+  bottomSpacer: { height: 40 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -305,6 +356,7 @@ const s = StyleSheet.create({
     marginLeft: 8,
   },
   rowValueGreen: { fontSize: 14, fontWeight: '800', color: '#1A6B34' },
+
   stageCard: {
     backgroundColor: '#F2FBF5',
     borderWidth: 1.5,
@@ -335,6 +387,7 @@ const s = StyleSheet.create({
     marginTop: 3,
     lineHeight: 18,
   },
+
   companyCard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
@@ -371,6 +424,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   companyBtnText: { fontSize: 13, fontWeight: '700', color: '#0D3B1F' },
+
   contactBtn: {
     borderWidth: 1.5,
     borderColor: '#7FD4A0',
@@ -386,11 +440,7 @@ const s = StyleSheet.create({
   },
   contactBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
 
-  // Modal / bottom-sheet
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   overlayBg: {
     position: 'absolute',
     top: 0,
@@ -414,12 +464,7 @@ const s = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 6,
-  },
+  sheetTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 6 },
   sheetSubtitle: {
     fontSize: 12,
     color: '#6B7280',

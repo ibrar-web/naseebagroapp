@@ -122,6 +122,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
         mode === 'buyer'
           ? await api.buyer.getPayments(dealId)
           : await api.seller.getDealPayments(dealId);
+      console.log('Payment api reponse added :', res);
       if (res) setPaymentSummary(res);
     } catch {
       // keep existing
@@ -260,14 +261,18 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
           <View style={[s.barFill, { width: `${pct}%` as any }]} />
         </View>
         <View style={s.progressFooter}>
-          <Text style={s.progressFooterText}>{formatPKR(received)} received</Text>
-          <Text style={s.progressFooterText}>{formatPKR(remaining)} remaining</Text>
+          <Text style={s.progressFooterText}>
+            {formatPKR(received)} received
+          </Text>
+          <Text style={s.progressFooterText}>
+            {formatPKR(remaining)} remaining
+          </Text>
         </View>
       </View>
 
       {/* Truck payment allocation info */}
       <View style={s.allocationCard}>
-        <Text style={s.allocationTitle}>🚛  Truck Payment Allocation</Text>
+        <Text style={s.allocationTitle}>🚛 Truck Payment Allocation</Text>
         <Text style={s.allocationText}>
           Payments fill trucks sequentially — first truck gets paid fully before
           the next.
@@ -322,7 +327,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
 
       {mode === 'seller' && (
         <View style={s.releasesCard}>
-          <Text style={s.releasesTitle}>💰  Payment Releases</Text>
+          <Text style={s.releasesTitle}>💰 Payment Releases</Text>
           <Text style={s.releasesText}>
             Payments are released to you after each truck delivery is verified.
             Contact admin if a release is overdue.
@@ -379,8 +384,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
 
               <View style={s.paySheetBody}>
                 <Text style={s.payFieldLabel}>
-                  Payment Amount (PKR){' '}
-                  <Text style={s.required}>*</Text>
+                  Payment Amount (PKR) <Text style={s.required}>*</Text>
                 </Text>
                 <View style={s.amountWrap}>
                   <Text style={s.rupeeSymbol}>₨</Text>
@@ -467,8 +471,18 @@ const s = StyleSheet.create({
   scrollContent: { padding: 14 },
   bottomSpacer: { height: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 24 },
-  emptyHistory: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', paddingVertical: 16 },
+  empty: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  emptyHistory: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
 
   progressCard: {
     backgroundColor: '#145228',
@@ -482,7 +496,11 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  progressLabel: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+  progressLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 4,
+  },
   progressAmount: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
   progressTotal: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
   pctBox: { alignItems: 'flex-end' },
@@ -509,7 +527,12 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  allocationTitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
+  allocationTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 6,
+  },
   allocationText: { fontSize: 11, color: '#9CA3AF', lineHeight: 16 },
 
   historyCard: {
@@ -522,7 +545,12 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  historyTitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 12 },
+  historyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 12,
+  },
   payRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -554,8 +582,18 @@ const s = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
   },
-  releasesTitle: { fontSize: 13, fontWeight: '700', color: '#145228', marginBottom: 6 },
-  releasesText: { fontSize: 11, color: '#1A6B34', opacity: 0.8, lineHeight: 16 },
+  releasesTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#145228',
+    marginBottom: 6,
+  },
+  releasesText: {
+    fontSize: 11,
+    color: '#1A6B34',
+    opacity: 0.8,
+    lineHeight: 16,
+  },
 
   addPayBtn: {
     flexDirection: 'row',
@@ -578,7 +616,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addPayPlusIcon: { fontSize: 22, fontWeight: '900', color: '#0D3B1F', lineHeight: 26 },
+  addPayPlusIcon: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0D3B1F',
+    lineHeight: 26,
+  },
   addPayBtnText: { fontSize: 14, fontWeight: '700', color: '#0D3B1F' },
 
   overlay: { flex: 1, justifyContent: 'flex-end' },
@@ -623,9 +666,18 @@ const s = StyleSheet.create({
   payHeaderIcon: { fontSize: 20 },
   payHeaderText: { flex: 1 },
   paySheetTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
-  paySheetRemaining: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  paySheetRemaining: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
   paySheetBody: { padding: 20, paddingBottom: 32 },
-  payFieldLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  payFieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
   required: { color: '#EF4444' },
   amountWrap: {
     position: 'relative',
@@ -666,7 +718,12 @@ const s = StyleSheet.create({
     borderStyle: 'solid',
   },
   uploadIcon: { fontSize: 24, color: '#9CA3AF' },
-  uploadTitle: { fontSize: 14, fontWeight: '700', color: '#374151', marginTop: 4 },
+  uploadTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+    marginTop: 4,
+  },
   uploadTitleDone: { color: '#1A6B34' },
   uploadSub: { fontSize: 11, color: '#9CA3AF' },
   payFieldSubLabel: { fontSize: 11, fontWeight: '400', color: '#9CA3AF' },

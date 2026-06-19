@@ -13,6 +13,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import api from '../../../utils/api';
 
 // Keep exporting the types so navigation / other screens can still import them
@@ -76,6 +77,7 @@ const Row = ({
 );
 
 const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
+  const navigation = useNavigation();
   const [deal, setDeal] = useState<DealSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -131,10 +133,7 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
   };
 
   const handleContactAdmin = () => {
-    Alert.alert(
-      'Contact Admin',
-      'Please reach out via WhatsApp or call our support team.',
-    );
+    navigation.navigate('Support' as never);
   };
 
   if (loading) {

@@ -1,131 +1,208 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import SubHeader from '../components/SubHeader';
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Linking,
+  Alert,
+} from 'react-native';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
-import { useTranslation } from '../../../localization';
-import type { TranslationKey } from '../../../localization';
+import { MockStatusBar } from '../../components';
 
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.07,
-  shadowRadius: 12,
-  elevation: 3,
-};
-
-const FAQS: { qKey: TranslationKey; aKey: TranslationKey }[] = [
-  { qKey: 'support.qPostDemand', aKey: 'support.aPostDemand' },
-  { qKey: 'support.qPayments', aKey: 'support.aPayments' },
-  { qKey: 'support.qKyc', aKey: 'support.aKyc' },
-  { qKey: 'support.qCancelDeal', aKey: 'support.aCancelDeal' },
-  { qKey: 'support.qTrackShipment', aKey: 'support.aTrackShipment' },
-];
-
-const CONTACT = [
+const CONTACT_OPTIONS: {
+  key: string;
+  label: string;
+  sub: string;
+  bgColor: string;
+  iconColor: string;
+  icon: AppIconName;
+  action: () => void;
+}[] = [
   {
-    icon: 'contactWhatsapp' as AppIconName,
-    labelKey: 'support.whatsapp' as TranslationKey,
-    sub: '+92 311 123 4567',
-    color: '#25D366',
+    key: 'call',
+    label: 'Call Us',
+    sub: '+92 300 NASEEB (627332)',
+    bgColor: '#F2FBF5',
+    iconColor: '#217A3C',
+    icon: 'contactPhone',
+    action: () => Linking.openURL('tel:+923006273320'),
   },
   {
-    icon: 'contactEmail' as AppIconName,
-    labelKey: 'support.email' as TranslationKey,
+    key: 'email',
+    label: 'Email Support',
     sub: 'support@naseeb.pk',
-    color: '#1A6B34',
+    bgColor: '#EEF6FF',
+    iconColor: '#3B82F6',
+    icon: 'contactEmail',
+    action: () => Linking.openURL('mailto:support@naseeb.pk'),
   },
   {
-    icon: 'contactPhone' as AppIconName,
-    labelKey: 'support.helpline' as TranslationKey,
-    sub: '0800-12345',
-    color: '#3B82F6',
+    key: 'whatsapp',
+    label: 'WhatsApp',
+    sub: '+92 312 0000000',
+    bgColor: '#E8FFF0',
+    iconColor: '#25D366',
+    icon: 'contactWhatsapp',
+    action: () => Linking.openURL('whatsapp://send?phone=923120000000'),
+  },
+  {
+    key: 'ticket',
+    label: 'Submit a Ticket',
+    sub: 'We reply within 4 hours',
+    bgColor: '#EDE9FE',
+    iconColor: '#7C3AED',
+    icon: 'document',
+    action: () =>
+      Alert.alert(
+        'Submit a Ticket',
+        'Please email us at support@naseeb.pk with details of your issue.',
+      ),
   },
 ];
 
 const SupportScreen = ({ navigation }: any) => {
-  const [open, setOpen] = useState<number | null>(null);
-  const { t } = useTranslation();
-
   return (
-    <View className="flex-1 bg-gray-50">
-      <SubHeader
-        title={t('support.title')}
-        subtitle={t('support.subtitle')}
-        navigation={navigation}
-      />
+    <View style={s.container}>
+      {/* Header */}
+      <MockStatusBar />
+      <View style={s.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          activeOpacity={0.7}
+        >
+          <AppIcon name="chevronRight" size={22} color="#111827" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Contact Support</Text>
+        <View style={s.headerSpacer} />
+      </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 mb-3">
-          {t('support.contactUs')}
-        </Text>
-
-        <View className="flex-row gap-3 mb-4">
-          {CONTACT.map(c => (
-            <TouchableOpacity
-              key={c.labelKey}
-              className="flex-1 bg-white rounded-2xl py-4 items-center gap-2"
-              style={CARD_SHADOW}
-              activeOpacity={0.85}
-            >
-              <AppIcon name={c.icon} size={26} color={c.color} />
-              <Text className="text-gray-900 text-xs font-bold">
-                {t(c.labelKey)}
-              </Text>
-              <Text className="text-gray-400 text-xs text-center">{c.sub}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Hero banner */}
+        <View style={s.hero}>
+          <Text style={s.heroEmoji}>🎧</Text>
+          <Text style={s.heroTitle}>Naseeb Support Team</Text>
+          <Text style={s.heroSub}>Available Mon–Sat, 9 AM – 6 PM</Text>
         </View>
 
-        <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 mb-3">
-          {t('support.faq')}
-        </Text>
-
-        <View
-          className="bg-white rounded-2xl overflow-hidden"
-          style={CARD_SHADOW}
-        >
-          {FAQS.map((faq, idx) => (
-            <View
-              key={idx}
-              className={
-                idx < FAQS.length - 1 ? 'border-b border-gray-100' : ''
-              }
-            >
-              <TouchableOpacity
-                onPress={() => setOpen(open === idx ? null : idx)}
-                className="flex-row items-center px-4 py-4 gap-3"
-                activeOpacity={0.7}
-              >
-                <View className="w-8 h-8 rounded-lg bg-green-50 items-center justify-center">
-                  <AppIcon name="faq" size={16} color="#1A6B34" />
-                </View>
-                <Text className="flex-1 text-gray-800 text-sm font-semibold">
-                  {t(faq.qKey)}
-                </Text>
-                <AppIcon
-                  name={open === idx ? 'chevronDown' : 'chevronRight'}
-                  size={18}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-              {open === idx && (
-                <View className="px-4 pb-4" style={{ paddingLeft: 60 }}>
-                  <Text className="text-gray-600 text-sm leading-5">
-                    {t(faq.aKey)}
-                  </Text>
-                </View>
-              )}
+        {/* Contact option rows */}
+        {CONTACT_OPTIONS.map(opt => (
+          <TouchableOpacity
+            key={opt.key}
+            style={s.optionRow}
+            onPress={opt.action}
+            activeOpacity={0.8}
+          >
+            <View style={[s.optionIconBox, { backgroundColor: opt.bgColor }]}>
+              <AppIcon name={opt.icon} size={20} color={opt.iconColor} />
             </View>
-          ))}
+            <View style={s.optionText}>
+              <Text style={s.optionLabel}>{opt.label}</Text>
+              <Text style={s.optionSub}>{opt.sub}</Text>
+            </View>
+            <AppIcon name="chevronRight" size={16} color="#D1D5DB" />
+          </TouchableOpacity>
+        ))}
+
+        {/* FAQ notice */}
+        <View style={s.faqCard}>
+          <Text style={s.faqTitle}>FAQs & Help Centre</Text>
+          <Text style={s.faqBody}>
+            Browse common questions about listing, offers, payments, and more.
+          </Text>
         </View>
+
+        <View style={s.bottomSpacer} />
       </ScrollView>
     </View>
   );
 };
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: {
+    padding: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '180deg' }],
+  },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 30 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 48 },
+
+  hero: {
+    backgroundColor: '#145228',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  heroEmoji: { fontSize: 32, marginBottom: 8 },
+  heroTitle: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  optionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  optionText: { flex: 1 },
+  optionLabel: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  optionSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+
+  faqCard: {
+    backgroundColor: '#FFFDE6',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 4,
+  },
+  faqTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  faqBody: { fontSize: 12, color: '#92400E', lineHeight: 18 },
+
+  bottomSpacer: { height: 40 },
+});
 
 export default SupportScreen;

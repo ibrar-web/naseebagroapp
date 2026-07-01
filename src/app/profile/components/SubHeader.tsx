@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
+import MockStatusBar from '../../components/MockStatusBar';
 
 interface Props {
   title: string;
@@ -10,12 +11,8 @@ interface Props {
 
 const SubHeader = ({ title, subtitle, navigation }: Props) => (
   <>
-    <StatusBar
-      barStyle="dark-content"
-      backgroundColor="rgb(255, 255, 255)"
-      translucent={false}
-    />
-    <View className="bg-white pt-12 px-6 pb-6 border-b border-gray-100">
+    <MockStatusBar backgroundColor="#FFFFFF" />
+    <View className="bg-white px-6 pb-6 border-b border-gray-100">
       <View className="flex-row items-center justify-center">
         <TouchableOpacity
           onPress={() => navigation.goBack()}

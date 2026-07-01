@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
 import { navigateToLogin } from '../../auth/utils/requireLogin';
 import MockStatusBar from '../../components/MockStatusBar';
+import LoginRequired from '../../components/alerts/LoginRequired';
 
 type MenuItem = {
   icon: AppIconName;
@@ -113,6 +114,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const user = useAppSelector(s => s.auth.user);
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const [loginSheetVisible, setLoginSheetVisible] = useState(false);
 
   const handleLogout = async () => {
     await EncryptedStorage.removeItem('session').catch(() => null);
@@ -186,7 +188,13 @@ const ProfileScreen = ({ navigation }: any) => {
               {group.items.map((item, idx) => (
                 <TouchableOpacity
                   key={item.labelKey}
-                  onPress={() => navigation.navigate(item.screen)}
+                  onPress={() => {
+                    if (!isAuthenticated && item.screen !== 'Support' && item.screen !== 'Terms') {
+                      setLoginSheetVisible(true);
+                      return;
+                    }
+                    navigation.navigate(item.screen);
+                  }}
                   activeOpacity={0.75}
                   style={[
                     styles.menuRow,
@@ -241,6 +249,15 @@ const ProfileScreen = ({ navigation }: any) => {
 
         <Text style={styles.version}>Naseeb Agri Market v1.0.0</Text>
       </ScrollView>
+
+      <LoginRequired
+        visible={loginSheetVisible}
+        onClose={() => setLoginSheetVisible(false)}
+        onLogin={() => {
+          setLoginSheetVisible(false);
+          navigation.navigate('Login');
+        }}
+      />
     </View>
   );
 };

@@ -3,15 +3,14 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
+import MockStatusBar from '../../components/MockStatusBar';
 
 type SavedListing = {
   id: string;
@@ -81,7 +80,6 @@ const SavedListingCard = ({
 };
 
 const SavedListingsScreen = ({ navigation }: any) => {
-  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<SavedListing[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -109,8 +107,7 @@ const SavedListingsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#145228" translucent={false} />
-      <View style={{ height: insets.top, backgroundColor: '#145228' }} />
+      <MockStatusBar backgroundColor="#FFFFFF" />
 
       <View style={styles.header}>
         <TouchableOpacity

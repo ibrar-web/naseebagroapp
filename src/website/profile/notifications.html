@@ -1,0 +1,363 @@
+<div
+  style="
+    height: 100%;
+    background: rgb(249, 250, 251);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  "
+>
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      position: relative;
+      background: rgb(255, 255, 255);
+      border-bottom: 1px solid rgb(243, 244, 246);
+    "
+  >
+    <button
+      style="
+        background: none;
+        border-width: medium;
+        border-style: none;
+        border-color: currentcolor;
+        border-image: initial;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+      "
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#111827"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12,19 5,12 12,5"></polyline>
+      </svg></button
+    ><span
+      style="
+        font-size: 16px;
+        font-weight: 700;
+        color: rgb(17, 24, 39);
+        font-family: 'IBM Plex Sans', sans-serif;
+      "
+      >Notifications</span
+    >
+    <div style="display: flex; gap: 8px"><div style="width: 30px"></div></div>
+  </div>
+  <div style="flex: 1 1 0%; overflow-y: auto; padding: 16px 16px 80px">
+    <div
+      style="
+        background: rgb(255, 255, 255);
+        border-radius: 16px;
+        box-shadow: rgba(0, 0, 0, 0.07) 0px 2px 12px;
+        padding: 0px;
+        cursor: default;
+        overflow: hidden;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            New Deal Alerts
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            When a deal is created for you
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(46, 158, 82);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 22px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            Offer Updates
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            Status changes on your offers
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(46, 158, 82);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 22px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            Payment Alerts
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            Payment confirmed or pending
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(46, 158, 82);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 22px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            Dispatch &amp; Delivery
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            Shipment tracking updates
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(46, 158, 82);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 22px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom: 1px solid rgb(243, 244, 246);
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            Promotions
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            Naseeb news and feature updates
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(229, 231, 235);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 2px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 15px 16px;
+          border-bottom-width: medium;
+          border-bottom-style: none;
+          border-bottom-color: currentcolor;
+        "
+      >
+        <div style="flex: 1 1 0%">
+          <div
+            style="font-size: 13px; font-weight: 600; color: rgb(17, 24, 39)"
+          >
+            SMS Notifications
+          </div>
+          <div
+            style="font-size: 11px; color: rgb(156, 163, 175); margin-top: 1px"
+          >
+            Receive alerts via SMS
+          </div>
+        </div>
+        <div
+          style="
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgb(46, 158, 82);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 2px;
+              left: 22px;
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              background: rgb(255, 255, 255);
+              box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 4px;
+              transition: left 0.2s;
+            "
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

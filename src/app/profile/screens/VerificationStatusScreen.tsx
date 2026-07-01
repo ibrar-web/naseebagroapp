@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
-import SubHeader from '../components/SubHeader';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
 import { AppLoader } from '../../components';
+import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 import { useAppSelector } from '../../../store';
 import {
@@ -16,14 +16,6 @@ import {
   toBoolean,
   unwrapApiData,
 } from '../utils/profileApi';
-
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.05,
-  shadowRadius: 18,
-  elevation: 3,
-};
 
 type VerificationState = 'approved' | 'pending' | 'rejected';
 
@@ -36,50 +28,18 @@ type VerificationItem = {
 };
 
 const BASE_ITEMS: Omit<VerificationItem, 'status' | 'verifiedAt'>[] = [
-  {
-    icon: 'verificationId',
-    labelKey: 'verification.cnic',
-    keys: ['cnic', 'id', 'identity', 'identity_verification'],
-  },
-  {
-    icon: 'verificationBusiness',
-    labelKey: 'verification.businessDocs',
-    keys: ['business', 'business_docs', 'business_profile'],
-  },
-  {
-    icon: 'verificationBank',
-    labelKey: 'verification.bankAccount',
-    keys: ['bank', 'banking', 'bank_account'],
-  },
-  {
-    icon: 'profilePhone',
-    labelKey: 'verification.phone',
-    keys: ['phone', 'phone_number'],
-  },
-  {
-    icon: 'address',
-    labelKey: 'verification.address',
-    keys: ['address', 'location'],
-  },
+  { icon: 'verificationId', labelKey: 'verification.cnic', keys: ['cnic', 'id', 'identity', 'identity_verification'] },
+  { icon: 'verificationBusiness', labelKey: 'verification.businessDocs', keys: ['business', 'business_docs', 'business_profile'] },
+  { icon: 'verificationBank', labelKey: 'verification.bankAccount', keys: ['bank', 'banking', 'bank_account'] },
+  { icon: 'profilePhone', labelKey: 'verification.phone', keys: ['phone', 'phone_number'] },
+  { icon: 'address', labelKey: 'verification.address', keys: ['address', 'location'] },
 ];
 
 const normalizeStatus = (value: any): VerificationState => {
-  if (typeof value === 'boolean') {
-    return value ? 'approved' : 'pending';
-  }
-
+  if (typeof value === 'boolean') return value ? 'approved' : 'pending';
   const status = String(value ?? '').toLowerCase();
-
-  if (
-    ['approved', 'verified', 'complete', 'completed', 'true'].includes(status)
-  ) {
-    return 'approved';
-  }
-
-  if (['rejected', 'failed', 'declined'].includes(status)) {
-    return 'rejected';
-  }
-
+  if (['approved', 'verified', 'complete', 'completed', 'true'].includes(status)) return 'approved';
+  if (['rejected', 'failed', 'declined'].includes(status)) return 'rejected';
   return 'pending';
 };
 
@@ -91,55 +51,44 @@ const findDetail = (payload: any, keys: string[]) => {
     payload?.verification,
     payload,
   ];
-
   for (const source of sources) {
-    if (!source) {
-      continue;
-    }
-
+    if (!source) continue;
     for (const key of keys) {
-      if (source[key] !== undefined) {
-        return source[key];
-      }
+      if (source[key] !== undefined) return source[key];
     }
   }
-
   const list = normalizeList(payload, ['items', 'statuses', 'verification']);
-
   return list.find((item: any) => {
-    const type = firstString(
-      item?.type,
-      item?.key,
-      item?.name,
-      item?.verification_type,
-    ).toLowerCase();
-
+    const type = firstString(item?.type, item?.key, item?.name, item?.verification_type).toLowerCase();
     return keys.some(key => type.includes(key));
   });
 };
 
 const buildVerificationItems = (response: any): VerificationItem[] => {
   const payload = unwrapApiData(response);
-
   return BASE_ITEMS.map(item => {
     const detail = findDetail(payload, item.keys);
     const statusValue =
       typeof detail === 'object'
-        ? detail?.status ??
-          detail?.verification_status ??
-          detail?.is_verified ??
-          detail?.approved
+        ? detail?.status ?? detail?.verification_status ?? detail?.is_verified ?? detail?.approved
         : detail;
-
     return {
       ...item,
       status: normalizeStatus(statusValue),
-      verifiedAt:
-        typeof detail === 'object'
-          ? firstString(detail?.verified_at, detail?.verifiedAt, detail?.date)
-          : '',
+      verifiedAt: typeof detail === 'object' ? firstString(detail?.verified_at, detail?.verifiedAt, detail?.date) : '',
     };
   });
+};
+
+const statusConfig = (status: VerificationState) => {
+  switch (status) {
+    case 'approved':
+      return { iconBg: '#F2FBF5', iconColor: '#217A3C', badgeBg: '#E8F7EE', badgeColor: '#1A6B34', label: 'APPROVED' };
+    case 'rejected':
+      return { iconBg: '#FEE2E2', iconColor: '#DC2626', badgeBg: '#FEE2E2', badgeColor: '#DC2626', label: 'REJECTED' };
+    default:
+      return { iconBg: '#FEF3C7', iconColor: '#92400E', badgeBg: '#FEF3C7', badgeColor: '#92400E', label: 'PENDING' };
+  }
 };
 
 const VerificationStatusScreen = ({ navigation }: any) => {
@@ -154,36 +103,19 @@ const VerificationStatusScreen = ({ navigation }: any) => {
 
   const loadVerificationStatus = useCallback(
     async (isRefresh = false) => {
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       if (!isRefresh) setLoading(true);
       try {
         const response = await api.profile.verificationStatus.get();
         const payload = unwrapApiData(response);
         const nextItems = buildVerificationItems(response);
         const verified =
-          toBoolean(
-            payload?.is_verified ??
-              payload?.account_verified ??
-              payload?.accountVerified,
-          ) || nextItems.every(item => item.status === 'approved');
-
+          toBoolean(payload?.is_verified ?? payload?.account_verified ?? payload?.accountVerified) ||
+          nextItems.every(item => item.status === 'approved');
         setItems(nextItems);
         setAccountVerified(verified);
-      } catch (error) {
-        console.error(
-          'VerificationStatusScreen: Failed to load verification status:',
-          error,
-        );
-        setItems(
-          BASE_ITEMS.map(item => ({
-            ...item,
-            status: 'pending',
-            verifiedAt: '',
-          })),
-        );
+      } catch {
+        setItems(BASE_ITEMS.map(item => ({ ...item, status: 'pending', verifiedAt: '' })));
         setAccountVerified(false);
       } finally {
         if (!isRefresh) setLoading(false);
@@ -194,137 +126,158 @@ const VerificationStatusScreen = ({ navigation }: any) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await loadVerificationStatus(true);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await loadVerificationStatus(true); } finally { setRefreshing(false); }
   }, [loadVerificationStatus]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadVerificationStatus();
-    }, [loadVerificationStatus]),
-  );
+  useFocusEffect(useCallback(() => { loadVerificationStatus(); }, [loadVerificationStatus]));
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <SubHeader title={t('verification.title')} navigation={navigation} />
+    <View style={s.container}>
+      <MockStatusBar backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <AppIcon name="chevronRight" size={22} color="#111827" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>{t('verification.title')}</Text>
+        <View style={s.headerSpacer} />
+      </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#1A6B34']}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1A6B34" colors={['#1A6B34']} />
         }
       >
-        <View
-          className={`mb-8 items-center rounded-[28px] px-5 py-10 ${
-            accountVerified ? 'bg-green-800' : 'bg-yellow-700'
-          }`}
-          style={CARD_SHADOW}
-        >
-          <View
-            className={`h-20 w-20 items-center justify-center rounded-3xl ${
-              accountVerified ? 'bg-green-500' : 'bg-yellow-500'
-            }`}
-          >
-            <AppIcon
-              name={accountVerified ? 'approved' : 'shield'}
-              size={54}
-              color="#FFFFFF"
-            />
-          </View>
-          <Text className="mt-8 text-white text-2xl font-extrabold">
-            {accountVerified
-              ? t('verification.accountVerified')
-              : t('verification.accountPending')}
+        {/* Hero card */}
+        <View style={[s.hero, { backgroundColor: accountVerified ? '#145228' : '#92400E' }]}>
+          <Text style={s.heroEmoji}>{accountVerified ? '✅' : '⏳'}</Text>
+          <Text style={s.heroTitle}>
+            {accountVerified ? t('verification.accountVerified') : t('verification.accountPending')}
           </Text>
-          <Text className="mt-3 text-center text-white/80 text-lg font-medium">
-            {accountVerified
-              ? t('verification.accountVerifiedSub')
-              : t('verification.accountPendingSub')}
+          <Text style={s.heroSub}>
+            {accountVerified ? t('verification.accountVerifiedSub') : t('verification.accountPendingSub')}
           </Text>
         </View>
 
-        <View
-          className="overflow-hidden rounded-[28px] bg-white"
-          style={CARD_SHADOW}
-        >
-          {items.map((item, index) => {
-            const approved = item.status === 'approved';
-            const rejected = item.status === 'rejected';
-            const statusBg = approved
-              ? 'bg-green-50'
-              : rejected
-              ? 'bg-red-50'
-              : 'bg-yellow-100';
-            const statusText = approved
-              ? 'text-green-700'
-              : rejected
-              ? 'text-red-600'
-              : 'text-yellow-800';
-            const iconColor = approved
-              ? '#1A6B34'
-              : rejected
-              ? '#DC2626'
-              : '#A14E14';
-            const detailText =
-              approved && item.verifiedAt
-                ? t('common.verifiedDate', {
-                    date: formatDisplayDate(item.verifiedAt),
-                  })
-                : approved
+        {/* Verification items */}
+        <View style={s.itemsCard}>
+          {items.map((item, idx) => {
+            const cfg = statusConfig(item.status);
+            const isFirst = idx === 0;
+            const isLast = idx === items.length - 1;
+            const verifiedLabel =
+              item.status === 'approved' && item.verifiedAt
+                ? t('common.verifiedDate', { date: formatDisplayDate(item.verifiedAt) })
+                : item.status === 'approved'
                 ? t('common.verifiedDash')
-                : rejected
+                : item.status === 'rejected'
                 ? t('common.rejected')
                 : t('common.pending');
 
             return (
               <View
                 key={item.labelKey}
-                className={`flex-row items-center px-6 py-5 ${
-                  index < items.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
+                style={[
+                  s.itemRow,
+                  !isLast && s.itemRowBorder,
+                  isFirst && s.itemRowFirst,
+                  isLast && s.itemRowLast,
+                ]}
               >
-                <View
-                  className={`h-16 w-16 items-center justify-center rounded-2xl ${statusBg}`}
-                >
-                  <AppIcon name={item.icon} size={28} color={iconColor} />
+                <View style={[s.itemIconBox, { backgroundColor: cfg.iconBg }]}>
+                  <AppIcon name={item.icon} size={16} color={cfg.iconColor} />
                 </View>
-                <View className="ml-5 flex-1">
-                  <Text className="text-gray-900 text-xl font-extrabold">
-                    {t(item.labelKey)}
-                  </Text>
-                  <Text className="mt-1 text-gray-400 text-lg font-medium">
-                    {detailText}
-                  </Text>
+                <View style={s.itemBody}>
+                  <Text style={s.itemLabel}>{t(item.labelKey)}</Text>
+                  <Text style={s.itemSub}>{verifiedLabel}</Text>
                 </View>
-                <View className={`rounded-2xl px-5 py-3 ${statusBg}`}>
-                  <Text
-                    className={`text-base font-extrabold uppercase ${statusText}`}
-                  >
-                    {approved
-                      ? t('common.approved')
-                      : rejected
-                      ? t('common.rejected')
-                      : t('common.pending')}
-                  </Text>
+                <View style={[s.statusBadge, { backgroundColor: cfg.badgeBg }]}>
+                  <Text style={[s.statusText, { color: cfg.badgeColor }]}>{cfg.label}</Text>
                 </View>
               </View>
             );
           })}
         </View>
+
+        <View style={s.bottomSpacer} />
       </ScrollView>
 
       <AppLoader visible={loading} overlay message={t('common.loading')} />
     </View>
   );
 };
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: { padding: 4, borderRadius: 8, transform: [{ rotate: '180deg' }] },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 30 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  bottomSpacer: { height: 20 },
+
+  hero: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  heroEmoji: { fontSize: 40, marginBottom: 8 },
+  heroTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4, textAlign: 'center' },
+
+  itemsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  itemRowFirst: { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  itemRowLast: { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
+  itemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+
+  itemIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  itemBody: { flex: 1 },
+  itemLabel: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  itemSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+
+  statusBadge: { borderRadius: 7, paddingHorizontal: 9, paddingVertical: 3 },
+  statusText: { fontSize: 10, fontWeight: '700' },
+});
 
 export default VerificationStatusScreen;

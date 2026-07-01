@@ -2,29 +2,27 @@ import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  Modal,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
 } from 'react-native';
-import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import { BANKS } from '../../../constants';
 import { AppLoader } from '../../components';
+import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 import { useAppSelector } from '../../../store';
 import { promptLogin } from '../../auth/utils/requireLogin';
-
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.05,
-  shadowRadius: 18,
-  elevation: 3,
-};
 
 type BankingDetail = {
   id: string;
@@ -51,32 +49,17 @@ const emptyForm: BankingForm = {
 
 const str = (...values: any[]): string => {
   for (const v of values) {
-    if (v !== undefined && v !== null) {
-      return String(v);
-    }
+    if (v !== undefined && v !== null) return String(v);
   }
   return '';
 };
 
 const parseBankingList = (response: any): any[] => {
   const payload = response?.data ?? response?.result ?? response;
-
-  if (Array.isArray(payload)) {
-    return payload;
+  if (Array.isArray(payload)) return payload;
+  for (const key of ['banking', 'banking_details', 'bankingDetails', 'accounts', 'items']) {
+    if (Array.isArray(payload?.[key])) return payload[key];
   }
-
-  for (const key of [
-    'banking',
-    'banking_details',
-    'bankingDetails',
-    'accounts',
-    'items',
-  ]) {
-    if (Array.isArray(payload?.[key])) {
-      return payload[key];
-    }
-  }
-
   return [];
 };
 
@@ -85,33 +68,17 @@ const normalizeBankingDetails = (response: any): BankingDetail[] =>
     .map((item: any) => ({
       id: str(item?.id, item?._id, item?.banking_detail_id),
       bankName: str(item?.bank_name, item?.bankName, item?.bank),
-      accountTitle: str(
-        item?.account_title,
-        item?.accountTitle,
-        item?.account_name,
-        item?.accountName,
-      ),
-      accountNumber: str(
-        item?.bank_account_number,
-        item?.account_number,
-        item?.accountNumber,
-      ),
+      accountTitle: str(item?.account_title, item?.accountTitle, item?.account_name, item?.accountName),
+      accountNumber: str(item?.bank_account_number, item?.account_number, item?.accountNumber),
       iban: str(item?.bank_iban_number, item?.iban, item?.IBAN),
       isPrimary: Boolean(item?.is_primary ?? item?.isPrimary ?? false),
     }))
-    .filter(
-      (item: BankingDetail) =>
-        item.id || item.bankName || item.accountTitle || item.iban,
-    );
+    .filter((item: BankingDetail) => item.id || item.bankName || item.accountTitle || item.iban);
 
 const maskAccount = (accountNumber: string, iban: string) => {
   const value = accountNumber || iban;
-
-  if (!value) {
-    return '';
-  }
-
-  return `**** ${value.slice(-4)}`;
+  if (!value) return '';
+  return `•••• •••• ${value.slice(-4)}`;
 };
 
 const PaymentMethodsScreen = ({ navigation }: any) => {
@@ -133,20 +100,12 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
 
   const loadBankingDetails = useCallback(
     async (isRefresh = false) => {
-      if (!token) {
-        setAccounts([]);
-        return;
-      }
-
+      if (!token) { setAccounts([]); return; }
       if (!isRefresh) setLoading(true);
       try {
         const response = await api.profile.banking.get();
         setAccounts(normalizeBankingDetails(response));
-      } catch (error) {
-        console.error(
-          'PaymentMethodsScreen: Failed to load banking details:',
-          error,
-        );
+      } catch {
         setAccounts([]);
       } finally {
         if (!isRefresh) setLoading(false);
@@ -157,43 +116,24 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await loadBankingDetails(true);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await loadBankingDetails(true); } finally { setRefreshing(false); }
   }, [loadBankingDetails]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadBankingDetails();
-    }, [loadBankingDetails]),
-  );
+  useFocusEffect(useCallback(() => { loadBankingDetails(); }, [loadBankingDetails]));
 
   const startCreate = () => {
-    if (!token) {
-      promptLogin(navigation);
-      return;
-    }
-
+    if (!token) { promptLogin(navigation); return; }
     setEditingId(null);
     setForm(emptyForm);
+    setShowBankPicker(false);
     setShowForm(true);
   };
 
   const startEdit = (account: BankingDetail) => {
-    if (!token) {
-      promptLogin(navigation);
-      return;
-    }
-
+    if (!token) { promptLogin(navigation); return; }
     setEditingId(account.id);
-    setForm({
-      bankName: account.bankName,
-      accountTitle: account.accountTitle,
-      accountNumber: account.accountNumber,
-      iban: account.iban,
-    });
+    setForm({ bankName: account.bankName, accountTitle: account.accountTitle, accountNumber: account.accountNumber, iban: account.iban });
+    setShowBankPicker(false);
     setShowForm(true);
   };
 
@@ -205,33 +145,21 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || saving) {
-      return;
-    }
-
-    if (!token) {
-      promptLogin(navigation);
-      return;
-    }
-
+    if (!canSubmit || saving) return;
+    if (!token) { promptLogin(navigation); return; }
     const payload = {
       bank_name: form.bankName.trim(),
       account_title: form.accountTitle.trim(),
       bank_account_number: form.accountNumber.trim(),
       bank_iban_number: form.iban.trim(),
     };
-
     setSaving(true);
     try {
-      if (editingId) {
-        await api.profile.banking.update(editingId, payload);
-      } else {
-        await api.profile.banking.create(payload);
-      }
+      if (editingId) { await api.profile.banking.update(editingId, payload); }
+      else { await api.profile.banking.create(payload); }
       closeForm();
       await loadBankingDetails();
-    } catch (error) {
-      console.error('PaymentMethodsScreen: Submit failed:', error);
+    } catch {
       Alert.alert('Update Failed', 'Please check your banking details.');
     } finally {
       setSaving(false);
@@ -239,15 +167,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   };
 
   const handleDelete = (account: BankingDetail) => {
-    if (!account.id) {
-      return;
-    }
-
-    if (!token) {
-      promptLogin(navigation);
-      return;
-    }
-
+    if (!account.id || !token) return;
     Alert.alert('Delete Account', 'Remove this banking detail?', [
       { text: t('payments.cancel'), style: 'cancel' },
       {
@@ -258,8 +178,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
           try {
             await api.profile.banking.remove(account.id);
             await loadBankingDetails();
-          } catch (error) {
-            console.error('PaymentMethodsScreen: Delete failed:', error);
+          } catch {
             Alert.alert('Delete Failed', 'Please try again.');
           } finally {
             setSaving(false);
@@ -269,261 +188,354 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
     ]);
   };
 
+  const FORM_FIELDS: { label: string; key: keyof BankingForm; keyboard?: any }[] = [
+    { label: t('payments.accountTitle'), key: 'accountTitle' },
+    { label: t('payments.accountNo'), key: 'accountNumber', keyboard: 'numeric' },
+    { label: t('payments.iban'), key: 'iban' },
+  ];
+
   return (
-    <View className="flex-1 bg-gray-50">
-      <SubHeader title={t('payments.title')} navigation={navigation} />
+    <View style={s.container}>
+      <MockStatusBar backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <AppIcon name="chevronRight" size={22} color="#111827" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>{t('payments.title')}</Text>
+        <View style={s.headerSpacer} />
+      </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#1A6B34']}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1A6B34" colors={['#1A6B34']} />
         }
       >
-        <Text className="px-1 pb-4 pt-2 text-xl font-extrabold uppercase tracking-widest text-gray-400">
-          {t('payments.linkedBankAccount')}
-        </Text>
+        <Text style={s.sectionLabel}>{t('payments.linkedBankAccount')}</Text>
 
-        {accounts.length === 0 && !loading ? (
-          <View
-            className="mb-8 items-center rounded-[28px] bg-white px-6 py-10"
-            style={CARD_SHADOW}
-          >
-            <View className="h-20 w-20 items-center justify-center rounded-3xl bg-green-50">
-              <AppIcon name="bank" size={34} color="#1A6B34" />
+        {accounts.length === 0 && !loading && (
+          <View style={s.emptyCard}>
+            <View style={s.emptyIconBox}>
+              <AppIcon name="bank" size={28} color="#1A6B34" />
             </View>
-            <Text className="mt-5 text-center text-gray-900 text-xl font-extrabold">
-              {t('payments.noBankAccounts')}
-            </Text>
+            <Text style={s.emptyTitle}>{t('payments.noBankAccounts')}</Text>
           </View>
-        ) : null}
+        )}
 
         {accounts.map(account => (
-          <View
-            key={account.id || account.iban}
-            className="mb-6 overflow-hidden rounded-[28px] bg-white px-6 py-6"
-            style={CARD_SHADOW}
-          >
-            <View className="flex-row items-center">
-              <View className="h-20 w-20 items-center justify-center rounded-3xl bg-blue-50">
-                <AppIcon name="bank" size={34} color="#3B82F6" />
+          <View key={account.id || account.iban} style={s.card}>
+            {/* Card header row */}
+            <View style={s.cardTop}>
+              <View style={s.cardIconBox}>
+                <AppIcon name="bank" size={20} color="#3B82F6" />
               </View>
-              <View className="ml-5 flex-1">
-                <Text className="text-gray-900 text-xl font-extrabold">
-                  {account.bankName || t('payments.bankName')}
-                </Text>
-                <Text className="mt-2 text-gray-500 text-lg font-medium tracking-widest">
-                  {maskAccount(account.accountNumber, account.iban)}
-                </Text>
+              <View style={s.cardInfo}>
+                <Text style={s.cardBankName}>{account.bankName || t('payments.bankName')}</Text>
+                <Text style={s.cardMasked}>{maskAccount(account.accountNumber, account.iban)}</Text>
               </View>
-              {account.isPrimary ? (
-                <View className="rounded-2xl bg-green-50 px-5 py-3">
-                  <Text className="text-green-700 text-base font-extrabold uppercase">
-                    {t('common.primary')}
-                  </Text>
+              {account.isPrimary && (
+                <View style={s.primaryBadge}>
+                  <Text style={s.primaryText}>PRIMARY</Text>
                 </View>
-              ) : null}
-            </View>
-
-            <View className="mt-6 border-t border-gray-100">
-              {[
-                {
-                  label: t('payments.accountName'),
-                  value: account.accountTitle,
-                },
-                {
-                  label: t('payments.accountNo'),
-                  value: account.accountNumber,
-                },
-                { label: t('payments.iban'), value: account.iban },
-              ].map((item, index) =>
-                item.value ? (
-                  <View
-                    key={item.label}
-                    className={`flex-row items-center justify-between py-4 ${
-                      index < 2 ? 'border-b border-gray-100' : ''
-                    }`}
-                  >
-                    <Text className="text-gray-500 text-lg font-medium">
-                      {item.label}
-                    </Text>
-                    <Text className="ml-4 flex-1 text-right text-gray-900 text-lg font-extrabold">
-                      {item.value}
-                    </Text>
-                  </View>
-                ) : null,
               )}
             </View>
 
-            <View className="mt-2 flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => startEdit(account)}
-                className="flex-1 rounded-2xl bg-green-50 py-3"
-                activeOpacity={0.8}
-              >
-                <Text className="text-center text-green-700 text-base font-extrabold">
-                  {t('payments.edit')}
-                </Text>
+            {/* Detail rows */}
+            {[
+              { label: t('payments.accountName'), value: account.accountTitle },
+              { label: t('payments.accountNo'), value: account.accountNumber },
+              { label: t('payments.iban'), value: account.iban },
+            ].map(row =>
+              row.value ? (
+                <View key={row.label} style={s.cardRow}>
+                  <Text style={s.cardRowLabel}>{row.label}</Text>
+                  <Text style={s.cardRowValue}>{row.value}</Text>
+                </View>
+              ) : null,
+            )}
+
+            {/* Actions */}
+            <View style={s.cardActions}>
+              <TouchableOpacity onPress={() => startEdit(account)} style={s.editBtn} activeOpacity={0.8}>
+                <Text style={s.editBtnText}>{t('payments.edit')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDelete(account)}
-                className="flex-1 rounded-2xl bg-red-50 py-3"
-                activeOpacity={0.8}
-              >
-                <Text className="text-center text-red-500 text-base font-extrabold">
-                  {t('payments.delete')}
-                </Text>
+              <TouchableOpacity onPress={() => handleDelete(account)} style={s.deleteBtn} activeOpacity={0.8}>
+                <Text style={s.deleteBtnText}>{t('payments.delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         ))}
 
-        {showForm ? (
-          <View
-            className="mb-8 rounded-[28px] bg-white px-5 py-6"
-            style={CARD_SHADOW}
-          >
-            <View className="mb-4">
-              <Text className="mb-2 text-gray-500 text-sm font-extrabold uppercase tracking-widest">
-                {t('payments.bankName')}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowBankPicker(current => !current)}
-                className="flex-row items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4"
-                activeOpacity={0.8}
-              >
-                <Text
-                  className={
-                    form.bankName
-                      ? 'text-gray-900 text-base font-semibold'
-                      : 'text-gray-400 text-base font-semibold'
-                  }
-                >
-                  {form.bankName || t('payments.bankName')}
-                </Text>
-                <AppIcon name="chevronDown" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
-              {showBankPicker ? (
-                <ScrollView
-                  className="mt-2 max-h-52 rounded-2xl border border-gray-100 bg-white"
-                  nestedScrollEnabled
-                >
-                  {BANKS.map(bank => (
-                    <TouchableOpacity
-                      key={bank}
-                      onPress={() => {
-                        setForm(current => ({ ...current, bankName: bank }));
-                        setShowBankPicker(false);
-                      }}
-                      className={`border-b border-gray-100 px-4 py-3 ${
-                        form.bankName === bank ? 'bg-green-50' : ''
-                      }`}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        className={`text-base ${
-                          form.bankName === bank
-                            ? 'text-green-700 font-extrabold'
-                            : 'text-gray-700 font-semibold'
-                        }`}
-                      >
-                        {bank}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : null}
-            </View>
+        {/* Add new account button */}
+        <TouchableOpacity style={s.addBtn} onPress={startCreate} activeOpacity={0.85}>
+          <AppIcon name="add" size={16} color="#1A6B34" />
+          <Text style={s.addBtnText}>{t('payments.addNewAccount')}</Text>
+        </TouchableOpacity>
 
-            {[
-              {
-                label: t('payments.accountTitle'),
-                value: form.accountTitle,
-                key: 'accountTitle' as const,
-              },
-              {
-                label: t('payments.accountNo'),
-                value: form.accountNumber,
-                key: 'accountNumber' as const,
-              },
-              {
-                label: t('payments.iban'),
-                value: form.iban,
-                key: 'iban' as const,
-              },
-            ].map(field => (
-              <View key={field.key} className="mb-4">
-                <Text className="mb-2 text-gray-500 text-sm font-extrabold uppercase tracking-widest">
-                  {field.label}
-                </Text>
-                <TextInput
-                  value={field.value}
-                  onChangeText={value =>
-                    setForm(current => ({ ...current, [field.key]: value }))
-                  }
-                  className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 text-base font-semibold"
-                  placeholder={field.label}
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize={field.key === 'iban' ? 'characters' : 'words'}
-                />
-              </View>
-            ))}
-
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={closeForm}
-                className="flex-1 rounded-2xl border border-gray-200 py-4"
-                activeOpacity={0.8}
-              >
-                <Text className="text-center text-gray-500 text-base font-extrabold">
-                  {t('payments.cancel')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={!canSubmit || saving}
-                className={`flex-1 rounded-2xl bg-green-700 py-4 ${
-                  !canSubmit || saving ? 'opacity-50' : ''
-                }`}
-                activeOpacity={0.86}
-              >
-                <Text className="text-center text-white text-base font-extrabold">
-                  {editingId
-                    ? t('payments.updateAccount')
-                    : t('payments.saveAccount')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-
-        {!showForm ? (
-          <TouchableOpacity
-            onPress={startCreate}
-            className="h-20 flex-row items-center justify-center rounded-3xl border-2 border-green-600 bg-gray-50"
-            activeOpacity={0.85}
-          >
-            <AppIcon name="add" size={28} color="#176B33" />
-            <Text className="ml-4 text-green-700 text-xl font-extrabold">
-              {t('payments.addNewAccount')}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
+        <View style={s.bottomSpacer} />
       </ScrollView>
 
-      <AppLoader
-        visible={loading || saving}
-        overlay
-        message={saving ? t('common.updating') : t('common.loading')}
-      />
+      {/* Add / Edit bottom sheet */}
+      <Modal visible={showForm} transparent animationType="slide" onRequestClose={closeForm}>
+        <View style={s.overlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeForm} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View style={s.sheet}>
+              <View style={s.sheetHandle} />
+              <Text style={s.sheetTitle}>
+                {editingId ? t('payments.edit') + ' ' + t('payments.bankName') : t('payments.addNewAccount')}
+              </Text>
+              <Text style={s.sheetSubtitle}>Enter your bank details below</Text>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={s.sheetScroll}>
+                {/* Bank picker */}
+                <Text style={s.fieldLabel}>{t('payments.bankName')}</Text>
+                <TouchableOpacity
+                  onPress={() => setShowBankPicker(p => !p)}
+                  style={s.pickerTrigger}
+                  activeOpacity={0.8}
+                >
+                  <Text style={form.bankName ? s.pickerValue : s.pickerPlaceholder}>
+                    {form.bankName || 'Select Bank'}
+                  </Text>
+                  <AppIcon name="chevronDown" size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+                {showBankPicker && (
+                  <ScrollView style={s.pickerList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    {BANKS.map(bank => (
+                      <TouchableOpacity
+                        key={bank}
+                        onPress={() => { setForm(f => ({ ...f, bankName: bank })); setShowBankPicker(false); }}
+                        style={[s.pickerItem, form.bankName === bank && s.pickerItemActive]}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[s.pickerItemText, form.bankName === bank && s.pickerItemTextActive]}>
+                          {bank}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
+                {/* Text fields */}
+                {FORM_FIELDS.map(field => (
+                  <View key={field.key} style={s.fieldWrap}>
+                    <Text style={s.fieldLabel}>{field.label}</Text>
+                    <TextInput
+                      style={s.fieldInput}
+                      value={form[field.key]}
+                      onChangeText={val => setForm(f => ({ ...f, [field.key]: val }))}
+                      placeholder={field.label}
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType={field.keyboard ?? 'default'}
+                      autoCapitalize={field.key === 'iban' ? 'characters' : 'words'}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+
+              {/* Buttons */}
+              <TouchableOpacity
+                style={[s.saveBtn, (!canSubmit || saving) && s.saveBtnDisabled]}
+                onPress={handleSubmit}
+                disabled={!canSubmit || saving}
+                activeOpacity={0.85}
+              >
+                {saving
+                  ? <ActivityIndicator color="#0D3B1F" size="small" />
+                  : <Text style={[s.saveBtnText, (!canSubmit || saving) && s.saveBtnTextDisabled]}>
+                      {editingId ? t('payments.updateAccount') : t('payments.saveAccount')}
+                    </Text>
+                }
+              </TouchableOpacity>
+              <TouchableOpacity style={s.cancelSheetBtn} onPress={closeForm} activeOpacity={0.75}>
+                <Text style={s.cancelSheetBtnText}>{t('payments.cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <AppLoader visible={loading || saving} overlay message={saving ? t('common.updating') : t('common.loading')} />
     </View>
   );
 };
+
+const SHADOW = {
+  shadowColor: '#000',
+  shadowOpacity: 0.07,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 2 },
+  elevation: 3,
+};
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: { padding: 4, borderRadius: 8, transform: [{ rotate: '180deg' }] },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 30 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  bottomSpacer: { height: 20 },
+
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    marginBottom: 16,
+    ...SHADOW,
+  },
+  emptyIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F2FBF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: { fontSize: 14, fontWeight: '600', color: '#111827' },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOW,
+  },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  cardIconBox: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#EEF6FF',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardInfo: { flex: 1 },
+  cardBankName: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  cardMasked: { fontSize: 12, color: '#6B7280', marginTop: 2, letterSpacing: 1 },
+  primaryBadge: { backgroundColor: '#F2FBF5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
+  primaryText: { fontSize: 10, fontWeight: '700', color: '#1A6B34' },
+
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  cardRowLabel: { fontSize: 12, color: '#6B7280' },
+  cardRowValue: { fontSize: 12, fontWeight: '600', color: '#111827' },
+
+  cardActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  editBtn: { flex: 1, backgroundColor: '#F2FBF5', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  editBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
+  deleteBtn: { flex: 1, backgroundColor: '#FEF2F2', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  deleteBtnText: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
+
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#2E9E52',
+    borderRadius: 12,
+    paddingVertical: 13,
+    backgroundColor: 'transparent',
+  },
+  addBtnText: { fontSize: 14, fontWeight: '600', color: '#1A6B34' },
+
+  // Bottom sheet
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.46)' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 34,
+    maxHeight: '90%',
+  },
+  sheetHandle: {
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 6 },
+  sheetSubtitle: { fontSize: 13, color: '#6B7280', lineHeight: 18, marginBottom: 16 },
+  sheetScroll: { maxHeight: 340 },
+
+  fieldWrap: { marginBottom: 14 },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldInput: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#111827',
+  },
+
+  pickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+    backgroundColor: '#FAFAFA',
+  },
+  pickerValue: { fontSize: 14, color: '#111827', fontWeight: '600' },
+  pickerPlaceholder: { fontSize: 14, color: '#9CA3AF' },
+  pickerList: { maxHeight: 160, borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 12, marginBottom: 8 },
+  pickerItem: { paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  pickerItemActive: { backgroundColor: '#F2FBF5' },
+  pickerItemText: { fontSize: 13, color: '#374151', fontWeight: '500' },
+  pickerItemTextActive: { color: '#1A6B34', fontWeight: '700' },
+
+  saveBtn: { backgroundColor: '#F3CD03', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginBottom: 10 },
+  saveBtnDisabled: { backgroundColor: '#E5E7EB' },
+  saveBtnText: { fontSize: 15, fontWeight: '700', color: '#0D3B1F' },
+  saveBtnTextDisabled: { color: '#9CA3AF' },
+  cancelSheetBtn: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+  cancelSheetBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+});
 
 export default PaymentMethodsScreen;

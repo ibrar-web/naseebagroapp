@@ -1,29 +1,22 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, Switch, RefreshControl } from 'react-native';
-import SubHeader from '../components/SubHeader';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
-import { AppLoader } from '../../components';
+import { AppLoader, MockStatusBar } from '../../components';
+import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
 import { toBoolean, unwrapApiData } from '../utils/profileApi';
 import { useAppSelector } from '../../../store';
 
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.05,
-  shadowRadius: 18,
-  elevation: 3,
-};
-
-type ToggleKey =
-  | 'deals'
-  | 'offers'
-  | 'payments'
-  | 'delivery'
-  | 'promotions'
-  | 'sms';
+type ToggleKey = 'deals' | 'offers' | 'payments' | 'delivery' | 'promotions' | 'sms';
 
 type ToggleRow = {
   key: ToggleKey;
@@ -34,56 +27,35 @@ type ToggleRow = {
 };
 
 const TOGGLES: ToggleRow[] = [
-  {
-    key: 'deals',
-    apiKey: 'deal_alerts',
-    labelKey: 'notifications.newDealAlerts',
-    subKey: 'notifications.newDealAlertsSub',
-  },
-  {
-    key: 'offers',
-    apiKey: 'offer_updates',
-    labelKey: 'notifications.offerUpdates',
-    subKey: 'notifications.offerUpdatesSub',
-  },
-  {
-    key: 'payments',
-    apiKey: 'payment_alerts',
-    fallbackKeys: ['payment_dispatch_alerts'],
-    labelKey: 'notifications.paymentAlerts',
-    subKey: 'notifications.paymentAlertsSub',
-  },
-  {
-    key: 'delivery',
-    apiKey: 'dispatch_delivery_alerts',
-    fallbackKeys: ['payment_dispatch_alerts'],
-    labelKey: 'notifications.dispatchDelivery',
-    subKey: 'notifications.dispatchDeliverySub',
-  },
-  {
-    key: 'promotions',
-    apiKey: 'promotion_alerts',
-    labelKey: 'notifications.promotions',
-    subKey: 'notifications.promotionsSub',
-  },
-  {
-    key: 'sms',
-    apiKey: 'sms_alerts',
-    labelKey: 'notifications.sms',
-    subKey: 'notifications.smsSub',
-  },
+  { key: 'deals', apiKey: 'deal_alerts', labelKey: 'notifications.newDealAlerts', subKey: 'notifications.newDealAlertsSub' },
+  { key: 'offers', apiKey: 'offer_updates', labelKey: 'notifications.offerUpdates', subKey: 'notifications.offerUpdatesSub' },
+  { key: 'payments', apiKey: 'payment_alerts', fallbackKeys: ['payment_dispatch_alerts'], labelKey: 'notifications.paymentAlerts', subKey: 'notifications.paymentAlertsSub' },
+  { key: 'delivery', apiKey: 'dispatch_delivery_alerts', fallbackKeys: ['payment_dispatch_alerts'], labelKey: 'notifications.dispatchDelivery', subKey: 'notifications.dispatchDeliverySub' },
+  { key: 'promotions', apiKey: 'promotion_alerts', labelKey: 'notifications.promotions', subKey: 'notifications.promotionsSub' },
+  { key: 'sms', apiKey: 'sms_alerts', labelKey: 'notifications.sms', subKey: 'notifications.smsSub' },
 ];
+
+const Toggle = ({
+  value,
+  onPress,
+  disabled,
+}: {
+  value: boolean;
+  onPress: () => void;
+  disabled: boolean;
+}) => (
+  <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85}>
+    <View style={[s.track, value ? s.trackOn : s.trackOff]}>
+      <View style={[s.thumb, value ? s.thumbOn : s.thumbOff]} />
+    </View>
+  </TouchableOpacity>
+);
 
 const NotificationsSettingsScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const token = useAppSelector(s => s.auth.token);
   const [prefs, setPrefs] = useState<Record<ToggleKey, boolean>>({
-    deals: false,
-    offers: false,
-    payments: false,
-    delivery: false,
-    promotions: false,
-    sms: false,
+    deals: false, offers: false, payments: false, delivery: false, promotions: false, sms: false,
   });
   const [loading, setLoading] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<ToggleKey | null>(null);
@@ -91,43 +63,26 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
 
   const readToggleValue = useCallback((data: any, item: ToggleRow) => {
     const candidates = [item.apiKey, ...(item.fallbackKeys ?? [])];
-    const value = candidates
-      .map(key => data?.[key])
-      .find(candidate => candidate !== undefined && candidate !== null);
-
+    const value = candidates.map(k => data?.[k]).find(v => v !== undefined && v !== null);
     return toBoolean(value, false);
   }, []);
 
   const loadNotifications = useCallback(
     async (isRefresh = false) => {
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       if (!isRefresh) setLoading(true);
       try {
         const response = await api.profile.notifications.get();
         const payload = unwrapApiData(response);
-        const data =
-          payload?.notifications ??
-          payload?.settings ??
-          payload?.preferences ??
-          payload;
-
+        const data = payload?.notifications ?? payload?.settings ?? payload?.preferences ?? payload;
         setPrefs(
           TOGGLES.reduce(
-            (nextPrefs, item) => ({
-              ...nextPrefs,
-              [item.key]: readToggleValue(data, item),
-            }),
+            (acc, item) => ({ ...acc, [item.key]: readToggleValue(data, item) }),
             {} as Record<ToggleKey, boolean>,
           ),
         );
-      } catch (error) {
-        console.error(
-          'NotificationsSettingsScreen: Failed to load notifications:',
-          error,
-        );
+      } catch {
+        // keep existing
       } finally {
         if (!isRefresh) setLoading(false);
       }
@@ -137,95 +92,66 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await loadNotifications(true);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await loadNotifications(true); } finally { setRefreshing(false); }
   }, [loadNotifications]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadNotifications();
-    }, [loadNotifications]),
-  );
+  useFocusEffect(useCallback(() => { loadNotifications(); }, [loadNotifications]));
 
   const toggle = async (item: ToggleRow) => {
-    if (updatingKey) {
-      return;
-    }
-
+    if (updatingKey) return;
     const nextValue = !prefs[item.key];
-    setPrefs(current => ({ ...current, [item.key]: nextValue }));
-
-    if (!token) {
-      return;
-    }
-
+    setPrefs(cur => ({ ...cur, [item.key]: nextValue }));
+    if (!token) return;
     setUpdatingKey(item.key);
-
     try {
       await api.profile.notifications.update({ [item.apiKey]: nextValue });
-    } catch (error) {
-      console.error(
-        'NotificationsSettingsScreen: Toggle update failed:',
-        error,
-      );
-      setPrefs(current => ({ ...current, [item.key]: !nextValue }));
+    } catch {
+      setPrefs(cur => ({ ...cur, [item.key]: !nextValue }));
     } finally {
       setUpdatingKey(null);
     }
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <SubHeader title={t('notifications.title')} navigation={navigation} />
+    <View style={s.container}>
+      <MockStatusBar backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <AppIcon name="chevronRight" size={22} color="#111827" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>{t('notifications.title')}</Text>
+        <View style={s.headerSpacer} />
+      </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#1A6B34']}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1A6B34" colors={['#1A6B34']} />
         }
       >
-        <View
-          className="overflow-hidden rounded-[28px] bg-white"
-          style={CARD_SHADOW}
-        >
-          {TOGGLES.map((item, index) => (
-            <View
-              key={item.key}
-              className={`flex-row items-center px-6 py-6 ${
-                index < TOGGLES.length - 1 ? 'border-b border-gray-100' : ''
-              }`}
-            >
-              <View className="flex-1 pr-4">
-                <Text className="text-gray-900 text-xl font-extrabold">
-                  {t(item.labelKey)}
-                </Text>
-                <Text className="mt-2 text-gray-400 text-lg font-medium">
-                  {t(item.subKey)}
-                </Text>
+        <View style={s.card}>
+          {TOGGLES.map((item, idx) => (
+            <View key={item.key} style={[s.row, idx < TOGGLES.length - 1 && s.rowBorder]}>
+              <View style={s.rowText}>
+                <Text style={s.rowLabel}>{t(item.labelKey)}</Text>
+                <Text style={s.rowSub}>{t(item.subKey)}</Text>
               </View>
-              <Switch
+              <Toggle
                 value={prefs[item.key]}
-                onValueChange={() => {
-                  toggle(item).catch(() => undefined);
-                }}
+                onPress={() => toggle(item).catch(() => undefined)}
                 disabled={updatingKey !== null}
-                trackColor={{ false: '#E5E7EB', true: '#2E9E52' }}
-                thumbColor="#FFFFFF"
-                ios_backgroundColor="#E5E7EB"
               />
             </View>
           ))}
         </View>
+
+        <View style={s.bottomSpacer} />
       </ScrollView>
+
       <AppLoader
         visible={loading || updatingKey !== null}
         overlay
@@ -234,5 +160,69 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
     </View>
   );
 };
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: { padding: 4, borderRadius: 8, transform: [{ rotate: '180deg' }] },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 30 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  bottomSpacer: { height: 20 },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+  },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  rowText: { flex: 1 },
+  rowLabel: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  rowSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+
+  // Custom toggle
+  track: { width: 44, height: 24, borderRadius: 12, flexShrink: 0 },
+  trackOn: { backgroundColor: '#2E9E52' },
+  trackOff: { backgroundColor: '#E5E7EB' },
+  thumb: {
+    position: 'absolute',
+    top: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  thumbOn: { left: 22 },
+  thumbOff: { left: 2 },
+});
 
 export default NotificationsSettingsScreen;

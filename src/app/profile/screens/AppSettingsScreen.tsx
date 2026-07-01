@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
+  StyleSheet,
 } from 'react-native';
-import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import {
@@ -18,18 +18,10 @@ import {
 } from '../../../localization';
 import type { LanguageCode } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
-import { AppLoader } from '../../components';
+import { AppLoader, MockStatusBar } from '../../components';
 import api from '../../../utils/api';
 import { firstString, toBoolean, unwrapApiData } from '../utils/profileApi';
 import { useAppSelector } from '../../../store';
-
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.05,
-  shadowRadius: 18,
-  elevation: 3,
-};
 
 type SettingsRow = {
   icon: AppIconName;
@@ -41,44 +33,6 @@ type SettingsRow = {
 type SettingsGroup = {
   titleKey: TranslationKey;
   rows: SettingsRow[];
-};
-
-const SettingsCard = ({ rows }: { rows: SettingsRow[] }) => (
-  <View className="overflow-hidden rounded-[28px] bg-white" style={CARD_SHADOW}>
-    {rows.map((row, index) => (
-      <TouchableOpacity
-        key={row.labelKey}
-        onPress={row.onPress}
-        className={`flex-row items-center px-6 py-6 ${
-          index < rows.length - 1 ? 'border-b border-gray-100' : ''
-        }`}
-        activeOpacity={0.75}
-      >
-        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-green-50">
-          <AppIcon name={row.icon} size={28} color="#1A6B34" />
-        </View>
-        <SettingsCardText row={row} />
-      </TouchableOpacity>
-    ))}
-  </View>
-);
-
-const SettingsCardText = ({ row }: { row: SettingsRow }) => {
-  const { t } = useTranslation();
-
-  return (
-    <>
-      <Text className="ml-5 flex-1 text-gray-900 text-xl font-extrabold">
-        {t(row.labelKey)}
-      </Text>
-      {row.value ? (
-        <Text className="mr-5 text-gray-400 text-lg font-medium">
-          {row.value}
-        </Text>
-      ) : null}
-      <AppIcon name="chevronRight" size={28} color="#D1D5DB" />
-    </>
-  );
 };
 
 const AppSettingsScreen = ({ navigation }: any) => {
@@ -113,12 +67,9 @@ const AppSettingsScreen = ({ navigation }: any) => {
         const payload = unwrapApiData(response);
         const data = payload?.settings ?? payload?.app_settings ?? payload;
         const apiLanguage = firstString(data?.language);
-        const nextLanguage = isSupportedLanguage(apiLanguage)
-          ? apiLanguage
-          : undefined;
-
-        // Only update language from API if it returns a valid, different value
+        const nextLanguage = isSupportedLanguage(apiLanguage) ? apiLanguage : undefined;
         const resolvedLanguage = nextLanguage ?? languageRef.current;
+
         if (resolvedLanguage !== languageRef.current) {
           languageRef.current = resolvedLanguage;
           setLanguage(resolvedLanguage);
@@ -130,8 +81,8 @@ const AppSettingsScreen = ({ navigation }: any) => {
           biometricLogin: toBoolean(data?.biometric_login_enabled),
           twoFactor: toBoolean(data?.two_factor_enabled),
         });
-      } catch (error) {
-        console.error('AppSettingsScreen: Failed to load settings:', error);
+      } catch {
+        // keep existing state
       } finally {
         if (!isRefresh) setLoading(false);
       }
@@ -141,39 +92,23 @@ const AppSettingsScreen = ({ navigation }: any) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await loadSettings(true);
-    } finally {
-      setRefreshing(false);
-    }
+    try { await loadSettings(true); } finally { setRefreshing(false); }
   }, [loadSettings]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadSettings();
-    }, [loadSettings]),
-  );
+  useFocusEffect(useCallback(() => { loadSettings(); }, [loadSettings]));
 
   const updateSettings = async (
     payload: Record<string, any>,
     applyLocalChange: () => void,
     rollback: () => void,
   ) => {
-    if (updating) {
-      return;
-    }
-
+    if (updating) return;
     applyLocalChange();
-
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     setUpdating(true);
     try {
       await api.profile.appSettings.update(payload);
-    } catch (error) {
-      console.error('AppSettingsScreen: Update failed:', error);
+    } catch {
       rollback();
     } finally {
       setUpdating(false);
@@ -183,7 +118,6 @@ const AppSettingsScreen = ({ navigation }: any) => {
   const toggleLanguage = () => {
     const nextLanguage: LanguageCode = settings.language === 'en' ? 'ur' : 'en';
     const previousLanguage = settings.language;
-
     updateSettings(
       { language: nextLanguage },
       () => {
@@ -201,52 +135,31 @@ const AppSettingsScreen = ({ navigation }: any) => {
 
   const toggleBiometric = () => {
     const nextValue = !settings.biometricLogin;
-
     updateSettings(
       { biometric_login_enabled: nextValue },
-      () =>
-        setSettings(current => ({
-          ...current,
-          biometricLogin: nextValue,
-        })),
-      () =>
-        setSettings(current => ({
-          ...current,
-          biometricLogin: !nextValue,
-        })),
+      () => setSettings(current => ({ ...current, biometricLogin: nextValue })),
+      () => setSettings(current => ({ ...current, biometricLogin: !nextValue })),
     ).catch(() => undefined);
   };
 
   const toggleTwoFactor = () => {
     const nextValue = !settings.twoFactor;
-
     updateSettings(
       { two_factor_enabled: nextValue },
-      () =>
-        setSettings(current => ({
-          ...current,
-          twoFactor: nextValue,
-        })),
-      () =>
-        setSettings(current => ({
-          ...current,
-          twoFactor: !nextValue,
-        })),
+      () => setSettings(current => ({ ...current, twoFactor: nextValue })),
+      () => setSettings(current => ({ ...current, twoFactor: !nextValue })),
     ).catch(() => undefined);
   };
 
   const handleSelectCurrency = (currency: string) => {
     const previousCurrency = settings.currency;
-
     updateSettings(
       { currency },
       () => {
         setSettings(current => ({ ...current, currency }));
         setShowCurrencyPicker(false);
       },
-      () => {
-        setSettings(current => ({ ...current, currency: previousCurrency }));
-      },
+      () => setSettings(current => ({ ...current, currency: previousCurrency })),
     ).catch(() => undefined);
   };
 
@@ -281,9 +194,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
         {
           icon: 'twoFactor',
           labelKey: 'appSettings.twoFactorAuth',
-          value: settings.twoFactor
-            ? t('common.enabled')
-            : t('common.disabled'),
+          value: settings.twoFactor ? t('common.enabled') : t('common.disabled'),
           onPress: toggleTwoFactor,
         },
       ],
@@ -291,92 +202,94 @@ const AppSettingsScreen = ({ navigation }: any) => {
     {
       titleKey: 'appSettings.data',
       rows: [
-        {
-          icon: 'cache',
-          labelKey: 'appSettings.clearCache',
-          value: t('common.cacheValue'),
-        },
-        {
-          icon: 'version',
-          labelKey: 'appSettings.appVersion',
-          value: t('common.versionValue'),
-        },
+        { icon: 'cache', labelKey: 'appSettings.clearCache', value: t('common.cacheValue') },
+        { icon: 'version', labelKey: 'appSettings.appVersion', value: t('common.versionValue') },
       ],
     },
   ];
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <SubHeader title={t('appSettings.title')} navigation={navigation} />
+    <View style={s.container}>
+      <MockStatusBar backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <AppIcon name="chevronRight" size={22} color="#111827" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>{t('appSettings.title')}</Text>
+        <View style={s.headerSpacer} />
+      </View>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#1A6B34']}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1A6B34" colors={['#1A6B34']} />
         }
       >
         {groups.map(group => (
-          <View key={group.titleKey} className="mb-8">
-            <Text className="mb-4 px-2 text-gray-400 text-xl font-extrabold uppercase tracking-widest">
-              {t(group.titleKey)}
-            </Text>
-            <SettingsCard rows={group.rows} />
+          <View key={group.titleKey} style={s.group}>
+            <Text style={s.groupLabel}>{t(group.titleKey)}</Text>
+            <View style={s.card}>
+              {group.rows.map((row, rIdx) => (
+                <TouchableOpacity
+                  key={row.labelKey}
+                  onPress={row.onPress}
+                  style={[s.row, rIdx < group.rows.length - 1 && s.rowBorder]}
+                  activeOpacity={0.75}
+                >
+                  <View style={s.iconBox}>
+                    <AppIcon name={row.icon} size={15} color="#217A3C" />
+                  </View>
+                  <Text style={s.rowLabel}>{t(row.labelKey)}</Text>
+                  {row.value ? <Text style={s.rowValue}>{row.value}</Text> : null}
+                  <AppIcon name="chevronRight" size={15} color="#D1D5DB" />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ))}
+        <View style={s.bottomSpacer} />
       </ScrollView>
+
       <AppLoader
         visible={loading || updating}
         overlay
         message={updating ? t('common.updating') : t('common.loading')}
       />
 
+      {/* Currency picker bottom sheet */}
       <Modal
         visible={showCurrencyPicker}
         transparent
         animationType="slide"
         onRequestClose={() => setShowCurrencyPicker(false)}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="rounded-t-[28px] bg-white px-6 pb-10 pt-6">
-            <Text className="mb-6 text-gray-900 text-xl font-extrabold">
-              {t('appSettings.selectCurrency')}
-            </Text>
+        <View style={s.modalContainer}>
+          <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setShowCurrencyPicker(false)} />
+          <View style={s.sheet}>
+            <View style={s.dragHandle} />
+            <Text style={s.sheetTitle}>{t('appSettings.selectCurrency')}</Text>
             {['PKR', 'USD'].map(currency => (
               <TouchableOpacity
                 key={currency}
                 onPress={() => handleSelectCurrency(currency)}
-                className={`mb-3 rounded-2xl px-5 py-4 ${
-                  settings.currency === currency ? 'bg-green-50' : 'bg-gray-50'
-                }`}
+                style={[s.currencyOption, settings.currency === currency && s.currencyOptionSelected]}
                 activeOpacity={0.75}
               >
-                <Text
-                  className={`text-lg font-extrabold ${
-                    settings.currency === currency
-                      ? 'text-green-700'
-                      : 'text-gray-900'
-                  }`}
-                >
-                  {currency === 'PKR'
-                    ? t('appSettings.pkr')
-                    : t('appSettings.usd')}
+                <Text style={[s.currencyLabel, settings.currency === currency && s.currencyLabelSelected]}>
+                  {currency === 'PKR' ? t('appSettings.pkr') : t('appSettings.usd')}
                 </Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
               onPress={() => setShowCurrencyPicker(false)}
-              className="mt-2 rounded-2xl border border-gray-200 py-4"
+              style={s.cancelBtn}
               activeOpacity={0.75}
             >
-              <Text className="text-center text-gray-500 text-lg font-extrabold">
-                {t('appSettings.cancel')}
-              </Text>
+              <Text style={s.cancelText}>{t('appSettings.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -384,5 +297,107 @@ const AppSettingsScreen = ({ navigation }: any) => {
     </View>
   );
 };
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: { padding: 4, borderRadius: 8, transform: [{ rotate: '180deg' }] },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  headerSpacer: { width: 30 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  bottomSpacer: { height: 20 },
+
+  group: { marginBottom: 20 },
+  groupLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  iconBox: {
+    width: 34,
+    height: 34,
+    backgroundColor: '#F2FBF5',
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  rowLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: '#111827' },
+  rowValue: { fontSize: 12, color: '#9CA3AF', marginRight: 2 },
+
+  // Currency modal
+  modalContainer: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  dragHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 20,
+  },
+  sheetTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 },
+  currencyOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+  },
+  currencyOptionSelected: { backgroundColor: '#F2FBF5' },
+  currencyLabel: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  currencyLabelSelected: { color: '#1A6B34' },
+  cancelBtn: {
+    marginTop: 4,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  cancelText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+});
 
 export default AppSettingsScreen;

@@ -128,6 +128,7 @@ export const CategoryPostForm = ({
           <Text style={s.cardTitle}>Post Details</Text>
           {f.sortedFields.map(field => {
             const lk = labelKey(field.label);
+            console.log(field.label)
             return (
               <View key={field.id} style={s.fieldWrap}>
                 <View style={s.labelRow}>

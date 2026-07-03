@@ -1,0 +1,295 @@
+<!-- auth 6th screen -->
+<div
+  style="
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+    background: rgb(249, 250, 251);
+    display: flex;
+    flex-direction: column;
+  "
+>
+  <div style="flex: 1 1 0%; overflow: hidden; height: 100%; max-height: 100%">
+    <div
+      style="
+        height: 100%;
+        background: rgb(255, 255, 255);
+        display: flex;
+        flex-direction: column;
+      "
+    >
+      <div
+        style="
+          background: linear-gradient(
+            135deg,
+            rgb(20, 82, 40),
+            rgb(33, 122, 60)
+          );
+          padding: 48px 24px 28px;
+          position: relative;
+        "
+      >
+        <button
+          style="
+            position: absolute;
+            top: 44px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.18);
+            border-width: medium;
+            border-style: none;
+            border-color: currentcolor;
+            border-image: initial;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+          "
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12,19 5,12 12,5"></polyline>
+          </svg>
+        </button>
+        <div style="display: flex; gap: 6px; margin-bottom: 20px">
+          <span style="color: rgb(243, 205, 3); font-size: 14px">●</span
+          ><span style="color: rgb(243, 205, 3); font-size: 14px">●</span
+          ><span style="color: rgb(243, 205, 3); font-size: 14px">●</span
+          ><span style="color: rgba(255, 255, 255, 0.267); font-size: 10px"
+            >○</span
+          ><span style="color: rgba(255, 255, 255, 0.267); font-size: 10px"
+            >○</span
+          >
+        </div>
+        <div
+          style="font-size: 22px; font-weight: 800; color: rgb(255, 255, 255)"
+        >
+          Identity Verification
+        </div>
+        <div
+          style="
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.533);
+            margin-top: 4px;
+          "
+        >
+          Step 3 of 5 — Required by SECP
+        </div>
+      </div>
+      <div
+        style="
+          flex: 1 1 0%;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          overflow-y: auto;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label
+            style="font-size: 13px; font-weight: 600; color: rgb(55, 65, 81)"
+            >CNIC Number</label
+          >
+          <div style="position: relative">
+            <span
+              style="
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: rgb(156, 163, 175);
+              "
+              ><svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9CA3AF"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line></svg></span
+            ><input
+              type="text"
+              placeholder="XXXXX-XXXXXXX-X"
+              value=""
+              style="
+                width: 100%;
+                padding: 12px 14px 12px 38px;
+                border: 1.5px solid rgb(229, 231, 235);
+                border-radius: 10px;
+                font-size: 14px;
+                font-family: 'IBM Plex Sans', sans-serif;
+                color: rgb(17, 24, 39);
+                background: rgb(255, 255, 255);
+                outline: none;
+                box-sizing: border-box;
+                transition: border-color 0.2s;
+              "
+            />
+          </div>
+          <span style="font-size: 11px; color: rgb(156, 163, 175)"
+            >13-digit National ID number</span
+          >
+        </div>
+        <div>
+          <label
+            style="
+              font-size: 13px;
+              font-weight: 600;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 8px;
+            "
+            >Upload CNIC (Front)</label
+          >
+          <div
+            style="
+              border: 2px dashed rgb(209, 213, 219);
+              border-radius: 12px;
+              padding: 24px;
+              text-align: center;
+              background: rgb(249, 250, 251);
+              cursor: pointer;
+            "
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9CA3AF"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="16,16 12,12 8,16"></polyline>
+              <line x1="12" y1="12" x2="12" y2="21"></line>
+              <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"></path>
+            </svg>
+            <div
+              style="
+                font-size: 13px;
+                color: rgb(107, 114, 128);
+                margin-top: 8px;
+              "
+            >
+              Tap to upload or take photo
+            </div>
+            <div
+              style="
+                font-size: 11px;
+                color: rgb(156, 163, 175);
+                margin-top: 4px;
+              "
+            >
+              JPG, PNG up to 5MB
+            </div>
+          </div>
+        </div>
+        <div>
+          <label
+            style="
+              font-size: 13px;
+              font-weight: 600;
+              color: rgb(55, 65, 81);
+              display: block;
+              margin-bottom: 8px;
+            "
+            >Upload CNIC (Back)</label
+          >
+          <div
+            style="
+              border: 2px dashed rgb(209, 213, 219);
+              border-radius: 12px;
+              padding: 24px;
+              text-align: center;
+              background: rgb(249, 250, 251);
+              cursor: pointer;
+            "
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9CA3AF"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+              ></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <div
+              style="
+                font-size: 13px;
+                color: rgb(107, 114, 128);
+                margin-top: 8px;
+              "
+            >
+              Tap to upload or take photo
+            </div>
+          </div>
+        </div>
+        <div style="flex: 1 1 0%"></div>
+        <button
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(
+              135deg,
+              rgb(33, 122, 60),
+              rgb(26, 107, 52)
+            );
+            color: rgb(255, 255, 255);
+            border-width: medium;
+            border-style: none;
+            border-color: currentcolor;
+            border-image: initial;
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: rgba(46, 158, 82, 0.267) 0px 4px 12px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            letter-spacing: 0.01em;
+            opacity: 1;
+            transition: opacity 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+          "
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12,5 19,12 12,19"></polyline></svg
+          >Continue
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

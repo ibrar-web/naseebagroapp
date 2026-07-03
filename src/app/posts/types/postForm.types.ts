@@ -37,6 +37,7 @@ export type MillEntry = {
   name: string;
   city: string;
   price: string;
+  isCustom?: boolean;
 };
 
 export type FormSnapshot = {

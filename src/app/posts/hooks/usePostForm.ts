@@ -131,16 +131,27 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
   const setNextPaymentMode = (next: PaymentMode) => { setPaymentMode(next); setPaymentValue(''); };
 
   const selectMillOption = (millId: string, opts: FieldOption[]) => {
+    if (millId === '__other__') {
+      setPendingMill({ id: '__other__', name: '', city: '', price: '', isCustom: true });
+      closeDropdown();
+      return;
+    }
     const opt = opts.find(o => String(o.id ?? o.value ?? '') === millId);
     if (!opt) return;
-    setPendingMill({ id: millId, name: String(opt.name ?? ''), city: opt.city ?? '', price: '' });
+    setPendingMill({ id: millId, name: String(opt.name ?? ''), city: opt.city ?? '', price: '', isCustom: false });
     closeDropdown();
   };
 
   const addMill = () => {
-    if (!pendingMill.id || !pendingMill.price || selectedMills.some(m => m.id === pendingMill.id)) return;
-    setSelectedMills(prev => [...prev, { ...pendingMill }]);
-    setPendingMill({ id: '', name: '', city: '', price: '' });
+    if (pendingMill.isCustom) {
+      if (!pendingMill.name.trim() || !pendingMill.city.trim() || !pendingMill.price.trim()) return;
+      const tempId = `__custom_${Date.now()}`;
+      setSelectedMills(prev => [...prev, { ...pendingMill, id: tempId }]);
+    } else {
+      if (!pendingMill.id || !pendingMill.price || selectedMills.some(m => m.id === pendingMill.id)) return;
+      setSelectedMills(prev => [...prev, { ...pendingMill }]);
+    }
+    setPendingMill({ id: '', name: '', city: '', price: '', isCustom: false });
   };
 
   const removeMill = (id: string) => setSelectedMills(prev => prev.filter(m => m.id !== id));
@@ -173,7 +184,13 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
         weekly_percent: paymentMode === 'WEEKLY' ? (paymentValue || null) : null,
       };
     }
-    if (selectedMills.length > 0) payload.mills = selectedMills.map(m => ({ id: m.id, price: parseFloat(m.price) || 0 }));
+    if (selectedMills.length > 0) {
+      payload.mills = selectedMills.map(m =>
+        m.isCustom
+          ? { name: m.name, city: m.city, price: parseFloat(m.price) || 0 }
+          : { id: m.id, price: parseFloat(m.price) || 0 },
+      );
+    }
     return payload;
   };
 
@@ -192,7 +209,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
   };
 
   const resetForm = () => {
-    setValues({}); setSelectedMills([]); setPendingMill({ id: '', name: '', city: '', price: '' });
+    setValues({}); setSelectedMills([]); setPendingMill({ id: '', name: '', city: '', price: '', isCustom: false });
     setDeliveryDays(''); setIsCustomDelivery(false); setCustomDeliveryInput('');
     setPaymentMode('FIXED'); setPaymentValue(''); setOpenDropdown(null);
   };

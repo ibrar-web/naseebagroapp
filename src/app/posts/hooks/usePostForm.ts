@@ -81,10 +81,8 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
     const lk = labelKey(field.label);
     const type = field.field_type?.toLowerCase();
     if (lk === 'payment_terms') return paymentValue.trim().length > 0;
-    if (lk === 'delivery_terms') {
-      const d = effectiveDeliveryDays.trim();
-      return d.length > 0 && Number(d) > 0;
-    }
+    if (lk === 'delivery_terms') return effectiveDeliveryDays.trim().length > 0;
+    if (lk === 'mills') return selectedMills.length > 0;
     return isFilled(values[field.id], type ?? '');
   });
 
@@ -153,12 +151,21 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
       const type = field.field_type?.toLowerCase();
       if (lk === 'payment_terms' || lk === 'mills') continue;
       if (lk === 'target_price' && selectedMills.length > 0) continue;
-      if (lk === 'delivery_terms') { payload[lk] = parseInt(effectiveDeliveryDays, 10) || null; continue; }
+      if (lk === 'delivery_terms') {
+        payload[lk] = isCustomDelivery ? customDeliveryInput : (deliveryDays || null);
+        continue;
+      }
       if (type === 'number') { payload[lk] = parseNumber(values[field.id]); continue; }
       if (type === 'multi_select') { payload[lk] = Array.isArray(values[field.id]) ? values[field.id] : []; continue; }
       payload[lk] = values[field.id] ?? null;
     }
-    if (paymentField) payload.payment_terms = { type: paymentMode, fixed_days: paymentMode === 'FIXED' ? paymentValue : null, weekly_percent: paymentMode === 'WEEKLY' ? paymentValue : null };
+    if (paymentField) {
+      payload.payment_terms = {
+        type: paymentMode,
+        fixed_days: paymentMode === 'FIXED' ? (paymentValue || null) : null,
+        weekly_percent: paymentMode === 'WEEKLY' ? (paymentValue || null) : null,
+      };
+    }
     if (selectedMills.length > 0) payload.mills = selectedMills.map(m => ({ id: m.id, price: parseFloat(m.price) || 0 }));
     return payload;
   };

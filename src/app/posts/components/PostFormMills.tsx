@@ -51,7 +51,7 @@ export const PostFormMills = ({
             </View>
           </View>
           <TouchableOpacity style={s.removeBtn} onPress={() => onRemoveMill(m.id)} activeOpacity={0.7}>
-            <AppIcon name="edit" size={13} color="#EF4444" />
+            <AppIcon name="cache" size={13} color="#EF4444" />
           </TouchableOpacity>
         </View>
       ))}
@@ -78,7 +78,7 @@ export const PostFormMills = ({
                   <TouchableOpacity
                     key={id}
                     style={[s.opt, active && s.optActive]}
-                    onPress={() => { onSelectMill(id, opts); onToggleDropdown(MILLS_DD_ID); }}
+                    onPress={() => onSelectMill(id, opts)}
                     activeOpacity={0.7}
                   >
                     <View style={{ flex: 1 }}>

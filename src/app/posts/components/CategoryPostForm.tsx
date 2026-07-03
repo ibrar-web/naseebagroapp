@@ -10,7 +10,10 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MockStatusBar from '../../components/MockStatusBar';
 import { AppIcon } from '../../../assets/icons';
-import type { CategoryRouteParam, RootStackParamList } from '../../../navigation/types';
+import type {
+  CategoryRouteParam,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { usePostForm, labelKey } from '../hooks/usePostForm';
 import { PostFormField } from './PostFormField';
 import { PostFormDeliveryOptions } from './PostFormDeliveryOptions';
@@ -25,14 +28,21 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList>;
 };
 
-export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation }: Props) => {
+export const CategoryPostForm = ({
+  categoryName,
+  categoryData,
+  mode,
+  navigation,
+}: Props) => {
   const f = usePostForm({ categoryData, categoryName, mode, navigation });
 
   if (f.loading) {
     return (
       <View style={s.root}>
         <MockStatusBar />
-        <View style={s.center}><ActivityIndicator size="large" color="#2E9E52" /></View>
+        <View style={s.center}>
+          <ActivityIndicator size="large" color="#2E9E52" />
+        </View>
       </View>
     );
   }
@@ -43,7 +53,11 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
         <MockStatusBar />
         <View style={s.center}>
           <Text style={s.errText}>{f.loadError}</Text>
-          <TouchableOpacity style={s.retryBtn} onPress={f.goBack} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={s.retryBtn}
+            onPress={f.goBack}
+            activeOpacity={0.7}
+          >
             <Text style={s.retryText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -56,28 +70,49 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
       <MockStatusBar />
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={f.goBack} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={s.backBtn}
+          onPress={f.goBack}
+          activeOpacity={0.7}
+        >
           <AppIcon name="back" size={22} color="#111827" />
         </TouchableOpacity>
-        <Text style={s.title}>{f.isBuyer ? 'Create Demand' : 'Create Supply'}</Text>
+        <Text style={s.title}>
+          {f.isBuyer ? 'Create Demand' : 'Create Supply'}
+        </Text>
         <View style={s.badge}>
           <Text style={s.badgeText}>{categoryName}</Text>
         </View>
       </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Queued posts */}
         {f.queuedPosts.length > 0 && (
           <View style={s.queueCard}>
-            <Text style={s.queueTitle}>{f.queuedPosts.length} post{f.queuedPosts.length > 1 ? 's' : ''} queued</Text>
+            <Text style={s.queueTitle}>
+              {f.queuedPosts.length} post{f.queuedPosts.length > 1 ? 's' : ''}{' '}
+              queued
+            </Text>
             {f.queuedPosts.map((p, i) => (
               <View key={i} style={s.queueRow}>
-                <Text style={s.queuePreview} numberOfLines={1}>{p.preview}</Text>
+                <Text style={s.queuePreview} numberOfLines={1}>
+                  {p.preview}
+                </Text>
                 <View style={s.queueActions}>
-                  <TouchableOpacity onPress={() => f.editQueuedPost(i)} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    onPress={() => f.editQueuedPost(i)}
+                    activeOpacity={0.7}
+                  >
                     <AppIcon name="edit" size={14} color="#6B7280" />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => f.removeQueuedPost(i)} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    onPress={() => f.removeQueuedPost(i)}
+                    activeOpacity={0.7}
+                  >
                     <AppIcon name="cache" size={14} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
@@ -95,14 +130,24 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
               <View key={field.id} style={s.fieldWrap}>
                 <View style={s.labelRow}>
                   <Text style={s.label}>{field.label}</Text>
-                  {field.is_required
-                    ? <View style={s.tagRequired}><Text style={s.tagRequiredText}>Required</Text></View>
-                    : <View style={s.tagOptional}><Text style={s.tagOptionalText}>Optional</Text></View>}
+                  {field.is_required ? (
+                    <View style={s.tagRequired}>
+                      <Text style={s.tagRequiredText}>Required</Text>
+                    </View>
+                  ) : (
+                    <View style={s.tagOptional}>
+                      <Text style={s.tagOptionalText}>Optional</Text>
+                    </View>
+                  )}
                   {lk === 'grades' && (
-                    <View style={s.tagOptional}><Text style={s.tagOptionalText}>Multi-select</Text></View>
+                    <View style={s.tagOptional}>
+                      <Text style={s.tagOptionalText}>Multi-select</Text>
+                    </View>
                   )}
                   {lk === 'mills' && f.selectedMills.length > 0 && (
-                    <Text style={s.millCount}>{f.selectedMills.length} added</Text>
+                    <Text style={s.millCount}>
+                      {f.selectedMills.length} added
+                    </Text>
                   )}
                 </View>
 
@@ -154,7 +199,6 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
               </View>
             );
           })}
-
           {/* Save & Add Another */}
           <TouchableOpacity
             style={[s.saveBtn, f.canSubmit && s.saveBtnActive]}
@@ -162,15 +206,23 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
             disabled={!f.canSubmit}
             activeOpacity={0.7}
           >
-            <AppIcon name="add" size={15} color={f.canSubmit ? '#2E9E52' : '#9CA3AF'} />
-            <Text style={[s.saveBtnText, f.canSubmit && s.saveBtnTextActive]}>Save &amp; Add Another</Text>
+            <AppIcon
+              name="add"
+              size={15}
+              color={f.canSubmit ? '#2E9E52' : '#9CA3AF'}
+            />
+            <Text style={[s.saveBtnText, f.canSubmit && s.saveBtnTextActive]}>
+              Save &amp; Add Another
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Bottom bar */}
       <View style={s.bottomBar}>
-        {f.submitError ? <Text style={s.submitError}>{f.submitError}</Text> : null}
+        {f.submitError ? (
+          <Text style={s.submitError}>{f.submitError}</Text>
+        ) : null}
         <TouchableOpacity
           style={[s.submitBtn, f.canSubmitAny && s.submitBtnActive]}
           onPress={f.handleSubmit}
@@ -182,7 +234,11 @@ export const CategoryPostForm = ({ categoryName, categoryData, mode, navigation 
           ) : (
             <Text style={[s.submitText, f.canSubmitAny && s.submitTextActive]}>
               {f.canSubmitAny
-                ? `Submit${f.queuedPosts.length > 0 ? ` (${f.queuedPosts.length + (f.canSubmit ? 1 : 0)})` : ''}`
+                ? `Submit${
+                    f.queuedPosts.length > 0
+                      ? ` (${f.queuedPosts.length + (f.canSubmit ? 1 : 0)})`
+                      : ''
+                  }`
                 : 'Fill the form above to continue'}
             </Text>
           )}
@@ -196,42 +252,165 @@ export default CategoryPostForm;
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F9FAFB' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errText: { fontSize: 14, color: '#374151', textAlign: 'center', marginBottom: 16 },
-  retryBtn: { backgroundColor: '#2E9E52', borderRadius: 10, paddingVertical: 11, paddingHorizontal: 24 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  errText: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryBtn: {
+    backgroundColor: '#2E9E52',
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+  },
   retryText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 20, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
   backBtn: { padding: 4, borderRadius: 8 },
   title: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  badge: { backgroundColor: '#E8F7EE', borderRadius: 8, paddingVertical: 4, paddingHorizontal: 10 },
+  badge: {
+    backgroundColor: '#E8F7EE',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
   badgeText: { fontSize: 11, fontWeight: '700', color: '#1A6B34' },
   scroll: { flex: 1 },
   scrollContent: { padding: 14, paddingBottom: 100 },
-  queueCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1.5, borderColor: '#E5E7EB' },
-  queueTitle: { fontSize: 11, fontWeight: '700', color: '#2E9E52', marginBottom: 8 },
-  queueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  queueCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  queueTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2E9E52',
+    marginBottom: 8,
+  },
+  queueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
   queuePreview: { flex: 1, fontSize: 12, color: '#374151' },
   queueActions: { flexDirection: 'row', gap: 12, marginLeft: 12 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 3, borderWidth: 1.5, borderColor: '#F3F4F6' },
-  cardTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 14 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: '#F3F4F6',
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 14,
+  },
   fieldWrap: { marginBottom: 14 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 7, flexWrap: 'wrap', gap: 4 },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 7,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
   label: { fontSize: 12, fontWeight: '700', color: '#374151' },
   required: { color: '#EF4444' },
   optional: { fontSize: 11, color: '#9CA3AF', fontWeight: '400' },
-  millCount: { fontSize: 11, color: '#217A3C', fontWeight: '700', marginLeft: 'auto' },
-  tagRequired: { backgroundColor: '#FEE2E2', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 7 },
+  millCount: {
+    fontSize: 11,
+    color: '#217A3C',
+    fontWeight: '700',
+    marginLeft: 'auto',
+  },
+  tagRequired: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+  },
   tagRequiredText: { fontSize: 10, fontWeight: '600', color: '#EF4444' },
-  tagOptional: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 7 },
+  tagOptional: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+  },
   tagOptionalText: { fontSize: 10, fontWeight: '500', color: '#9CA3AF' },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 10, backgroundColor: '#F3F4F6', marginTop: 4 },
-  saveBtnActive: { backgroundColor: '#F2FBF5', borderWidth: 1.5, borderColor: '#2E9E52' },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    marginTop: 4,
+  },
+  saveBtnActive: {
+    backgroundColor: '#F2FBF5',
+    borderWidth: 1.5,
+    borderColor: '#2E9E52',
+  },
   saveBtnText: { fontSize: 13, fontWeight: '700', color: '#9CA3AF' },
   saveBtnTextActive: { color: '#2E9E52' },
-  bottomBar: { padding: 12, paddingBottom: 16, backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 8 },
-  submitError: { fontSize: 12, color: '#EF4444', textAlign: 'center', marginBottom: 8 },
-  submitBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 13, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 12, opacity: 0.6 },
-  submitBtnActive: { backgroundColor: '#2E9E52', borderColor: '#2E9E52', opacity: 1 },
+  bottomBar: {
+    padding: 12,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
+  submitError: {
+    fontSize: 12,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  submitBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    opacity: 0.6,
+  },
+  submitBtnActive: {
+    backgroundColor: '#2E9E52',
+    borderColor: '#2E9E52',
+    opacity: 1,
+  },
   submitText: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   submitTextActive: { color: '#FFFFFF' },
 });

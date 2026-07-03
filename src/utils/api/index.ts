@@ -106,10 +106,14 @@ export const api = {
         params?: Record<string, any>,
       ) => Get(byId('public/demand', id), params, optionalAuthRequest),
       listCategories: () => Get('public/categories'),
+      listCities: (params?: { province?: string }) =>
+        Get('public/cities', params),
+      getTradeConfigs: (params?: { type?: string }) =>
+        Get('public/trade-configs', params),
     },
   },
   buyer: {
-    sendBuyrequest: (id: string | number, data?: any) =>
+    sendBuyrequest: (_id: string | number, data?: any) =>
       Post('buyer/supplies/make-request', data, protectedRequest),
     listMyDemands: (params?: MyPostsListParams) =>
       Get('buyer/demands', params, protectedRequest),
@@ -155,7 +159,7 @@ export const api = {
   },
 
   seller: {
-    sendDemandOffer: (id: string | number, data?: any) =>
+    sendDemandOffer: (_id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
     ListMyPosts: (params?: MyPostsListParams) =>
       Get('seller/supplies', params, protectedRequest),

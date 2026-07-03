@@ -61,7 +61,7 @@
           color: rgb(17, 24, 39);
           font-family: 'IBM Plex Sans', sans-serif;
         "
-        >Request to Purchase</span
+        >Send Offer</span
       >
       <div style="display: flex; gap: 8px"><div style="width: 30px"></div></div>
     </div>
@@ -90,16 +90,36 @@
               );
             "
           ></div>
+          <div
+            style="
+              position: absolute;
+              top: 10px;
+              left: 12px;
+              z-index: 2;
+              background: rgba(0, 0, 0, 0.4);
+              border-radius: 6px;
+              padding: 2px 8px;
+            "
+          >
+            <span
+              style="
+                font-size: 9px;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.85);
+              "
+              >BUYER DEMAND</span
+            >
+          </div>
           <div style="position: absolute; bottom: 10px; left: 14px; z-index: 2">
             <div
               style="
                 font-size: 9px;
                 color: rgba(255, 255, 255, 0.5);
                 font-family: 'IBM Plex Mono', monospace;
-                margin-bottom: 2px;
+                margin-bottom: 1px;
               "
             >
-              LST-2024-001
+              REQ-2024-041
             </div>
             <div
               style="
@@ -109,17 +129,86 @@
               "
             >
               Basmati Rice
-              <span
-                style="
-                  font-size: 10px;
-                  background: rgb(243, 205, 3);
-                  color: rgb(13, 59, 31);
-                  border-radius: 4px;
-                  padding: 1px 6px;
-                  margin-left: 4px;
-                "
-                >PREMIUM</span
-              >
+            </div>
+          </div>
+        </div>
+        <div
+          style="background: rgb(20, 82, 40); padding: 10px 14px; display: flex"
+        >
+          <div
+            style="
+              flex: 1 1 0%;
+              border-left-width: medium;
+              border-left-style: none;
+              border-left-color: currentcolor;
+              padding-left: 0px;
+            "
+          >
+            <div
+              style="
+                font-size: 9px;
+                color: rgba(255, 255, 255, 0.4);
+                margin-bottom: 2px;
+              "
+            >
+              QTY NEEDED
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(255, 255, 255);
+              "
+            >
+              150 bags
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1 1 0%;
+              border-left: 1px solid rgba(255, 255, 255, 0.133);
+              padding-left: 12px;
+            "
+          >
+            <div
+              style="
+                font-size: 9px;
+                color: rgba(255, 255, 255, 0.4);
+                margin-bottom: 2px;
+              "
+            >
+              LOCATION
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                font-weight: 700;
+                color: rgb(255, 255, 255);
+              "
+            >
+              Lahore
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1 1 0%;
+              border-left: 1px solid rgba(255, 255, 255, 0.133);
+              padding-left: 12px;
+            "
+          >
+            <div
+              style="
+                font-size: 9px;
+                color: rgba(255, 255, 255, 0.4);
+                margin-bottom: 2px;
+              "
+            >
+              BUYER BUDGET
+            </div>
+            <div
+              style="font-size: 12px; font-weight: 700; color: rgb(243, 205, 3)"
+            >
+              PKR 4,000/40kg
             </div>
           </div>
         </div>
@@ -141,7 +230,7 @@
             margin-bottom: 4px;
           "
         >
-          1. Select Mill <span style="color: rgb(239, 68, 68)">*</span>
+          1. Select Your Mill <span style="color: rgb(239, 68, 68)">*</span>
         </div>
         <div
           style="
@@ -150,7 +239,7 @@
             margin-bottom: 12px;
           "
         >
-          Your request will be tied to one mill
+          Choose which of your mills will fulfil this order
         </div>
         <button
           style="
@@ -207,7 +296,7 @@
               >
             </div>
             <div style="font-size: 11px; color: rgb(156, 163, 175)">
-              200 bags available
+              220 bags in stock
             </div>
           </div></button
         ><button
@@ -255,7 +344,7 @@
             <div
               style="font-size: 14px; font-weight: 900; color: rgb(26, 107, 52)"
             >
-              PKR 4,100<span
+              PKR 4,050<span
                 style="
                   font-size: 10px;
                   font-weight: 500;
@@ -265,65 +354,7 @@
               >
             </div>
             <div style="font-size: 11px; color: rgb(156, 163, 175)">
-              150 bags available
-            </div>
-          </div></button
-        ><button
-          style="
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 12px 14px;
-            border: 2px solid rgb(229, 231, 235);
-            border-radius: 12px;
-            background: transparent;
-            cursor: pointer;
-            margin-bottom: 8px;
-            font-family: 'IBM Plex Sans', sans-serif;
-            gap: 12px;
-          "
-        >
-          <div
-            style="
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              border: 2px solid rgb(209, 213, 219);
-              background: transparent;
-              flex-shrink: 0;
-            "
-          ></div>
-          <div style="flex: 1 1 0%; text-align: left">
-            <div
-              style="font-size: 13px; font-weight: 700; color: rgb(17, 24, 39)"
-            >
-              Lahore Mill C
-            </div>
-            <div
-              style="
-                font-size: 11px;
-                color: rgb(107, 114, 128);
-                margin-top: 1px;
-              "
-            >
-              Lahore, Punjab
-            </div>
-          </div>
-          <div style="text-align: right">
-            <div
-              style="font-size: 14px; font-weight: 900; color: rgb(26, 107, 52)"
-            >
-              PKR 4,350<span
-                style="
-                  font-size: 10px;
-                  font-weight: 500;
-                  color: rgb(156, 163, 175);
-                "
-                >/40kg</span
-              >
-            </div>
-            <div style="font-size: 11px; color: rgb(156, 163, 175)">
-              150 bags available
+              180 bags in stock
             </div>
           </div>
         </button>
@@ -345,11 +376,11 @@
             display: block;
             margin-bottom: 8px;
           "
-          >2. Quantity Required (bags)
+          >2. Quantity You Can Supply (bags)
           <span style="color: rgb(239, 68, 68)">*</span></label
         ><input
           type="number"
-          placeholder="e.g. 100"
+          placeholder="e.g. 150"
           value=""
           style="
             width: 100%;
@@ -381,7 +412,7 @@
             margin-bottom: 12px;
           "
         >
-          3. Price Option <span style="color: rgb(239, 68, 68)">*</span>
+          3. Your Price <span style="color: rgb(239, 68, 68)">*</span>
         </div>
         <div style="display: flex; gap: 8px; margin-bottom: 12px">
           <button
@@ -399,7 +430,7 @@
             <div
               style="font-size: 12px; font-weight: 700; color: rgb(26, 107, 52)"
             >
-              Use Original Price
+              Use Listed Price
             </div>
             <div
               style="font-size: 11px; color: rgb(33, 122, 60); margin-top: 2px"
@@ -421,7 +452,7 @@
             <div
               style="font-size: 12px; font-weight: 700; color: rgb(55, 65, 81)"
             >
-              Make an Offer
+              Make a Counter
             </div>
             <div
               style="
@@ -430,7 +461,7 @@
                 margin-top: 2px;
               "
             >
-              Enter your target price
+              Enter a different price
             </div>
           </button>
         </div>
@@ -449,286 +480,217 @@
             font-size: 13px;
             font-weight: 800;
             color: rgb(17, 24, 39);
-            margin-bottom: 4px;
-          "
-        >
-          4. Payment Terms <span style="color: rgb(239, 68, 68)">*</span>
-        </div>
-        <div
-          style="
-            font-size: 11px;
-            color: rgb(107, 114, 128);
             margin-bottom: 12px;
           "
         >
-          Seller's posted terms: <strong>Full in 7 days</strong>
+          4. Payment &amp; Delivery Terms
         </div>
         <div
           style="
-            display: flex;
-            background: rgb(243, 244, 246);
-            border-radius: 10px;
-            padding: 3px;
-            margin-bottom: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgb(156, 163, 175);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
           "
         >
-          <button
-            style="
-              flex: 1 1 0%;
-              padding: 8px 0px;
-              border-width: medium;
-              border-style: none;
-              border-color: currentcolor;
-              border-image: initial;
-              border-radius: 8px;
-              background: rgb(255, 255, 255);
-              cursor: pointer;
-              font-size: 12px;
-              font-weight: 700;
-              color: rgb(17, 24, 39);
-              font-family: 'IBM Plex Sans', sans-serif;
-              box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 4px;
-            "
-          >
-            Fixed Days</button
-          ><button
-            style="
-              flex: 1 1 0%;
-              padding: 8px 0px;
-              border-width: medium;
-              border-style: none;
-              border-color: currentcolor;
-              border-image: initial;
-              border-radius: 8px;
-              background: transparent;
-              cursor: pointer;
-              font-size: 12px;
-              font-weight: 500;
-              color: rgb(107, 114, 128);
-              font-family: 'IBM Plex Sans', sans-serif;
-              box-shadow: none;
-            "
-          >
-            Weekly %
-          </button>
+          BUYER'S TERMS
         </div>
-        <div>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px">
           <div
             style="
-              font-size: 11px;
-              color: rgb(107, 114, 128);
-              margin-bottom: 8px;
+              flex: 1 1 0%;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              background: rgb(249, 250, 251);
+              border-radius: 10px;
+              padding: 10px 12px;
+              border: 1px solid rgb(243, 244, 246);
             "
           >
-            Pay full amount within how many days?
+            <div
+              style="
+                width: 28px;
+                height: 28px;
+                background: rgb(255, 255, 255);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 4px;
+              "
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6B7280"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
+            </div>
+            <div>
+              <div
+                style="
+                  font-size: 9px;
+                  color: rgb(156, 163, 175);
+                  margin-bottom: 2px;
+                "
+              >
+                PAYMENT
+              </div>
+              <div
+                style="
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(31, 41, 55);
+                "
+              >
+                30 days after delivery
+              </div>
+            </div>
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 7px">
-            <button
+          <div
+            style="
+              flex: 1 1 0%;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              background: rgb(249, 250, 251);
+              border-radius: 10px;
+              padding: 10px 12px;
+              border: 1px solid rgb(243, 244, 246);
+            "
+          >
+            <div
               style="
-                padding: 8px 14px;
-                border: 1.5px solid rgb(229, 231, 235);
-                border-radius: 20px;
+                width: 28px;
+                height: 28px;
                 background: rgb(255, 255, 255);
-                color: rgb(55, 65, 81);
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'IBM Plex Sans', sans-serif;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 4px;
               "
             >
-              7 Days</button
-            ><button
-              style="
-                padding: 8px 14px;
-                border: 1.5px solid rgb(229, 231, 235);
-                border-radius: 20px;
-                background: rgb(255, 255, 255);
-                color: rgb(55, 65, 81);
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'IBM Plex Sans', sans-serif;
-              "
-            >
-              15 Days</button
-            ><button
-              style="
-                padding: 8px 14px;
-                border: 1.5px solid rgb(229, 231, 235);
-                border-radius: 20px;
-                background: rgb(255, 255, 255);
-                color: rgb(55, 65, 81);
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'IBM Plex Sans', sans-serif;
-              "
-            >
-              30 Days</button
-            ><button
-              style="
-                padding: 8px 14px;
-                border: 1.5px solid rgb(229, 231, 235);
-                border-radius: 20px;
-                background: rgb(255, 255, 255);
-                color: rgb(55, 65, 81);
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'IBM Plex Sans', sans-serif;
-              "
-            >
-              45 Days</button
-            ><button
-              style="
-                padding: 8px 14px;
-                border: 1.5px solid rgb(229, 231, 235);
-                border-radius: 20px;
-                background: rgb(255, 255, 255);
-                color: rgb(55, 65, 81);
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'IBM Plex Sans', sans-serif;
-              "
-            >
-              60 Days
-            </button>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6B7280"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16,8 20,8 23,11 23,16 16,16 16,8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <div>
+              <div
+                style="
+                  font-size: 9px;
+                  color: rgb(156, 163, 175);
+                  margin-bottom: 2px;
+                "
+              >
+                DELIVERY
+              </div>
+              <div
+                style="
+                  font-size: 12px;
+                  font-weight: 700;
+                  color: rgb(31, 41, 55);
+                "
+              >
+                3 days
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div
-        style="
-          background: rgb(255, 255, 255);
-          border-radius: 14px;
-          padding: 14px 16px;
-          margin-bottom: 12px;
-          box-shadow: rgba(0, 0, 0, 0.05) 0px 2px 8px;
-        "
-      >
-        <div
-          style="
-            font-size: 13px;
-            font-weight: 800;
-            color: rgb(17, 24, 39);
-            margin-bottom: 4px;
-          "
-        >
-          5. Delivery Terms <span style="color: rgb(239, 68, 68)">*</span>
-        </div>
-        <div
-          style="
-            font-size: 11px;
-            color: rgb(107, 114, 128);
-            margin-bottom: 12px;
-          "
-        >
-          Seller's posted terms: <strong>5 days</strong>
-        </div>
-        <div
-          style="font-size: 11px; color: rgb(107, 114, 128); margin-bottom: 8px"
-        >
-          Require delivery within how many days?
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 7px">
+        <div style="display: flex; gap: 8px">
           <button
             style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
+              flex: 1 1 0%;
+              padding: 9px 10px;
               background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
+              border: 1.5px dashed rgb(209, 213, 219);
+              border-radius: 10px;
               cursor: pointer;
               font-family: 'IBM Plex Sans', sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 5px;
             "
           >
-            1 Day</button
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9CA3AF"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+              ></path>
+              <path
+                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+              ></path></svg
+            ><span
+              style="font-size: 11px; font-weight: 500; color: rgb(75, 85, 99)"
+              >Counter payment</span
+            ></button
           ><button
             style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
+              flex: 1 1 0%;
+              padding: 9px 10px;
               background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
+              border: 1.5px dashed rgb(209, 213, 219);
+              border-radius: 10px;
               cursor: pointer;
               font-family: 'IBM Plex Sans', sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 5px;
             "
           >
-            2 Days</button
-          ><button
-            style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
-              background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              font-family: 'IBM Plex Sans', sans-serif;
-            "
-          >
-            3 Days</button
-          ><button
-            style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
-              background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              font-family: 'IBM Plex Sans', sans-serif;
-            "
-          >
-            5 Days</button
-          ><button
-            style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
-              background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              font-family: 'IBM Plex Sans', sans-serif;
-            "
-          >
-            7 Days</button
-          ><button
-            style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
-              background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              font-family: 'IBM Plex Sans', sans-serif;
-            "
-          >
-            10 Days</button
-          ><button
-            style="
-              padding: 8px 14px;
-              border: 1.5px solid rgb(229, 231, 235);
-              border-radius: 20px;
-              background: rgb(255, 255, 255);
-              color: rgb(55, 65, 81);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              font-family: 'IBM Plex Sans', sans-serif;
-            "
-          >
-            14 Days
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9CA3AF"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+              ></path>
+              <path
+                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+              ></path></svg
+            ><span
+              style="font-size: 11px; font-weight: 500; color: rgb(75, 85, 99)"
+              >Counter delivery</span
+            >
           </button>
         </div>
       </div>
@@ -749,7 +711,11 @@
             display: block;
             margin-bottom: 8px;
           "
-          >Additional Requirement</label
+          >6. Offer Condition
+          <span
+            style="font-size: 11px; color: rgb(156, 163, 175); font-weight: 400"
+            >(optional)</span
+          ></label
         ><select
           style="
             width: 100%;
@@ -766,11 +732,13 @@
           "
         >
           <option value="">Select condition (optional)...</option>
-          <option>Grade A (Premium) required</option>
-          <option>Dry packaging essential</option>
-          <option>Certified organic needed</option>
-          <option>Flexible on delivery date</option>
-          <option>Export quality only</option>
+          <option>Fresh season stock</option>
+          <option>Dry packaging included</option>
+          <option>Transport arranged by seller</option>
+          <option>Available for pre-dispatch inspection</option>
+          <option>Immediate dispatch available</option>
+          <option>Grade A quality guaranteed</option>
+          <option>Price negotiable in bulk</option>
         </select>
       </div>
       <div
@@ -780,7 +748,6 @@
           padding: 10px 14px;
           display: flex;
           gap: 8px;
-          align-items: flex-start;
         "
       >
         <svg
@@ -793,13 +760,11 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
         <div style="font-size: 11px; color: rgb(26, 107, 52); line-height: 1.5">
-          1.5% Naseeb platform fee is charged at the last payment. The seller
-          will receive your request and can accept or reject it directly.
+          Your offer goes directly to the buyer. They can accept, reject, or
+          send a counter offer. 1.5% platform fee on final payment.
         </div>
       </div>
     </div>
@@ -817,12 +782,8 @@
           align-items: center;
           justify-content: center;
           gap: 8px;
-          background: linear-gradient(
-            135deg,
-            rgb(33, 122, 60),
-            rgb(26, 107, 52)
-          );
-          color: rgb(255, 255, 255);
+          background: rgb(243, 205, 3);
+          color: rgb(13, 59, 31);
           border-width: medium;
           border-style: none;
           border-color: currentcolor;
@@ -833,7 +794,7 @@
           font-weight: 600;
           cursor: not-allowed;
           width: 100%;
-          box-shadow: rgba(46, 158, 82, 0.267) 0px 4px 12px;
+          box-shadow: rgba(243, 205, 3, 0.333) 0px 4px 12px;
           font-family: 'IBM Plex Sans', sans-serif;
           letter-spacing: 0.01em;
           opacity: 0.6;
@@ -841,19 +802,7 @@
           -webkit-tap-highlight-color: transparent;
         "
       >
-        <svg
-          width="17"
-          height="17"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#FFFFFF"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
-          <polyline points="22,4 12,14.01 9,11.01"></polyline></svg
-        >Fill all required fields
+        Select mill, qty and price to continue
       </button>
     </div>
   </div>

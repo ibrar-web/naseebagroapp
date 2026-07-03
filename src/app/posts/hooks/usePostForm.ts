@@ -83,6 +83,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
     if (lk === 'payment_terms') return paymentValue.trim().length > 0;
     if (lk === 'delivery_terms') return effectiveDeliveryDays.trim().length > 0;
     if (lk === 'mills') return selectedMills.length > 0;
+    if (lk === 'location') return Boolean((values[field.id] as { id?: string } | null)?.id);
     return isFilled(values[field.id], type ?? '');
   });
 
@@ -155,6 +156,12 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
         payload[lk] = isCustomDelivery ? customDeliveryInput : (deliveryDays || null);
         continue;
       }
+      if (lk === 'location') {
+        const cv = values[field.id] as { id?: string; name?: string } | null;
+        payload.city_id = cv?.id ?? null;
+        payload.location = cv?.name ?? null;
+        continue;
+      }
       if (type === 'number') { payload[lk] = parseNumber(values[field.id]); continue; }
       if (type === 'multi_select') { payload[lk] = Array.isArray(values[field.id]) ? values[field.id] : []; continue; }
       payload[lk] = values[field.id] ?? null;
@@ -177,7 +184,10 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
     const qf = findField('quantity');
     if (qf && values[qf.id]) parts.push(`Qty: ${values[qf.id]}`);
     const lf = findField('location');
-    if (lf && typeof values[lf.id] === 'string') parts.push(values[lf.id] as string);
+    if (lf) {
+      const cv = values[lf.id] as { name?: string } | null;
+      if (cv?.name) parts.push(cv.name);
+    }
     return parts.join(' · ') || 'Post';
   };
 

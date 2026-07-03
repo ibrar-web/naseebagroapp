@@ -16,10 +16,12 @@ import type {
 } from '../../../navigation/types';
 import { usePostForm, labelKey } from '../hooks/usePostForm';
 import { PostFormField } from './PostFormField';
+import { PostFormCityPicker } from './PostFormCityPicker';
 import { PostFormDeliveryOptions } from './PostFormDeliveryOptions';
 import { PostFormMills } from './PostFormMills';
 import { PostFormPaymentTerms } from './PostFormPaymentTerms';
 import { PostFormDeliveryTerms } from './PostFormDeliveryTerms';
+import type { CityValue } from '../types/postForm.types';
 
 type Props = {
   categoryName: string;
@@ -151,7 +153,12 @@ export const CategoryPostForm = ({
                   )}
                 </View>
 
-                {lk === 'delivery_options' ? (
+                {lk === 'location' ? (
+                  <PostFormCityPicker
+                    value={f.values[field.id] as CityValue | null}
+                    onChange={v => f.setFieldValue(field.id, v)}
+                  />
+                ) : lk === 'delivery_options' ? (
                   <PostFormDeliveryOptions
                     value={f.values[field.id] as string | null}
                     options={field.options ?? []}

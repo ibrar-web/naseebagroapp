@@ -1,6 +1,7 @@
 export type PostFormMode = 'buyer' | 'seller';
 export type PaymentMode = 'FIXED' | 'WEEKLY';
-export type FieldValue = string | string[] | null;
+export type CityValue = { id: string; name: string };
+export type FieldValue = string | string[] | CityValue | null;
 
 export type FieldOption = {
   id?: string | number;

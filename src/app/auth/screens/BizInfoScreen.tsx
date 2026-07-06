@@ -15,6 +15,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
 import { setRegisterBizInfo } from '../../../store/slices/registerSlice';
 import api from '../../../utils/api';
+import { AppIcon } from '../../../assets/icons';
 import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BizInfo'>;
@@ -73,8 +74,10 @@ const BizInfoScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#fff" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Business Details</Text>
+        <Text style={styles.headerSubtitle}>Step 2 of 5 — Your Trade Profile</Text>
         <View style={styles.dotsRow}>
           {Array.from({ length: STEP_TOTAL }).map((_, i) => (
             <Text
@@ -88,8 +91,6 @@ const BizInfoScreen = ({ navigation }: Props) => {
             </Text>
           ))}
         </View>
-        <Text style={styles.headerTitle}>Business Details</Text>
-        <Text style={styles.headerSubtitle}>Step 2 of 5 — Your Trade Profile</Text>
       </View>
 
       <ScrollView
@@ -278,12 +279,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { color: '#fff', fontSize: 18 },
-  dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
+  dotsRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
   dot: { fontSize: 14 },
   dotActive: { color: '#F3CD03' },
   dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 50 },
   headerSubtitle: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.533)',

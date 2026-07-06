@@ -44,7 +44,7 @@ const PhoneScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.titleRow}>
           <View style={styles.iconBox}>
@@ -132,12 +132,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { color: '#fff', fontSize: 18 },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 16,
-    marginTop: 40,
+    marginTop: 50,
   },
   iconBox: {
     width: 48,

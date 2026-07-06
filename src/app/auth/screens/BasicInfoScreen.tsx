@@ -13,6 +13,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
 import { setRegisterBasicInfo } from '../../../store/slices/registerSlice';
+import { AppIcon } from '../../../assets/icons';
+import { Feather } from '../../../assets/icons/feather';
 import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BasicInfo'>;
@@ -24,12 +26,11 @@ const STEP_ACTIVE = 0;
 
 const BasicInfoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirm: '',
-  });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const confirmError = form.confirm.length > 0 && form.confirm !== form.password;
 
   const canContinue =
     form.name.length > 2 &&
@@ -64,26 +65,21 @@ const BasicInfoScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#fff" />
         </TouchableOpacity>
 
-        {/* Step dots */}
+        <Text style={styles.headerTitle}>Basic Information</Text>
+        <Text style={styles.headerSubtitle}>Step 1 of 5 — Personal Details</Text>
         <View style={styles.dotsRow}>
           {Array.from({ length: STEP_TOTAL }).map((_, i) => (
             <Text
               key={i}
-              style={[
-                styles.dot,
-                i <= STEP_ACTIVE ? styles.dotActive : styles.dotInactive,
-              ]}
+              style={[styles.dot, i <= STEP_ACTIVE ? styles.dotActive : styles.dotInactive]}
             >
               {i <= STEP_ACTIVE ? '●' : '○'}
             </Text>
           ))}
         </View>
-
-        <Text style={styles.headerTitle}>Basic Information</Text>
-        <Text style={styles.headerSubtitle}>Step 1 of 5 — Personal Details</Text>
       </View>
 
       <ScrollView
@@ -91,54 +87,81 @@ const BasicInfoScreen = ({ navigation }: Props) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {[
-          {
-            label: 'Full Name',
-            key: 'name' as const,
-            placeholder: 'Muhammad Asad Khan',
-            keyboardType: 'default' as const,
-            secure: false,
-            autoCapitalize: 'words' as const,
-          },
-          {
-            label: 'Email Address',
-            key: 'email' as const,
-            placeholder: 'asad@example.com',
-            keyboardType: 'email-address' as const,
-            secure: false,
-            autoCapitalize: 'none' as const,
-          },
-          {
-            label: 'Password',
-            key: 'password' as const,
-            placeholder: 'Create a strong password',
-            keyboardType: 'default' as const,
-            secure: true,
-            autoCapitalize: 'none' as const,
-          },
-          {
-            label: 'Confirm Password',
-            key: 'confirm' as const,
-            placeholder: 'Re-enter password',
-            keyboardType: 'default' as const,
-            secure: true,
-            autoCapitalize: 'none' as const,
-          },
-        ].map(field => (
-          <View key={field.key} style={styles.fieldGroup}>
-            <Text style={styles.label}>{field.label}</Text>
+        {/* Full Name */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Full Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Muhammad Asad Khan"
+            placeholderTextColor="#9CA3AF"
+            value={form.name}
+            onChangeText={set('name')}
+            autoCapitalize="words"
+          />
+        </View>
+
+        {/* Email */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Email Address</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="asad@example.com"
+            placeholderTextColor="#9CA3AF"
+            value={form.email}
+            onChangeText={set('email')}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {/* Password */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.inputWrapper}>
             <TextInput
-              style={styles.input}
-              placeholder={field.placeholder}
+              style={styles.inputWithEye}
+              placeholder="Create a strong password"
               placeholderTextColor="#9CA3AF"
-              value={form[field.key]}
-              onChangeText={set(field.key)}
-              keyboardType={field.keyboardType}
-              secureTextEntry={field.secure}
-              autoCapitalize={field.autoCapitalize}
+              value={form.password}
+              onChangeText={set('password')}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
             />
+            <TouchableOpacity
+              onPress={() => setShowPassword(v => !v)}
+              style={styles.eyeBtn}
+              activeOpacity={0.7}
+            >
+              <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color="#9CA3AF" />
+            </TouchableOpacity>
           </View>
-        ))}
+        </View>
+
+        {/* Confirm Password */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Confirm Password</Text>
+          <View style={[styles.inputWrapper, confirmError && styles.inputWrapperError]}>
+            <TextInput
+              style={styles.inputWithEye}
+              placeholder="Re-enter password"
+              placeholderTextColor="#9CA3AF"
+              value={form.confirm}
+              onChangeText={set('confirm')}
+              secureTextEntry={!showConfirm}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              onPress={() => setShowConfirm(v => !v)}
+              style={styles.eyeBtn}
+              activeOpacity={0.7}
+            >
+              <Feather name={showConfirm ? 'eye-off' : 'eye'} size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+          {confirmError && (
+            <Text style={styles.errorText}>Passwords do not match</Text>
+          )}
+        </View>
 
         <View style={styles.spacer} />
 
@@ -172,34 +195,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { color: '#fff', fontSize: 18 },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 20,
-  },
+  dotsRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
   dot: { fontSize: 14 },
   dotActive: { color: '#F3CD03' },
   dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.533)',
-    marginTop: 4,
-  },
-  scroll: {
-    padding: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
-    flexGrow: 1,
-  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 50 },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.533)', marginTop: 4 },
+  scroll: { padding: 24, paddingTop: 24, paddingBottom: 40, flexGrow: 1 },
   fieldGroup: { marginBottom: 16 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
+  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
   input: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -210,6 +214,24 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#fff',
   },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+  inputWrapperError: { borderColor: '#EF4444' },
+  inputWithEye: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  eyeBtn: { paddingHorizontal: 14, paddingVertical: 12 },
+  errorText: { fontSize: 12, color: '#EF4444', marginTop: 5 },
   spacer: { flex: 1, minHeight: 24 },
   ctaBtn: {
     alignItems: 'center',

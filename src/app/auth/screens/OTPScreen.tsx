@@ -7,10 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OTP'>;
 
@@ -61,7 +61,10 @@ const OTPScreen = ({ navigation, route }: Props) => {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      {/* Green status bar strip */}
+      <View style={styles.statusStrip}>
+        <AuthStatusBar />
+      </View>
 
       {/* White nav bar */}
       <View style={styles.navBar}>
@@ -133,6 +136,10 @@ const OTPScreen = ({ navigation, route }: Props) => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#fff' },
+  statusStrip: {
+    backgroundColor: '#145228',
+    height: 38,
+  },
   navBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 56,
     paddingBottom: 40,
   },
   center: { alignItems: 'center', marginBottom: 32 },

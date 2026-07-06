@@ -18,6 +18,8 @@ import { useAppDispatch, useAppSelector } from '../../../store';
 import { resetRegisterForm } from '../../../store/slices/registerSlice';
 import { loginSuccess, type User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
+import { AppIcon } from '../../../assets/icons';
+import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentSetup'>;
 
@@ -38,6 +40,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
   const [form, setForm] = useState({ bank: '', accountTitle: '', iban: '' });
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [showBankPicker, setShowBankPicker] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +52,10 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       .catch(() => {})
       .finally(() => setBanksLoading(false));
   }, []);
+
+  const filteredBanks = bankSearch.trim()
+    ? banks.filter(b => b.toLowerCase().includes(bankSearch.toLowerCase()))
+    : banks;
 
   const toggleWallet = (w: string) =>
     setSelectedWallets(prev =>
@@ -142,13 +149,16 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
+        <AuthStatusBar />
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#fff" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Payment Method</Text>
+        <Text style={styles.headerSubtitle}>Step 4 of 5 — Required for all transactions</Text>
         <View style={styles.dotsRow}>
           {Array.from({ length: STEP_TOTAL }).map((_, i) => (
             <Text
@@ -162,8 +172,6 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
             </Text>
           ))}
         </View>
-        <Text style={styles.headerTitle}>Payment Method</Text>
-        <Text style={styles.headerSubtitle}>Step 4 of 5 — Required for all transactions</Text>
       </View>
 
       <ScrollView
@@ -184,49 +192,68 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Bank Name</Text>
           <TouchableOpacity
-            onPress={() => setShowBankPicker(!showBankPicker)}
+            onPress={() => {
+              setShowBankPicker(!showBankPicker);
+              setBankSearch('');
+            }}
             style={styles.selectBtn}
             activeOpacity={0.8}
           >
             <Text style={[styles.selectText, !form.bank && styles.placeholderText]}>
-              {form.bank || 'Select...'}
+              {form.bank || 'Select bank...'}
             </Text>
             <Text style={styles.chevron}>▾</Text>
           </TouchableOpacity>
           {showBankPicker && (
-            <ScrollView
-              style={styles.pickerCard}
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled"
-            >
+            <View style={styles.pickerCard}>
+              <View style={styles.searchRow}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search bank..."
+                  placeholderTextColor="#9CA3AF"
+                  value={bankSearch}
+                  onChangeText={setBankSearch}
+                  autoFocus
+                />
+              </View>
               {banksLoading ? (
                 <ActivityIndicator color={GREEN} style={{ paddingVertical: 16 }} />
               ) : (
-                banks.map(bank => (
-                  <TouchableOpacity
-                    key={bank}
-                    onPress={() => {
-                      setForm(p => ({ ...p, bank }));
-                      setShowBankPicker(false);
-                    }}
-                    style={[
-                      styles.pickerItem,
-                      form.bank === bank && styles.pickerItemActive,
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <Text
+                <ScrollView
+                  style={styles.pickerList}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {filteredBanks.map(bank => (
+                    <TouchableOpacity
+                      key={bank}
+                      onPress={() => {
+                        setForm(p => ({ ...p, bank }));
+                        setShowBankPicker(false);
+                        setBankSearch('');
+                      }}
                       style={[
-                        styles.pickerItemText,
-                        form.bank === bank && styles.pickerItemTextActive,
+                        styles.pickerItem,
+                        form.bank === bank && styles.pickerItemActive,
                       ]}
+                      activeOpacity={0.7}
                     >
-                      {bank}
-                    </Text>
-                  </TouchableOpacity>
-                ))
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          form.bank === bank && styles.pickerItemTextActive,
+                        ]}
+                      >
+                        {bank}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  {filteredBanks.length === 0 && (
+                    <Text style={styles.emptyText}>No banks found</Text>
+                  )}
+                </ScrollView>
               )}
-            </ScrollView>
+            </View>
           )}
         </View>
 
@@ -323,12 +350,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { color: '#fff', fontSize: 18 },
-  dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
+  dotsRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
   dot: { fontSize: 14 },
   dotActive: { color: '#F3CD03' },
   dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 50 },
   headerSubtitle: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.533)',
@@ -380,16 +406,30 @@ const styles = StyleSheet.create({
   chevron: { color: '#9CA3AF', fontSize: 14 },
   pickerCard: {
     marginTop: 4,
-    maxHeight: 200,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 10,
     backgroundColor: '#fff',
+    overflow: 'hidden',
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,
   },
+  searchRow: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  searchInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    fontSize: 14,
+    color: '#111827',
+  },
+  pickerList: { maxHeight: 200 },
   pickerItem: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -399,6 +439,12 @@ const styles = StyleSheet.create({
   pickerItemActive: { backgroundColor: '#F0FDF4' },
   pickerItemText: { fontSize: 14, color: '#374151' },
   pickerItemTextActive: { color: GREEN, fontWeight: '600' },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 13,
+    paddingVertical: 20,
+  },
   walletsRow: { flexDirection: 'row', gap: 8 },
   walletBtn: {
     flex: 1,

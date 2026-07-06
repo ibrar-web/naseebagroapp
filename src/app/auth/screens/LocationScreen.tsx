@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 16,
-    marginTop: 40,
+    marginTop: 50,
   },
   iconBox: {
     width: 52,

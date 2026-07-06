@@ -16,6 +16,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
 import { setRegisterIdInfo } from '../../../store/slices/registerSlice';
+import { AppIcon } from '../../../assets/icons';
+import { Feather } from '../../../assets/icons/feather';
 import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'IdVerify'>;
@@ -69,35 +71,34 @@ const IdVerifyScreen = ({ navigation }: Props) => {
     label,
     data,
     onPress,
+    onRemove,
     isCamera,
   }: {
     label: string;
     data: UploadState;
     onPress: () => void;
+    onRemove: () => void;
     isCamera?: boolean;
   }) => (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity
-        onPress={onPress}
-        style={[styles.uploadBox, data ? styles.uploadBoxFilled : undefined]}
-        activeOpacity={0.8}
-      >
-        {data ? (
-          <>
-            <Image source={{ uri: data.uri }} style={styles.preview} resizeMode="cover" />
-            <Text style={styles.uploadedName} numberOfLines={1}>
-              ✓ {data.name}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.uploadIcon}>{isCamera ? '📷' : '⬆'}</Text>
-            <Text style={styles.uploadText}>Tap to upload or take photo</Text>
-            <Text style={styles.uploadHint}>JPG, PNG up to 5MB</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      {data ? (
+        <View style={[styles.uploadBox, styles.uploadBoxFilled]}>
+          <Image source={{ uri: data.uri }} style={styles.preview} resizeMode="cover" />
+          <Text style={styles.uploadedName} numberOfLines={1}>
+            ✓ {data.name}
+          </Text>
+          <TouchableOpacity onPress={onRemove} style={styles.removeBtn} activeOpacity={0.8}>
+            <Feather name="x" size={13} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={onPress} style={styles.uploadBox} activeOpacity={0.8}>
+          <Text style={styles.uploadIcon}>{isCamera ? '📷' : '⬆'}</Text>
+          <Text style={styles.uploadText}>Tap to upload or take photo</Text>
+          <Text style={styles.uploadHint}>JPG, PNG up to 5MB</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -113,8 +114,10 @@ const IdVerifyScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#fff" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Identity Verification</Text>
+        <Text style={styles.headerSubtitle}>Step 3 of 5 — Required by SECP</Text>
         <View style={styles.dotsRow}>
           {Array.from({ length: STEP_TOTAL }).map((_, i) => (
             <Text
@@ -128,8 +131,6 @@ const IdVerifyScreen = ({ navigation }: Props) => {
             </Text>
           ))}
         </View>
-        <Text style={styles.headerTitle}>Identity Verification</Text>
-        <Text style={styles.headerSubtitle}>Step 3 of 5 — Required by SECP</Text>
       </View>
 
       <ScrollView
@@ -156,12 +157,14 @@ const IdVerifyScreen = ({ navigation }: Props) => {
           label="Upload CNIC (Front)"
           data={front}
           onPress={() => pickImage((uri, name) => setFront({ uri, name }))}
+          onRemove={() => setFront(null)}
         />
 
         <UploadBox
           label="Upload CNIC (Back)"
           data={back}
           onPress={() => pickImage((uri, name) => setBack({ uri, name }))}
+          onRemove={() => setBack(null)}
           isCamera
         />
 
@@ -206,12 +209,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: { color: '#fff', fontSize: 18 },
-  dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
+  dotsRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
   dot: { fontSize: 14 },
   dotActive: { color: '#F3CD03' },
   dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 50 },
   headerSubtitle: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.533)',
@@ -254,6 +256,17 @@ const styles = StyleSheet.create({
   uploadIcon: { fontSize: 24, color: '#9CA3AF' },
   uploadText: { fontSize: 13, color: '#6B7280', marginTop: 4 },
   uploadHint: { fontSize: 11, color: '#9CA3AF' },
+  removeBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   uploadedName: {
     fontSize: 12,
     color: GREEN,

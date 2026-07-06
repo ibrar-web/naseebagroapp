@@ -14,16 +14,17 @@ import {
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useTranslation } from '../../../localization';
 import { useAppDispatch } from '../../../store';
 import { setRegisterIdInfo } from '../../../store/slices/registerSlice';
-import { AppIcon } from '../../../assets/icons';
-import GreenHeader from '../components/GreenHeader';
-import StepDots from '../components/StepDots';
+import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'IdVerify'>;
-
 type UploadState = { uri: string; name: string } | null;
+
+const GREEN = '#217A3C';
+const DARK_GREEN = '#145228';
+const STEP_ACTIVE = 2;
+const STEP_TOTAL = 5;
 
 const pickImage = (onPick: (uri: string, name: string) => void) => {
   Alert.alert(
@@ -35,9 +36,7 @@ const pickImage = (onPick: (uri: string, name: string) => void) => {
         onPress: () =>
           launchCamera({ mediaType: 'photo', quality: 0.8 }, res => {
             const asset = res.assets?.[0];
-            if (asset?.uri) {
-              onPick(asset.uri, asset.fileName ?? 'cnic.jpg');
-            }
+            if (asset?.uri) onPick(asset.uri, asset.fileName ?? 'cnic.jpg');
           }),
       },
       {
@@ -45,9 +44,7 @@ const pickImage = (onPick: (uri: string, name: string) => void) => {
         onPress: () =>
           launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, res => {
             const asset = res.assets?.[0];
-            if (asset?.uri) {
-              onPick(asset.uri, asset.fileName ?? 'cnic.jpg');
-            }
+            if (asset?.uri) onPick(asset.uri, asset.fileName ?? 'cnic.jpg');
           }),
       },
       { text: 'Cancel', style: 'cancel' },
@@ -56,7 +53,6 @@ const pickImage = (onPick: (uri: string, name: string) => void) => {
 };
 
 const IdVerifyScreen = ({ navigation }: Props) => {
-  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [cnic, setCnic] = useState('');
   const [front, setFront] = useState<UploadState>(null);
@@ -65,11 +61,7 @@ const IdVerifyScreen = ({ navigation }: Props) => {
   const canContinue = cnic.length >= 13 && front !== null && back !== null;
 
   const handleContinue = () => {
-    dispatch(setRegisterIdInfo({
-      cnic,
-      cnicFront: front!,
-      cnicBack: back!,
-    }));
+    dispatch(setRegisterIdInfo({ cnic, cnicFront: front!, cnicBack: back! }));
     navigation.navigate('PaymentSetup');
   };
 
@@ -77,47 +69,32 @@ const IdVerifyScreen = ({ navigation }: Props) => {
     label,
     data,
     onPress,
+    isCamera,
   }: {
     label: string;
     data: UploadState;
     onPress: () => void;
+    isCamera?: boolean;
   }) => (
-    <View>
-      <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-        {label}
-      </Text>
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>{label}</Text>
       <TouchableOpacity
         onPress={onPress}
-        className={`rounded-2xl overflow-hidden items-center justify-center py-7 gap-2 ${
-          data ? 'bg-green-50' : 'bg-gray-50'
-        }`}
-        style={[
-          styles.uploadBox,
-          { borderColor: data ? '#1A6B34' : '#D1D5DB' },
-        ]}
+        style={[styles.uploadBox, data ? styles.uploadBoxFilled : undefined]}
         activeOpacity={0.8}
       >
         {data ? (
           <>
-            <Image
-              source={{ uri: data.uri }}
-              style={styles.preview}
-              resizeMode="cover"
-            />
-            <View className="flex-row items-center gap-2 mt-2">
-              <AppIcon name="approved" size={16} color="#1A6B34" />
-              <Text className="text-green-700 text-xs font-bold" numberOfLines={1}>
-                {data.name}
-              </Text>
-            </View>
+            <Image source={{ uri: data.uri }} style={styles.preview} resizeMode="cover" />
+            <Text style={styles.uploadedName} numberOfLines={1}>
+              ✓ {data.name}
+            </Text>
           </>
         ) : (
           <>
-            <AppIcon name="upload" size={28} color="#9CA3AF" />
-            <Text className="text-gray-400 text-sm font-medium">
-              {t('auth.uploadPhoto')}
-            </Text>
-            <Text className="text-gray-300 text-xs">Camera or Gallery</Text>
+            <Text style={styles.uploadIcon}>{isCamera ? '📷' : '⬆'}</Text>
+            <Text style={styles.uploadText}>Tap to upload or take photo</Text>
+            <Text style={styles.uploadHint}>JPG, PNG up to 5MB</Text>
           </>
         )}
       </TouchableOpacity>
@@ -126,76 +103,86 @@ const IdVerifyScreen = ({ navigation }: Props) => {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gray-50"
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <GreenHeader
-        step={t('auth.idVerifyStep')}
-        title={t('auth.idVerifyTitle')}
-        subtitle={t('auth.idVerifySubtitle')}
-        icon="profileCnic"
-        onBack={() => navigation.goBack()}
-      />
-
-      <StepDots active={2} />
+      <View style={styles.header}>
+        <AuthStatusBar />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.dotsRow}>
+          {Array.from({ length: STEP_TOTAL }).map((_, i) => (
+            <Text
+              key={i}
+              style={[
+                styles.dot,
+                i <= STEP_ACTIVE ? styles.dotActive : styles.dotInactive,
+              ]}
+            >
+              {i <= STEP_ACTIVE ? '●' : '○'}
+            </Text>
+          ))}
+        </View>
+        <Text style={styles.headerTitle}>Identity Verification</Text>
+        <Text style={styles.headerSubtitle}>Step 3 of 5 — Required by SECP</Text>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View className="bg-white rounded-2xl p-4 mb-4 gap-4" style={styles.card}>
-          {/* CNIC input */}
-          <View>
-            <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-              {t('auth.cnicNumber')}
-            </Text>
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-xl px-4 text-gray-900 text-base"
-              style={styles.textInput}
-              placeholder={t('auth.cnicPlaceholder')}
-              placeholderTextColor="#9CA3AF"
-              value={cnic}
-              onChangeText={setCnic}
-              keyboardType="numbers-and-punctuation"
-              maxLength={15}
-            />
-          </View>
-
-          <UploadBox
-            label={t('auth.cnicFront')}
-            data={front}
-            onPress={() =>
-              pickImage((uri, name) => setFront({ uri, name }))
-            }
+        {/* CNIC */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>CNIC Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="XXXXX-XXXXXXX-X"
+            placeholderTextColor="#9CA3AF"
+            value={cnic}
+            onChangeText={setCnic}
+            keyboardType="numbers-and-punctuation"
+            maxLength={15}
           />
-          <UploadBox
-            label={t('auth.cnicBack')}
-            data={back}
-            onPress={() =>
-              pickImage((uri, name) => setBack({ uri, name }))
-            }
-          />
+          <Text style={styles.hint}>13-digit National ID number</Text>
         </View>
+
+        <UploadBox
+          label="Upload CNIC (Front)"
+          data={front}
+          onPress={() => pickImage((uri, name) => setFront({ uri, name }))}
+        />
+
+        <UploadBox
+          label="Upload CNIC (Back)"
+          data={back}
+          onPress={() => pickImage((uri, name) => setBack({ uri, name }))}
+          isCamera
+        />
 
         {/* Security note */}
-        <View className="flex-row gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
-          <AppIcon name="shield" size={18} color="#D97706" />
-          <Text className="flex-1 text-amber-700 text-xs leading-5">
-            {t('auth.idVerifyNote')}
+        <View style={styles.securityCard}>
+          <Text style={styles.securityIcon}>🛡</Text>
+          <Text style={styles.securityText}>
+            Your documents are encrypted and only used for identity verification.
+            Required by SECP for financial transactions.
           </Text>
         </View>
+
+        <View style={styles.spacer} />
 
         <TouchableOpacity
           onPress={handleContinue}
-          className={`py-4 rounded-2xl items-center bg-green-700 ${!canContinue ? 'opacity-40' : ''}`}
+          style={[styles.ctaBtn, !canContinue && styles.ctaDisabled]}
           disabled={!canContinue}
-          style={canContinue ? styles.btnShadow : undefined}
           activeOpacity={0.88}
         >
-          <Text className="text-white text-base font-bold">
-            {t('auth.continueNext')}
-          </Text>
+          <Text style={styles.ctaText}>→ Continue</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -203,25 +190,106 @@ const IdVerifyScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  scroll: { padding: 16, paddingBottom: 40 },
-  card: {
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  flex: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    backgroundColor: DARK_GREEN,
+    paddingTop: 48,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    position: 'relative',
   },
-  textInput: { paddingVertical: 12 },
+  backBtn: {
+    position: 'absolute',
+    top: 44,
+    left: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    padding: 8,
+  },
+  backArrow: { color: '#fff', fontSize: 18 },
+  dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
+  dot: { fontSize: 14 },
+  dotActive: { color: '#F3CD03' },
+  dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.533)',
+    marginTop: 4,
+  },
+  scroll: { padding: 24, paddingTop: 24, paddingBottom: 40, flexGrow: 1 },
+  fieldGroup: { marginBottom: 16 },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+  },
+  input: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#fff',
+  },
+  hint: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
   uploadBox: {
     borderWidth: 2,
     borderStyle: 'dashed',
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 24,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    gap: 6,
+  },
+  uploadBoxFilled: {
+    borderStyle: 'solid',
+    borderColor: GREEN,
+    backgroundColor: '#F0FDF4',
+  },
+  uploadIcon: { fontSize: 24, color: '#9CA3AF' },
+  uploadText: { fontSize: 13, color: '#6B7280', marginTop: 4 },
+  uploadHint: { fontSize: 11, color: '#9CA3AF' },
+  uploadedName: {
+    fontSize: 12,
+    color: GREEN,
+    fontWeight: '600',
+    marginTop: 6,
+    paddingHorizontal: 16,
+    textAlign: 'center',
   },
   preview: { width: '100%', height: 120, borderRadius: 12 },
-  btnShadow: {
-    shadowColor: '#1A6B34',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+  securityCard: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  securityIcon: { fontSize: 18 },
+  securityText: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 18 },
+  spacer: { flex: 1, minHeight: 16 },
+  ctaBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: '#2E9E52',
+    shadowOpacity: 0.27,
+    shadowRadius: 12,
     elevation: 4,
   },
+  ctaDisabled: { opacity: 0.5, shadowOpacity: 0, elevation: 0 },
+  ctaText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });
 
 export default IdVerifyScreen;

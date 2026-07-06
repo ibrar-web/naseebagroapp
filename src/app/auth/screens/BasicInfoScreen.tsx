@@ -7,43 +7,33 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useTranslation } from '../../../localization';
 import { useAppDispatch } from '../../../store';
 import { setRegisterBasicInfo } from '../../../store/slices/registerSlice';
-import GreenHeader from '../components/GreenHeader';
-import StepDots from '../components/StepDots';
+import AuthStatusBar from '../components/AuthStatusBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BasicInfo'>;
 
-const INPUT_STYLE = {
-  shadowColor: '#000',
-  shadowOpacity: 0.04,
-  shadowRadius: 4,
-  elevation: 1,
-} as const;
+const GREEN = '#217A3C';
+const DARK_GREEN = '#145228';
+const STEP_TOTAL = 5;
+const STEP_ACTIVE = 0;
 
 const BasicInfoScreen = ({ navigation }: Props) => {
-  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [form, setForm] = useState({
     name: '',
     email: '',
-    dateOfBirth: '',
     password: '',
     confirm: '',
   });
 
-  const dateIsValid =
-    /^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth) &&
-    !Number.isNaN(new Date(form.dateOfBirth).getTime());
-
   const canContinue =
     form.name.length > 2 &&
     form.email.includes('@') &&
-    dateIsValid &&
     form.password.length >= 8 &&
     form.password === form.confirm;
 
@@ -56,7 +46,7 @@ const BasicInfoScreen = ({ navigation }: Props) => {
         fullName: form.name,
         email: form.email,
         password: form.password,
-        dateOfBirth: form.dateOfBirth,
+        dateOfBirth: '',
       }),
     );
     navigation.navigate('BizInfo');
@@ -64,114 +54,176 @@ const BasicInfoScreen = ({ navigation }: Props) => {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gray-50"
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <GreenHeader
-        step={t('auth.basicInfoStep')}
-        title={t('auth.basicInfoTitle')}
-        subtitle={t('auth.basicInfoSubtitle')}
-        icon="profileName"
-        onBack={() => navigation.goBack()}
-      />
-
-      <StepDots active={0} />
-
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          className="bg-white rounded-2xl p-4 mb-5 gap-4"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
+      <View style={styles.header}>
+        <AuthStatusBar />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.7}
         >
-          {[
-            {
-              label: t('auth.fullName'),
-              key: 'name' as const,
-              placeholder: t('auth.fullNamePlaceholder'),
-              keyboard: 'default' as const,
-              secure: false,
-            },
-            {
-              label: t('auth.email'),
-              key: 'email' as const,
-              placeholder: t('auth.emailPlaceholder'),
-              keyboard: 'email-address' as const,
-              secure: false,
-            },
-            {
-              label: t('auth.dateOfBirth'),
-              key: 'dateOfBirth' as const,
-              placeholder: t('auth.dateOfBirthPlaceholder'),
-              keyboard: 'numbers-and-punctuation' as const,
-              secure: false,
-            },
-            {
-              label: t('auth.password'),
-              key: 'password' as const,
-              placeholder: t('auth.passwordPlaceholder'),
-              keyboard: 'default' as const,
-              secure: true,
-            },
-            {
-              label: t('auth.confirmPassword'),
-              key: 'confirm' as const,
-              placeholder: t('auth.confirmPasswordPlaceholder'),
-              keyboard: 'default' as const,
-              secure: true,
-            },
-          ].map(field => (
-            <View key={field.key}>
-              <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                {field.label}
-              </Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 text-gray-900 text-base"
-                style={{ paddingVertical: 12, ...INPUT_STYLE }}
-                placeholder={field.placeholder}
-                placeholderTextColor="#9CA3AF"
-                value={form[field.key]}
-                onChangeText={set(field.key)}
-                keyboardType={field.keyboard}
-                secureTextEntry={field.secure}
-                autoCapitalize={field.key === 'email' ? 'none' : 'words'}
-              />
-            </View>
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+
+        {/* Step dots */}
+        <View style={styles.dotsRow}>
+          {Array.from({ length: STEP_TOTAL }).map((_, i) => (
+            <Text
+              key={i}
+              style={[
+                styles.dot,
+                i <= STEP_ACTIVE ? styles.dotActive : styles.dotInactive,
+              ]}
+            >
+              {i <= STEP_ACTIVE ? '●' : '○'}
+            </Text>
           ))}
         </View>
 
+        <Text style={styles.headerTitle}>Basic Information</Text>
+        <Text style={styles.headerSubtitle}>Step 1 of 5 — Personal Details</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {[
+          {
+            label: 'Full Name',
+            key: 'name' as const,
+            placeholder: 'Muhammad Asad Khan',
+            keyboardType: 'default' as const,
+            secure: false,
+            autoCapitalize: 'words' as const,
+          },
+          {
+            label: 'Email Address',
+            key: 'email' as const,
+            placeholder: 'asad@example.com',
+            keyboardType: 'email-address' as const,
+            secure: false,
+            autoCapitalize: 'none' as const,
+          },
+          {
+            label: 'Password',
+            key: 'password' as const,
+            placeholder: 'Create a strong password',
+            keyboardType: 'default' as const,
+            secure: true,
+            autoCapitalize: 'none' as const,
+          },
+          {
+            label: 'Confirm Password',
+            key: 'confirm' as const,
+            placeholder: 'Re-enter password',
+            keyboardType: 'default' as const,
+            secure: true,
+            autoCapitalize: 'none' as const,
+          },
+        ].map(field => (
+          <View key={field.key} style={styles.fieldGroup}>
+            <Text style={styles.label}>{field.label}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={field.placeholder}
+              placeholderTextColor="#9CA3AF"
+              value={form[field.key]}
+              onChangeText={set(field.key)}
+              keyboardType={field.keyboardType}
+              secureTextEntry={field.secure}
+              autoCapitalize={field.autoCapitalize}
+            />
+          </View>
+        ))}
+
+        <View style={styles.spacer} />
+
         <TouchableOpacity
           onPress={handleContinue}
-          className={`py-4 rounded-2xl items-center bg-green-700 ${
-            !canContinue ? 'opacity-40' : ''
-          }`}
+          style={[styles.ctaBtn, !canContinue && styles.ctaDisabled]}
           disabled={!canContinue}
-          style={
-            canContinue
-              ? {
-                  shadowColor: '#1A6B34',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }
-              : {}
-          }
           activeOpacity={0.88}
         >
-          <Text className="text-white text-base font-bold">
-            {t('auth.continueNext')}
-          </Text>
+          <Text style={styles.ctaText}>→ Continue</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    backgroundColor: DARK_GREEN,
+    paddingTop: 48,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    position: 'relative',
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 44,
+    left: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    padding: 8,
+  },
+  backArrow: { color: '#fff', fontSize: 18 },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 20,
+  },
+  dot: { fontSize: 14 },
+  dotActive: { color: '#F3CD03' },
+  dotInactive: { color: 'rgba(255,255,255,0.267)', fontSize: 10 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.533)',
+    marginTop: 4,
+  },
+  scroll: {
+    padding: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+    flexGrow: 1,
+  },
+  fieldGroup: { marginBottom: 16 },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+  },
+  input: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#fff',
+  },
+  spacer: { flex: 1, minHeight: 24 },
+  ctaBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: '#2E9E52',
+    shadowOpacity: 0.27,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  ctaDisabled: { opacity: 0.5, shadowOpacity: 0, elevation: 0 },
+  ctaText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+});
 
 export default BasicInfoScreen;

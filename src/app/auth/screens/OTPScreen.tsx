@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,27 +6,34 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
   StatusBar,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useTranslation } from '../../../localization';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OTP'>;
 
+const GREEN = '#217A3C';
+const RESEND_SECONDS = 45;
+
 const OTPScreen = ({ navigation, route }: Props) => {
-  const { t } = useTranslation();
   const { phone } = route.params;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [countdown, setCountdown] = useState(RESEND_SECONDS);
   const inputs = useRef<Array<TextInput | null>>([]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const handleChange = (val: string, idx: number) => {
     const next = [...otp];
     next[idx] = val;
     setOtp(next);
-    if (val && idx < 5) {
-      inputs.current[idx + 1]?.focus();
-    }
+    if (val && idx < 5) inputs.current[idx + 1]?.focus();
   };
 
   const handleKeyPress = (e: any, idx: number) => {
@@ -37,111 +44,184 @@ const OTPScreen = ({ navigation, route }: Props) => {
 
   const isComplete = otp.every(d => d !== '');
 
+  const handleResend = () => {
+    if (countdown > 0) return;
+    setOtp(['', '', '', '', '', '']);
+    setCountdown(RESEND_SECONDS);
+    inputs.current[0]?.focus();
+  };
+
+  const resendLabel =
+    countdown > 0
+      ? `Resend in 0:${String(countdown).padStart(2, '0')}`
+      : 'Resend Code';
+
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor="white" />
-      {/* Header */}
-      <View className="bg-green-800 pt-12 pb-8 px-5 overflow-hidden">
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
+      {/* White nav bar */}
+      <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-xl items-center justify-center mb-5"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.12)',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.2)',
-          }}
+          style={styles.navBack}
           activeOpacity={0.7}
         >
-          <Text className="text-white text-lg">←</Text>
+          <Text style={styles.navBackIcon}>←</Text>
         </TouchableOpacity>
-
-        <Text className="text-gold text-xs font-bold tracking-widest mb-2">
-          {t('auth.otpStep')}
-        </Text>
-        <Text className="text-white text-3xl font-extrabold leading-9">
-          {t('auth.otpTitle')}
-        </Text>
-        <Text className="text-green-300 text-sm mt-2">
-          {t('auth.codeSentTo')}{' '}
-          <Text className="text-orange-400 font-bold">+92 {phone}</Text>
-        </Text>
+        <Text style={styles.navTitle}>Verify Number</Text>
+        <View style={styles.navSpacer} />
       </View>
 
-      <View className="p-4 pt-8 bg-white flex-1">
-        {/* OTP card */}
-        <View
-          className="bg-white rounded-2xl px-5 py-6 items-center mb-5"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">
-            {t('auth.enterCode')}
+      <View style={styles.body}>
+        {/* Icon + title */}
+        <View style={styles.center}>
+          <View style={styles.iconCircle}>
+            <Text style={styles.iconEmoji}>📞</Text>
+          </View>
+          <Text style={styles.title}>OTP Verification</Text>
+          <Text style={styles.subtitle}>
+            Enter the 6-digit code sent to{'\n'}
+            <Text style={styles.phoneHighlight}>+92 {phone}</Text>
           </Text>
-
-          <View className="flex-row gap-3">
-            {otp.map((digit, idx) => (
-              <TextInput
-                key={idx}
-                ref={r => {
-                  inputs.current[idx] = r;
-                }}
-                className={`text-gray-900 text-2xl font-extrabold text-center rounded-xl border-2 ${
-                  digit
-                    ? 'border-green-600 bg-green-50'
-                    : 'border-gray-200 bg-gray-50'
-                }`}
-                style={{ width: 44, height: 54 }}
-                value={digit}
-                onChangeText={v => handleChange(v.slice(-1), idx)}
-                onKeyPress={e => handleKeyPress(e, idx)}
-                keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
-              />
-            ))}
-          </View>
-
-          <View className="flex-row mt-6">
-            <Text className="text-gray-500 text-sm">
-              {t('auth.didntReceive')}
-            </Text>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text className="text-green-700 text-sm font-bold">
-                {t('auth.resendCode')}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
+
+        {/* OTP boxes */}
+        <View style={styles.otpRow}>
+          {otp.map((digit, idx) => (
+            <TextInput
+              key={idx}
+              ref={r => { inputs.current[idx] = r; }}
+              style={[styles.otpBox, digit ? styles.otpBoxFilled : undefined]}
+              value={digit}
+              onChangeText={v => handleChange(v.slice(-1), idx)}
+              onKeyPress={e => handleKeyPress(e, idx)}
+              keyboardType="number-pad"
+              maxLength={1}
+              selectTextOnFocus
+            />
+          ))}
+        </View>
+
+        {/* Resend */}
+        <View style={styles.resendRow}>
+          <Text style={styles.resendLabel}>Didn't receive? </Text>
+          <TouchableOpacity onPress={handleResend} activeOpacity={0.7} disabled={countdown > 0}>
+            <Text style={[styles.resendLink, countdown > 0 && styles.resendDisabled]}>
+              {resendLabel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.spacer} />
 
         <TouchableOpacity
           onPress={() => navigation.replace('Location')}
-          className={`py-4 rounded-2xl items-center bg-green-700 ${
-            !isComplete ? 'opacity-40' : ''
-          }`}
+          style={[styles.ctaBtn, !isComplete && styles.ctaDisabled]}
           activeOpacity={0.88}
           disabled={!isComplete}
-          style={{
-            shadowColor: '#1A6B34',
-            shadowOpacity: isComplete ? 0.3 : 0,
-            shadowRadius: 8,
-            elevation: isComplete ? 4 : 0,
-          }}
         >
-          <Text className="text-white text-base font-bold">
-            {t('auth.verifyContinue')}
-          </Text>
+          <Text style={styles.ctaText}>Verify & Continue</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: '#fff' },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#fff',
+  },
+  navBack: {
+    padding: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navBackIcon: { fontSize: 22, color: '#111827' },
+  navTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  navSpacer: { width: 30 },
+  body: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+  center: { alignItems: 'center', marginBottom: 32 },
+  iconCircle: {
+    width: 70,
+    height: 70,
+    backgroundColor: '#E8F7EE',
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  iconEmoji: { fontSize: 30 },
+  title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  subtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  phoneHighlight: { color: '#1F2937', fontWeight: '700' },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  otpBox: {
+    width: 46,
+    height: 54,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '700',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    color: GREEN,
+    backgroundColor: '#fff',
+  },
+  otpBoxFilled: {
+    borderColor: GREEN,
+    backgroundColor: '#F0FDF4',
+  },
+  resendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resendLabel: { fontSize: 13, color: '#6B7280' },
+  resendLink: { fontSize: 13, color: GREEN, fontWeight: '600' },
+  resendDisabled: { color: '#9CA3AF' },
+  spacer: { flex: 1 },
+  ctaBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: '#2E9E52',
+    shadowOpacity: 0.27,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  ctaDisabled: { opacity: 0.5, shadowOpacity: 0, elevation: 0 },
+  ctaText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+});
 
 export default OTPScreen;

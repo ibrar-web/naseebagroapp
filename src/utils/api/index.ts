@@ -108,6 +108,8 @@ export const api = {
       listCategories: () => Get('public/categories'),
       listCities: (params?: { province?: string }) =>
         Get('public/cities', params),
+      listBanks: () =>
+        Get('public/banks'),
       getTradeConfigs: (params?: { type?: string }) =>
         Get('public/trade-configs', params),
     },

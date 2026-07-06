@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
-import { BANKS } from '../../../constants';
 import { AppLoader } from '../../components';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
@@ -45,6 +44,17 @@ const emptyForm: BankingForm = {
   accountTitle: '',
   accountNumber: '',
   iban: '',
+};
+
+const isMicrofinanceBank = (name: string): boolean => {
+  const lower = name.toLowerCase();
+  return (
+    lower.includes('microfinance') ||
+    lower.includes('easypaisa') ||
+    lower === 'hugobank' ||
+    lower === 'kt bank' ||
+    lower.includes('raqami')
+  );
 };
 
 const str = (...values: any[]): string => {
@@ -89,14 +99,34 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showBankPicker, setShowBankPicker] = useState(false);
+  const [banks, setBanks] = useState<string[]>([]);
+  const [banksLoading, setBanksLoading] = useState(true);
+  const [bankSearch, setBankSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  useEffect(() => {
+    api.marketplace.public.listBanks()
+      .then((res: any) => {
+        const names: string[] = (res?.data ?? []).map((b: any) => b.name);
+        setBanks(names);
+      })
+      .catch(() => {})
+      .finally(() => setBanksLoading(false));
+  }, []);
+
+  const filteredBanks = bankSearch.trim()
+    ? banks.filter(b => b.toLowerCase().includes(bankSearch.toLowerCase()))
+    : banks;
+
+  const isMFBank = isMicrofinanceBank(form.bankName);
+
   const canSubmit =
     form.bankName.trim().length > 0 &&
     form.accountTitle.trim().length > 1 &&
-    form.iban.trim().length > 4;
+    form.accountNumber.trim().length > 4 &&
+    (isMFBank || form.iban.trim().length > 4);
 
   const loadBankingDetails = useCallback(
     async (isRefresh = false) => {
@@ -188,11 +218,16 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
     ]);
   };
 
-  const FORM_FIELDS: { label: string; key: keyof BankingForm; keyboard?: any }[] = [
-    { label: t('payments.accountTitle'), key: 'accountTitle' },
-    { label: t('payments.accountNo'), key: 'accountNumber', keyboard: 'numeric' },
-    { label: t('payments.iban'), key: 'iban' },
-  ];
+  const FORM_FIELDS: { label: string; key: keyof BankingForm; keyboard?: any; placeholder?: string }[] = isMFBank
+    ? [
+        { label: t('payments.accountTitle'), key: 'accountTitle' },
+        { label: 'Mobile Number', key: 'accountNumber', keyboard: 'phone-pad', placeholder: '03XX XXXXXXX' },
+      ]
+    : [
+        { label: t('payments.accountTitle'), key: 'accountTitle' },
+        { label: t('payments.accountNo'), key: 'accountNumber', keyboard: 'numeric' },
+        { label: t('payments.iban'), key: 'iban' },
+      ];
 
   return (
     <View style={s.container}>
@@ -296,7 +331,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                 {/* Bank picker */}
                 <Text style={s.fieldLabel}>{t('payments.bankName')}</Text>
                 <TouchableOpacity
-                  onPress={() => setShowBankPicker(p => !p)}
+                  onPress={() => { setShowBankPicker(p => !p); setBankSearch(''); }}
                   style={s.pickerTrigger}
                   activeOpacity={0.8}
                 >
@@ -306,20 +341,47 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                   <AppIcon name="chevronDown" size={16} color="#9CA3AF" />
                 </TouchableOpacity>
                 {showBankPicker && (
-                  <ScrollView style={s.pickerList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                    {BANKS.map(bank => (
-                      <TouchableOpacity
-                        key={bank}
-                        onPress={() => { setForm(f => ({ ...f, bankName: bank })); setShowBankPicker(false); }}
-                        style={[s.pickerItem, form.bankName === bank && s.pickerItemActive]}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={[s.pickerItemText, form.bankName === bank && s.pickerItemTextActive]}>
-                          {bank}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <View style={s.pickerCard}>
+                    <TextInput
+                      style={s.pickerSearch}
+                      placeholder="Search bank..."
+                      placeholderTextColor="#9CA3AF"
+                      value={bankSearch}
+                      onChangeText={setBankSearch}
+                      autoFocus
+                    />
+                    {banksLoading ? (
+                      <ActivityIndicator color="#1A6B34" style={s.pickerLoader} />
+                    ) : (
+                      <ScrollView style={s.pickerList} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                        {filteredBanks.map((bank: string) => (
+                          <TouchableOpacity
+                            key={bank}
+                            onPress={() => {
+                            const nextIsMF = isMicrofinanceBank(bank);
+                            const prevIsMF = isMicrofinanceBank(form.bankName);
+                            setForm(f => ({
+                              ...f,
+                              bankName: bank,
+                              ...(nextIsMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
+                            }));
+                            setShowBankPicker(false);
+                            setBankSearch('');
+                          }}
+                            style={[s.pickerItem, form.bankName === bank && s.pickerItemActive]}
+                            activeOpacity={0.75}
+                          >
+                            <Text style={[s.pickerItemText, form.bankName === bank && s.pickerItemTextActive]}>
+                              {bank}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                        {filteredBanks.length === 0 && (
+                          <Text style={s.pickerEmpty}>No banks found</Text>
+                        )}
+                      </ScrollView>
+                    )}
+                  </View>
                 )}
 
                 {/* Text fields */}
@@ -330,10 +392,10 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                       style={s.fieldInput}
                       value={form[field.key]}
                       onChangeText={val => setForm(f => ({ ...f, [field.key]: val }))}
-                      placeholder={field.label}
+                      placeholder={field.placeholder ?? field.label}
                       placeholderTextColor="#9CA3AF"
                       keyboardType={field.keyboard ?? 'default'}
-                      autoCapitalize={field.key === 'iban' ? 'characters' : 'words'}
+                      autoCapitalize={field.key === 'iban' ? 'characters' : 'none'}
                     />
                   </View>
                 ))}
@@ -510,6 +572,30 @@ const s = StyleSheet.create({
     color: '#111827',
   },
 
+  pickerCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  pickerSearch: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#111827',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
+  },
+  pickerLoader: { paddingVertical: 16 },
+  pickerEmpty: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 13,
+    paddingVertical: 20,
+  },
   pickerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',

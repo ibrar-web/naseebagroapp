@@ -31,13 +31,24 @@ const STEP_TOTAL = 5;
 
 const WALLETS = ['JazzCash', 'Easypaisa', 'SadaPay'];
 
+const isMicrofinanceBank = (name: string): boolean => {
+  const lower = name.toLowerCase();
+  return (
+    lower.includes('microfinance') ||
+    lower.includes('easypaisa') ||
+    lower === 'hugobank' ||
+    lower === 'kt bank' ||
+    lower.includes('raqami')
+  );
+};
+
 const PaymentSetupScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const registerForm = useAppSelector(state => state.register);
 
   const [banks, setBanks] = useState<string[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
-  const [form, setForm] = useState({ bank: '', accountTitle: '', iban: '' });
+  const [form, setForm] = useState({ bank: '', accountTitle: '', accountNumber: '', iban: '' });
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState('');
@@ -57,15 +68,16 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
     ? banks.filter(b => b.toLowerCase().includes(bankSearch.toLowerCase()))
     : banks;
 
+  const isMFBank = isMicrofinanceBank(form.bank);
+
   const toggleWallet = (w: string) =>
     setSelectedWallets(prev =>
       prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w],
     );
 
-  const canSubmit =
-    form.bank.length > 0 &&
-    form.accountTitle.length > 2 &&
-    form.iban.length >= 10;
+  const canSubmit = isMFBank
+    ? form.bank.length > 0 && form.accountTitle.length > 2 && form.accountNumber.length >= 10
+    : form.bank.length > 0 && form.accountTitle.length > 2 && form.iban.length >= 10;
 
   const handleSubmit = async () => {
     if (!canSubmit || loading) return;
@@ -126,8 +138,8 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         api.profile.banking.create({
           bank_name: form.bank,
           account_title: form.accountTitle,
-          bank_account_number: form.iban,
-          bank_iban_number: form.iban,
+          bank_account_number: isMFBank ? form.accountNumber : form.iban,
+          bank_iban_number: isMFBank ? '' : form.iban,
         }),
       ]);
 
@@ -228,7 +240,13 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
                     <TouchableOpacity
                       key={bank}
                       onPress={() => {
-                        setForm(p => ({ ...p, bank }));
+                        const nextIsMF = isMicrofinanceBank(bank);
+                        const prevIsMF = isMicrofinanceBank(form.bank);
+                        setForm(p => ({
+                          ...p,
+                          bank,
+                          ...(nextIsMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
+                        }));
                         setShowBankPicker(false);
                         setBankSearch('');
                       }}
@@ -270,18 +288,33 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
           />
         </View>
 
-        {/* IBAN */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>IBAN / Account Number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="PK00XXXX0000000000000000"
-            placeholderTextColor="#9CA3AF"
-            value={form.iban}
-            onChangeText={v => setForm(p => ({ ...p, iban: v }))}
-            autoCapitalize="characters"
-          />
-        </View>
+        {isMFBank ? (
+          /* Microfinance: mobile number only, no IBAN */
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Mobile Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="03XX XXXXXXX"
+              placeholderTextColor="#9CA3AF"
+              value={form.accountNumber}
+              onChangeText={v => setForm(p => ({ ...p, accountNumber: v }))}
+              keyboardType="phone-pad"
+            />
+          </View>
+        ) : (
+          /* Standard bank: IBAN required */
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>IBAN / Account Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="PK00XXXX0000000000000000"
+              placeholderTextColor="#9CA3AF"
+              value={form.iban}
+              onChangeText={v => setForm(p => ({ ...p, iban: v }))}
+              autoCapitalize="characters"
+            />
+          </View>
+        )}
 
         {/* Mobile Wallets */}
         <View style={styles.fieldGroup}>

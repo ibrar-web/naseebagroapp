@@ -52,31 +52,61 @@ type OfferState = {
   canReject: boolean;
   history: ChatBubble[];
   lastPrice: number;
+  originalPrice: number;
+  unitName: string;
 };
 
 type DropdownOption = { label: string; value: number };
 
-const PAYMENT_FIXED_OPTIONS: DropdownOption[] = [
-  { label: 'Full payment in 3 days', value: 3 },
-  { label: 'Full payment in 7 days', value: 7 },
-  { label: 'Full payment in 15 days', value: 15 },
-  { label: 'Full payment in 30 days', value: 30 },
-];
-const PAYMENT_WEEKLY_OPTIONS: DropdownOption[] = [
-  { label: '10% per week', value: 10 },
-  { label: '20% per week', value: 20 },
-  { label: '25% per week', value: 25 },
-  { label: '50% per week', value: 50 },
-];
-const DELIVERY_OPTIONS: DropdownOption[] = [
-  { label: 'Delivery within 1 day', value: 1 },
-  { label: 'Delivery within 2 days', value: 2 },
-  { label: 'Delivery within 3 days', value: 3 },
-  { label: 'Delivery within 5 days', value: 5 },
-  { label: 'Delivery within 7 days', value: 7 },
-  { label: 'Delivery within 10 days', value: 10 },
-  { label: 'Delivery within 14 days', value: 14 },
-];
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+const firstValue = (...vals: any[]) =>
+  vals.find(v => v !== undefined && v !== null && v !== '');
+
+const normalizeOffer = (payload: any): OfferState => {
+  const initial = payload.initial_offer ?? {};
+  const mill = initial.mill ?? {};
+  const millName = [mill.name, mill.city].filter(Boolean).join(', ') || '—';
+
+  const history: ChatBubble[] = (payload.history ?? []).map((r: any, i: number, arr: any[]) => {
+    const rawPrice = firstValue(r.price, r.offered_price) ?? 0;
+    const isAwaiting = !r.is_mine && i === arr.length - 1 &&
+      ['pending', 'counter_received'].includes(payload.status ?? '');
+    return {
+      round_number: r.round_number,
+      price: Number(rawPrice),
+      price_display: firstValue(r.price_display, `PKR ${rawPrice}`) ?? '',
+      label: r.label ?? '',
+      is_mine: r.is_mine ?? false,
+      note: r.note ?? null,
+      time_label: firstValue(r.time_label, '') ?? '',
+      payment_terms: r.round_number === 1 ? (initial.payment_terms ?? null) : null,
+      is_awaiting: isAwaiting,
+    };
+  });
+
+  const round1 = history.find(h => h.round_number === 1);
+  const originalPrice = round1?.price || Number(initial.price ?? 0) || 0;
+  const lastItem = history[history.length - 1];
+  const lastPrice = lastItem?.price || originalPrice || 2500;
+
+  return {
+    id: payload.id ?? '',
+    code: payload.code ?? '',
+    commodityName: payload.commodity?.name ?? '',
+    millName,
+    statusLabel: payload.status_label ?? payload.status ?? '',
+    statusColor: payload.status_color ?? 'gray',
+    isYourTurn: payload.is_your_turn ?? false,
+    canCounter: payload.actions?.can_counter ?? false,
+    canAccept: payload.actions?.can_accept ?? false,
+    canReject: payload.actions?.can_reject ?? false,
+    history,
+    lastPrice,
+    originalPrice,
+    unitName: payload.unit_name ?? '40kg',
+  };
+};
 
 // ─── Inline dropdown ───────────────────────────────────────────────────────────
 
@@ -85,9 +115,10 @@ type DropdownProps = {
   options: DropdownOption[];
   value: number | null;
   onChange: (v: number | null) => void;
+  loading?: boolean;
 };
 
-const DropdownPicker = ({ placeholder, options, value, onChange }: DropdownProps) => {
+const DropdownPicker = ({ placeholder, options, value, onChange, loading }: DropdownProps) => {
   const [open, setOpen] = useState(false);
   const selected = options.find(o => o.value === value);
 
@@ -97,7 +128,11 @@ const DropdownPicker = ({ placeholder, options, value, onChange }: DropdownProps
         style={[styles.dropdownBtn, open && styles.dropdownBtnOpen]}
         onPress={() => setOpen(v => !v)}
         activeOpacity={0.8}
+        disabled={loading}
       >
+        {loading ? (
+          <ActivityIndicator size="small" color="#2E9E52" style={{ marginRight: 8 }} />
+        ) : null}
         <Text style={[styles.dropdownBtnText, !selected && styles.dropdownPlaceholder]}>
           {selected ? selected.label : placeholder}
         </Text>
@@ -125,57 +160,10 @@ const DropdownPicker = ({ placeholder, options, value, onChange }: DropdownProps
   );
 };
 
-// ─── Normalizer ────────────────────────────────────────────────────────────────
-
-const firstValue = (...vals: any[]) =>
-  vals.find(v => v !== undefined && v !== null && v !== '');
-
-const normalizeOffer = (payload: any): OfferState => {
-  const initial = payload.initial_offer ?? {};
-  const mill = initial.mill ?? {};
-  const millName = [mill.name, mill.city].filter(Boolean).join(', ') || '—';
-
-  const history: ChatBubble[] = (payload.history ?? []).map((r: any, i: number, arr: any[]) => {
-    const rawPrice = firstValue(r.price, r.offered_price) ?? 0;
-    const isAwaiting = !r.is_mine && i === arr.length - 1 &&
-      ['pending', 'counter_received'].includes(payload.status ?? '');
-    return {
-      round_number: r.round_number,
-      price: Number(rawPrice),
-      price_display: firstValue(r.price_display, `PKR ${rawPrice}`) ?? '',
-      label: r.label ?? '',
-      is_mine: r.is_mine ?? false,
-      note: r.note ?? null,
-      time_label: firstValue(r.time_label, '') ?? '',
-      payment_terms: r.round_number === 1 ? (initial.payment_terms ?? null) : null,
-      is_awaiting: isAwaiting,
-    };
-  });
-
-  const lastItem = history[history.length - 1];
-  const lastPrice = lastItem?.price || Number(initial.price ?? 0) || 2500;
-
-  return {
-    id: payload.id ?? '',
-    code: payload.code ?? '',
-    commodityName: payload.commodity?.name ?? '',
-    millName,
-    statusLabel: payload.status_label ?? payload.status ?? '',
-    statusColor: payload.status_color ?? 'gray',
-    isYourTurn: payload.is_your_turn ?? false,
-    canCounter: payload.actions?.can_counter ?? false,
-    canAccept: payload.actions?.can_accept ?? false,
-    canReject: payload.actions?.can_reject ?? false,
-    history,
-    lastPrice,
-  };
-};
-
 // ─── Chat bubble ───────────────────────────────────────────────────────────────
 
 const Bubble = ({ item }: { item: ChatBubble }) => {
   const alignRight = item.is_mine;
-
   return (
     <View style={[styles.row, alignRight ? styles.rowRight : styles.rowLeft]}>
       <View style={styles.bubbleWrap}>
@@ -221,6 +209,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   const [fetchError, setFetchError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Trade config options from DB
+  const [fixedDayOptions, setFixedDayOptions] = useState<DropdownOption[]>([]);
+  const [weeklyPctOptions, setWeeklyPctOptions] = useState<DropdownOption[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
+
   // Counter offer sheet
   const [counterVisible, setCounterVisible] = useState(false);
   const [counterTab, setCounterTab] = useState<'price' | 'terms'>('price');
@@ -230,6 +223,33 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
+
+  // Fetch trade configs (payment terms) from DB
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [fixedRes, weeklyRes] = await Promise.all([
+          api.marketplace.public.getTradeConfigs({ type: 'fixed_days' }),
+          api.marketplace.public.getTradeConfigs({ type: 'weekly_percent' }),
+        ]);
+        const fixed: DropdownOption[] = (fixedRes?.data ?? []).map((r: any) => ({
+          value: Number(r.name),
+          label: `Full payment in ${r.name} days`,
+        }));
+        const weekly: DropdownOption[] = (weeklyRes?.data ?? []).map((r: any) => ({
+          value: Number(r.name),
+          label: `${r.name}% per week`,
+        }));
+        setFixedDayOptions(fixed);
+        setWeeklyPctOptions(weekly);
+      } catch {
+        // fallback to empty — user can still negotiate price
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const fetchOffer = useCallback(async (overrideMode?: 'buyer' | 'seller') => {
     const m = overrideMode ?? mode;
@@ -243,14 +263,12 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
     } catch (e: any) {
       const status = e?.response?.status ?? e?.status;
       if (status === 403 && !overrideMode) {
-        // Wrong role — try the other side automatically
         const alt: 'buyer' | 'seller' = m === 'buyer' ? 'seller' : 'buyer';
         setMode(alt);
         fetchOffer(alt);
         return;
       }
       const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to load offer';
-      console.log('[Negotiation] fetch error', msg);
       setFetchError(msg);
     } finally {
       setLoading(false);
@@ -273,6 +291,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
     }
   }, [offer?.history.length]);
 
+  // Counter offer price bounds: min -30%, max +100% of original offer price
+  const originalPrice = offer?.originalPrice ?? 0;
+  const minCounterPrice = originalPrice > 0 ? Math.floor(originalPrice * 0.7) : STEP;
+  const maxCounterPrice = originalPrice > 0 ? Math.ceil(originalPrice * 2.0) : Infinity;
+
   const openCounterSheet = () => {
     setCounterPrice(offer?.lastPrice ?? 2500);
     setCounterTab('price');
@@ -283,12 +306,23 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   };
 
   const adjustPrice = (delta: number) => {
-    setCounterPrice(prev => Math.max(STEP, prev + delta));
+    setCounterPrice(prev => {
+      const next = prev + delta;
+      return Math.max(minCounterPrice, Math.min(maxCounterPrice, next));
+    });
   };
 
   const handleCounter = async () => {
     if (!counterPrice || counterPrice <= 0) {
       Alert.alert('Enter a valid price');
+      return;
+    }
+    if (counterPrice < minCounterPrice) {
+      Alert.alert('Price too low', `Minimum counter price is PKR ${minCounterPrice.toLocaleString('en-PK')}`);
+      return;
+    }
+    if (counterPrice > maxCounterPrice) {
+      Alert.alert('Price too high', `Maximum counter price is PKR ${maxCounterPrice.toLocaleString('en-PK')}`);
       return;
     }
     setActionLoading(true);
@@ -352,6 +386,20 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   const headerSub = offer ? [offer.millName, offer.commodityName].filter(Boolean).join(' · ') : '';
   const formattedCounter = `PKR ${counterPrice.toLocaleString('en-PK')}`;
+  const unitName = offer?.unitName ?? '40kg';
+
+  const minReached = counterPrice <= minCounterPrice;
+  const maxReached = counterPrice >= maxCounterPrice;
+
+  const DELIVERY_OPTIONS: DropdownOption[] = [
+    { label: 'Delivery within 1 day', value: 1 },
+    { label: 'Delivery within 2 days', value: 2 },
+    { label: 'Delivery within 3 days', value: 3 },
+    { label: 'Delivery within 5 days', value: 5 },
+    { label: 'Delivery within 7 days', value: 7 },
+    { label: 'Delivery within 10 days', value: 10 },
+    { label: 'Delivery within 14 days', value: 14 },
+  ];
 
   return (
     <View style={styles.container}>
@@ -473,24 +521,49 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                 /* Price tab */
                 <View style={styles.priceTab}>
                   <Text style={styles.priceDisplay}>{formattedCounter}</Text>
-                  <Text style={styles.priceUnit}>per 40kg bag</Text>
+                  <Text style={styles.priceUnit}>per {unitName}</Text>
+
+                  {/* Min / max range bar */}
+                  {originalPrice > 0 && (
+                    <View style={styles.rangeRow}>
+                      <View style={styles.rangePill}>
+                        <Text style={styles.rangePillLabel}>Min</Text>
+                        <Text style={styles.rangePillValue}>PKR {minCounterPrice.toLocaleString('en-PK')}</Text>
+                      </View>
+                      <View style={styles.rangeDivider} />
+                      <View style={styles.rangePill}>
+                        <Text style={styles.rangePillLabel}>Max</Text>
+                        <Text style={styles.rangePillValue}>PKR {maxCounterPrice.toLocaleString('en-PK')}</Text>
+                      </View>
+                    </View>
+                  )}
+
                   <View style={styles.stepper}>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(-STEP)} activeOpacity={0.75}>
-                      <Text style={styles.stepBtnText}>−</Text>
+                    <TouchableOpacity
+                      style={[styles.stepBtn, minReached && styles.stepBtnDisabled]}
+                      onPress={() => adjustPrice(-STEP)}
+                      activeOpacity={0.75}
+                      disabled={minReached}
+                    >
+                      <Text style={[styles.stepBtnText, minReached && styles.stepBtnTextDisabled]}>−</Text>
                     </TouchableOpacity>
                     <View style={styles.stepCenter}>
                       <Text style={styles.stepValue}>{formattedCounter}</Text>
                       <Text style={styles.stepHint}>tap ± PKR {STEP}</Text>
                     </View>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustPrice(STEP)} activeOpacity={0.75}>
-                      <Text style={styles.stepBtnText}>+</Text>
+                    <TouchableOpacity
+                      style={[styles.stepBtn, maxReached && styles.stepBtnDisabled]}
+                      onPress={() => adjustPrice(STEP)}
+                      activeOpacity={0.75}
+                      disabled={maxReached}
+                    >
+                      <Text style={[styles.stepBtnText, maxReached && styles.stepBtnTextDisabled]}>+</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
                 /* Payment & Delivery tab */
                 <View style={styles.termsTab}>
-                  {/* Payment Term toggle */}
                   <Text style={styles.termsLabel}>Payment Term</Text>
                   <View style={styles.subTabBar}>
                     {(['fixed', 'weekly'] as const).map(t => (
@@ -507,15 +580,14 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                     ))}
                   </View>
 
-                  {/* Payment value dropdown */}
                   <DropdownPicker
                     placeholder={paymentType === 'fixed' ? 'Pay within how many days?' : 'Pay what % per week?'}
-                    options={paymentType === 'fixed' ? PAYMENT_FIXED_OPTIONS : PAYMENT_WEEKLY_OPTIONS}
+                    options={paymentType === 'fixed' ? fixedDayOptions : weeklyPctOptions}
                     value={paymentDays}
                     onChange={setPaymentDays}
+                    loading={configLoading}
                   />
 
-                  {/* Delivery Term dropdown */}
                   <Text style={[styles.termsLabel, { marginTop: 16 }]}>Delivery Term</Text>
                   <DropdownPicker
                     placeholder="Deliver within how many days?"
@@ -607,10 +679,17 @@ const styles = StyleSheet.create({
   // Price tab
   priceTab: { alignItems: 'center', marginBottom: 16 },
   priceDisplay: { fontSize: 36, fontWeight: '900', color: '#1A6B34', letterSpacing: -1 },
-  priceUnit: { fontSize: 11, color: '#9CA3AF', marginTop: 2, marginBottom: 20 },
+  priceUnit: { fontSize: 11, color: '#9CA3AF', marginTop: 2, marginBottom: 12 },
+  rangeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 16, width: '100%' },
+  rangePill: { flex: 1, alignItems: 'center' },
+  rangePillLabel: { fontSize: 9, fontWeight: '700', color: '#6B7280', letterSpacing: 0.5, textTransform: 'uppercase' },
+  rangePillValue: { fontSize: 12, fontWeight: '800', color: '#1A6B34', marginTop: 2 },
+  rangeDivider: { width: 1, height: 28, backgroundColor: '#D1FAE5', marginHorizontal: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' },
   stepBtn: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
+  stepBtnDisabled: { backgroundColor: '#F9FAFB', opacity: 0.4 },
   stepBtnText: { fontSize: 24, fontWeight: '700', color: '#111827', lineHeight: 28 },
+  stepBtnTextDisabled: { color: '#9CA3AF' },
   stepCenter: { flex: 1, alignItems: 'center' },
   stepValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
   stepHint: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },

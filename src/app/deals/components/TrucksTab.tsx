@@ -5,7 +5,6 @@ import {
   Alert,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +15,7 @@ import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { Feather } from '../../../assets/icons/feather';
 import api from '../../../utils/api';
+import { KeyboardScrollView, NumberInput } from '../../components';
 import DocumentViewerModal from './DocumentViewerModal';
 
 export interface TruckDocument {
@@ -440,24 +440,23 @@ const TrucksTab: React.FC<Props> = ({
           <View style={s.inputsRow}>
             <View style={s.inputHalf}>
               <Text style={s.inputLabel}>Freight (PKR)</Text>
-              <TextInput
+              <NumberInput
                 style={s.inputField}
                 placeholder="e.g. 12500"
                 placeholderTextColor="#9CA3AF"
                 value={editFreight}
                 onChangeText={setEditFreight}
-                keyboardType="numeric"
               />
             </View>
             <View style={s.inputHalf}>
               <Text style={s.inputLabel}>Weight Unloaded (tons)</Text>
-              <TextInput
+              <NumberInput
+                decimal
                 style={s.inputField}
                 placeholder="e.g. 10.2"
                 placeholderTextColor="#9CA3AF"
                 value={editUnloaded}
                 onChangeText={setEditUnloaded}
-                keyboardType="numeric"
               />
             </View>
           </View>
@@ -504,10 +503,9 @@ const TrucksTab: React.FC<Props> = ({
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       style={s.scroll}
       contentContainerStyle={s.scrollContent}
-      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -663,13 +661,13 @@ const TrucksTab: React.FC<Props> = ({
               </View>
               <View style={s.formField}>
                 <Text style={s.formFieldLabel}>Loaded Weight (tons)</Text>
-                <TextInput
+                <NumberInput
+                  decimal
                   style={s.formInput}
                   placeholder="e.g. 10"
                   placeholderTextColor="#9CA3AF"
                   value={weight}
                   onChangeText={setWeight}
-                  keyboardType="numeric"
                 />
               </View>
 
@@ -712,7 +710,7 @@ const TrucksTab: React.FC<Props> = ({
         onClose={() => setViewerDoc(null)}
       />
       <View style={s.bottomSpacer} />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 };
 

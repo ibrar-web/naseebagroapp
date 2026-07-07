@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { Feather } from '../../../assets/icons/feather';
 import api from '../../../utils/api';
 import DocumentViewerModal from './DocumentViewerModal';
 
@@ -396,7 +397,7 @@ const TrucksTab: React.FC<Props> = ({
         <View>
           <Text style={s.statsBarLabel}>LOAD</Text>
           <Text style={s.statsBarVal}>
-            {truck.weight_tons != null ? `${truck.weight_tons} t` : '—'}
+            {truck.weight_tons != null ? `${truck.weight_tons}` : '—'}
           </Text>
         </View>
         {mode === 'seller' && truck.freight_amount != null && (
@@ -555,7 +556,7 @@ const TrucksTab: React.FC<Props> = ({
           const isExpanded = expandedId === truck.id;
           const subtitle = [
             truck.truck_number,
-            truck.weight_tons != null ? `${truck.weight_tons} tons` : null,
+            truck.weight_tons != null ? `${truck.weight_tons}` : null,
             truck.calculated_amount != null
               ? `PKR ${fmtNum(truck.calculated_amount)}`
               : null,
@@ -582,9 +583,16 @@ const TrucksTab: React.FC<Props> = ({
                     Truck {idx + 1} — {truck.truck_number}
                   </Text>
                   {subtitle ? (
-                    <Text style={s.truckSubtitle} numberOfLines={1}>
-                      {subtitle}
-                    </Text>
+                    <View style={s.truckSubtitleRow}>
+                      <Text style={s.truckSubtitle} numberOfLines={1}>
+                        {subtitle}
+                      </Text>
+                      {truck.documents.length === 0 && (
+                        <View style={s.noDocsBadge}>
+                          <Text style={s.noDocsBadgeText}>No Docs</Text>
+                        </View>
+                      )}
+                    </View>
                   ) : null}
                 </View>
 
@@ -600,7 +608,7 @@ const TrucksTab: React.FC<Props> = ({
                       {badge.label}
                     </Text>
                   </View>
-                  <Text style={s.chevron}>{isExpanded ? '▴' : '▾'}</Text>
+                  <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color="#9CA3AF" />
                 </View>
               </TouchableOpacity>
 
@@ -776,7 +784,7 @@ const s = StyleSheet.create({
   truckIconText: { fontSize: 14 },
   truckInfo: { flex: 1 },
   truckTitle: { fontSize: 13, fontWeight: '800', color: '#111827' },
-  truckSubtitle: { fontSize: 11, color: '#6B7280', marginTop: 1 },
+  truckSubtitle: { fontSize: 11, color: '#6B7280' },
   truckRightWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusBadge: {
     borderWidth: 1,
@@ -785,7 +793,9 @@ const s = StyleSheet.create({
     paddingVertical: 3,
   },
   statusBadgeText: { fontSize: 10, fontWeight: '700' },
-  chevron: { fontSize: 13, color: '#9CA3AF' },
+  truckSubtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 },
+  noDocsBadge: { backgroundColor: '#FEF3C7', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  noDocsBadgeText: { fontSize: 9, fontWeight: '700', color: '#92400E' },
 
   // Expanded panel
   panel: {

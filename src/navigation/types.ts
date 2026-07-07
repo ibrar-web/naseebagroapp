@@ -34,7 +34,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Phone: undefined;
-  OTP: { phone: string };
+  OTP: { phone: string; channel?: 'sms' | 'whatsapp' };
 
   // Main tabs
   MainTabs: NavigatorScreenParams<TabParamList> | undefined;

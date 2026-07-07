@@ -1,4 +1,4 @@
-package com.naseebagroapp
+package com.naseebagri.app
 
 import android.app.Application
 import com.facebook.react.PackageList

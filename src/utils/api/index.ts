@@ -25,6 +25,10 @@ export const api = {
     resetPassword: (data: any) => Post('auth/reset-password', data),
     changePassword: (data: any) =>
       Post('auth/change-password', data, protectedRequest),
+    sendOtp: (data: { phone: string; channel?: 'sms' | 'whatsapp' }) =>
+      Post('auth/otp/send', data),
+    verifyOtp: (data: { phone: string; code: string }) =>
+      Post('auth/otp/verify', data),
   },
 
   profile: {
@@ -77,6 +81,10 @@ export const api = {
       Post(`profile/saved-listings/${listingId}`, undefined, protectedRequest),
     removeSavedListing: (listingId: string) =>
       Delete(`profile/saved-listings/${listingId}`, undefined, protectedRequest),
+    registerDeviceToken: (data: { token: string; device_name?: string }) =>
+      Post('profile/device-token', data, protectedRequest),
+    removeDeviceToken: (data: { token: string }) =>
+      Post('profile/device-token/remove', data, protectedRequest),
   },
 
   marketplace: {

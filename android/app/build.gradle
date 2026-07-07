@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -77,9 +78,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.naseebagroapp"
+    namespace "com.naseebagri.app"
     defaultConfig {
-        applicationId "com.naseebagroapp"
+        applicationId "com.naseebagri.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -118,4 +119,13 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Firebase BoM — manages all Firebase SDK versions automatically
+    implementation platform('com.google.firebase:firebase-bom:34.0.0')
+
+    // Firebase Cloud Messaging (push notifications)
+    implementation 'com.google.firebase:firebase-messaging'
+
+    // Firebase Analytics (required by google-services plugin)
+    implementation 'com.google.firebase:firebase-analytics'
 }

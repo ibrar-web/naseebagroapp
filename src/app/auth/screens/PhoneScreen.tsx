@@ -8,6 +8,8 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -15,8 +17,10 @@ import { useAppDispatch } from '../../../store';
 import { setRegisterPhone } from '../../../store/slices/registerSlice';
 import { AppIcon } from '../../../assets/icons';
 import AuthStatusBar from '../components/AuthStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Phone'>;
+type Channel = 'sms' | 'whatsapp';
 
 const GREEN = '#217A3C';
 const DARK_GREEN = '#145228';
@@ -24,12 +28,26 @@ const DARK_GREEN = '#145228';
 const PhoneScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const [phone, setPhone] = useState('');
+  const [channel, setChannel] = useState<Channel>('sms');
+  const [loading, setLoading] = useState(false);
   const canContinue = phone.length >= 10;
 
-  const handleSendOtp = () => {
-    if (!canContinue) return;
-    dispatch(setRegisterPhone(phone));
-    navigation.navigate('OTP', { phone });
+  const handleSendOtp = async () => {
+    if (!canContinue || loading) return;
+    setLoading(true);
+    try {
+      const fullPhone = `+92${phone}`;
+      await api.auth.sendOtp({ phone: fullPhone, channel });
+      dispatch(setRegisterPhone(phone));
+      navigation.navigate('OTP', { phone, channel });
+    } catch (err: any) {
+      Alert.alert(
+        'Could not send OTP',
+        err?.response?.data?.message ?? 'Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,6 +99,30 @@ const PhoneScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
+        <View style={styles.mb16}>
+          <Text style={styles.label}>Send via</Text>
+          <View style={styles.channelRow}>
+            <TouchableOpacity
+              style={[styles.channelBtn, channel === 'sms' && styles.channelBtnActive]}
+              onPress={() => setChannel('sms')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.channelText, channel === 'sms' && styles.channelTextActive]}>
+                📱 SMS
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.channelBtn, channel === 'whatsapp' && styles.channelBtnActive]}
+              onPress={() => setChannel('whatsapp')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.channelText, channel === 'whatsapp' && styles.channelTextActive]}>
+                💬 WhatsApp
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.infoCard}>
           <Text style={styles.infoIcon}>ℹ</Text>
           <Text style={styles.infoText}>
@@ -93,11 +135,15 @@ const PhoneScreen = ({ navigation }: Props) => {
 
         <TouchableOpacity
           onPress={handleSendOtp}
-          style={[styles.ctaBtn, !canContinue && styles.ctaDisabled]}
+          style={[styles.ctaBtn, (!canContinue || loading) && styles.ctaDisabled]}
           activeOpacity={0.88}
-          disabled={!canContinue}
+          disabled={!canContinue || loading}
         >
-          <Text style={styles.ctaText}>→ Send OTP</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.ctaText}>→ Send OTP</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.loginRow}>
@@ -187,6 +233,22 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#fff',
   },
+  channelRow: { flexDirection: 'row', gap: 10 },
+  channelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  channelBtnActive: {
+    borderColor: GREEN,
+    backgroundColor: '#F0FDF4',
+  },
+  channelText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  channelTextActive: { color: GREEN },
   infoCard: {
     backgroundColor: '#F2FBF5',
     borderRadius: 12,

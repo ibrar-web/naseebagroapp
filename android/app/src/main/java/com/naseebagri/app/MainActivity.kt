@@ -1,4 +1,4 @@
-package com.naseebagroapp
+package com.naseebagri.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

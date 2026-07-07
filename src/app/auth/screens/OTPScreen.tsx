@@ -7,10 +7,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import AuthStatusBar from '../components/AuthStatusBar';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OTP'>;
 
@@ -18,9 +21,11 @@ const GREEN = '#217A3C';
 const RESEND_SECONDS = 45;
 
 const OTPScreen = ({ navigation, route }: Props) => {
-  const { phone } = route.params;
+  const { phone, channel = 'sms' } = route.params;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(RESEND_SECONDS);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
   const inputs = useRef<Array<TextInput | null>>([]);
 
   useEffect(() => {
@@ -44,11 +49,42 @@ const OTPScreen = ({ navigation, route }: Props) => {
 
   const isComplete = otp.every(d => d !== '');
 
-  const handleResend = () => {
-    if (countdown > 0) return;
-    setOtp(['', '', '', '', '', '']);
-    setCountdown(RESEND_SECONDS);
-    inputs.current[0]?.focus();
+  const handleResend = async () => {
+    if (countdown > 0 || resending) return;
+    setResending(true);
+    try {
+      await api.auth.sendOtp({ phone: `+92${phone}`, channel });
+      setOtp(['', '', '', '', '', '']);
+      setCountdown(RESEND_SECONDS);
+      inputs.current[0]?.focus();
+    } catch (err: any) {
+      Alert.alert(
+        'Could not resend OTP',
+        err?.response?.data?.message ?? 'Please try again.',
+      );
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!isComplete || verifying) return;
+    setVerifying(true);
+    try {
+      const code = otp.join('');
+      const res = await api.auth.verifyOtp({ phone: `+92${phone}`, code });
+      if (res?.data?.valid) {
+        navigation.replace('Location');
+      } else {
+        Alert.alert('Invalid OTP', 'The code you entered is incorrect or expired.');
+        setOtp(['', '', '', '', '', '']);
+        inputs.current[0]?.focus();
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Verification failed.');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const resendLabel =
@@ -61,12 +97,10 @@ const OTPScreen = ({ navigation, route }: Props) => {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Green status bar strip */}
       <View style={styles.statusStrip}>
         <AuthStatusBar />
       </View>
 
-      {/* White nav bar */}
       <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -80,19 +114,17 @@ const OTPScreen = ({ navigation, route }: Props) => {
       </View>
 
       <View style={styles.body}>
-        {/* Icon + title */}
         <View style={styles.center}>
           <View style={styles.iconCircle}>
-            <Text style={styles.iconEmoji}>📞</Text>
+            <Text style={styles.iconEmoji}>{channel === 'whatsapp' ? '💬' : '📞'}</Text>
           </View>
           <Text style={styles.title}>OTP Verification</Text>
           <Text style={styles.subtitle}>
-            Enter the 6-digit code sent to{'\n'}
+            Enter the 6-digit code sent via {channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} to{'\n'}
             <Text style={styles.phoneHighlight}>+92 {phone}</Text>
           </Text>
         </View>
 
-        {/* OTP boxes */}
         <View style={styles.otpRow}>
           {otp.map((digit, idx) => (
             <TextInput
@@ -109,25 +141,32 @@ const OTPScreen = ({ navigation, route }: Props) => {
           ))}
         </View>
 
-        {/* Resend */}
         <View style={styles.resendRow}>
           <Text style={styles.resendLabel}>Didn't receive? </Text>
-          <TouchableOpacity onPress={handleResend} activeOpacity={0.7} disabled={countdown > 0}>
-            <Text style={[styles.resendLink, countdown > 0 && styles.resendDisabled]}>
-              {resendLabel}
-            </Text>
+          <TouchableOpacity onPress={handleResend} activeOpacity={0.7} disabled={countdown > 0 || resending}>
+            {resending ? (
+              <ActivityIndicator size="small" color={GREEN} />
+            ) : (
+              <Text style={[styles.resendLink, countdown > 0 && styles.resendDisabled]}>
+                {resendLabel}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.spacer} />
 
         <TouchableOpacity
-          onPress={() => navigation.replace('Location')}
-          style={[styles.ctaBtn, !isComplete && styles.ctaDisabled]}
+          onPress={handleVerify}
+          style={[styles.ctaBtn, (!isComplete || verifying) && styles.ctaDisabled]}
           activeOpacity={0.88}
-          disabled={!isComplete}
+          disabled={!isComplete || verifying}
         >
-          <Text style={styles.ctaText}>Verify & Continue</Text>
+          {verifying ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.ctaText}>Verify & Continue</Text>
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -211,6 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    height: 24,
   },
   resendLabel: { fontSize: 13, color: '#6B7280' },
   resendLink: { fontSize: 13, color: GREEN, fontWeight: '600' },

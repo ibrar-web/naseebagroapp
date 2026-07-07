@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "390201210722",
+    "project_id": "naseeb-agri",
+    "storage_bucket": "naseeb-agri.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:390201210722:android:d0c46bb9713fbe7d755e3b",
+        "android_client_info": {
+          "package_name": "com.naseebagri.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACNQq4mMr1hhyfzDp5IquuiSp5BrY9ogg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

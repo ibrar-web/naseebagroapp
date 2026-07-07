@@ -9,8 +9,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CommodityDetail'>;
 
 const CommodityDetailScreen = (props: Props) => {
   const mode = useAppSelector(s => s.app.mode);
+  const { listingType } = props.route.params;
 
-  if (mode === 'seller') {
+  // listingType from params takes priority (e.g. opened from Saved Listings);
+  // fall back to the user's current app mode
+  const showSellerView = listingType ? listingType === 'DEMAND' : mode === 'seller';
+
+  if (showSellerView) {
     return <SellerCommodityDetail {...props} />;
   }
 

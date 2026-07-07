@@ -1,5 +1,4 @@
 import { Platform, PermissionsAndroid } from 'react-native';
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../utils/api';
 import { navigationRef } from '../../navigation/AppNavigator';
@@ -8,17 +7,26 @@ const TOKEN_KEY = 'fcm_token';
 const TOKEN_TS_KEY = 'fcm_token_ts';
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
+// Firebase messaging is Android-only until iOS setup is added
+const getMessaging = () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require('@react-native-firebase/messaging').default();
+};
+
 async function requestPermission(): Promise<boolean> {
+  if (Platform.OS === 'ios') return false; // Firebase not configured for iOS yet
   if (Platform.OS === 'android' && Platform.Version >= 33) {
     const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
     );
     return result === PermissionsAndroid.RESULTS.GRANTED;
   }
-  const status = await messaging().requestPermission();
+  const messagingModule = require('@react-native-firebase/messaging').default;
+  const instance = messagingModule();
+  const status = await instance.requestPermission();
   return (
-    status === messaging.AuthorizationStatus.AUTHORIZED ||
-    status === messaging.AuthorizationStatus.PROVISIONAL
+    status === messagingModule.AuthorizationStatus.AUTHORIZED ||
+    status === messagingModule.AuthorizationStatus.PROVISIONAL
   );
 }
 
@@ -36,7 +44,7 @@ async function syncToken(force = false): Promise<void> {
 
   if (!force && !expired && storedToken) return;
 
-  const token = await messaging().getToken();
+  const token = await getMessaging().getToken();
   if (!token) return;
 
   await AsyncStorage.multiSet([
@@ -53,13 +61,15 @@ async function syncToken(force = false): Promise<void> {
 }
 
 export async function initNotifications(): Promise<void> {
+  if (Platform.OS === 'ios') return; // Firebase not configured for iOS yet
+
   const granted = await requestPermission();
   if (!granted) return;
 
   await syncToken();
 
   // Refresh token when Firebase rotates it
-  messaging().onTokenRefresh(async token => {
+  getMessaging().onTokenRefresh(async (token: string) => {
     const deviceName = await getDeviceName();
     await AsyncStorage.multiSet([
       [TOKEN_KEY, token],
@@ -80,12 +90,9 @@ export async function removeDeviceToken(): Promise<void> {
   await AsyncStorage.multiRemove([TOKEN_KEY, TOKEN_TS_KEY]);
 }
 
-function handleNotificationNavigation(
-  payload: FirebaseMessagingTypes.RemoteMessage,
-): void {
+function handleNotificationNavigation(data: Record<string, string>): void {
   if (!navigationRef.isReady()) return;
 
-  const data = payload.data ?? {};
   const module = data.module as string | undefined;
   const type = data.type as string | undefined;
   const entityId = data.entity_id as string | undefined;
@@ -127,23 +134,25 @@ function handleNotificationNavigation(
 }
 
 export function setupNotificationListeners(): () => void {
+  if (Platform.OS === 'ios') return () => {}; // Firebase not configured for iOS yet
+
+  const fcm = getMessaging();
+
   // Foreground message — show in-app banner (currently just logs; extend with a toast/banner library)
-  const unsubForeground = messaging().onMessage(async remoteMessage => {
+  const unsubForeground = fcm.onMessage(async (remoteMessage: any) => {
     console.log('[FCM] Foreground message:', remoteMessage.notification?.title);
     // TODO: show in-app banner with remoteMessage.notification?.title / body
   });
 
   // Background / quit state — user taps the notification
-  messaging().onNotificationOpenedApp(remoteMessage => {
-    handleNotificationNavigation(remoteMessage);
+  fcm.onNotificationOpenedApp((remoteMessage: any) => {
+    handleNotificationNavigation(remoteMessage.data ?? {});
   });
 
   // App opened from quit state by tapping notification
-  messaging()
-    .getInitialNotification()
-    .then(remoteMessage => {
-      if (remoteMessage) handleNotificationNavigation(remoteMessage);
-    });
+  fcm.getInitialNotification().then((remoteMessage: any) => {
+    if (remoteMessage) handleNotificationNavigation(remoteMessage.data ?? {});
+  });
 
   return unsubForeground;
 }

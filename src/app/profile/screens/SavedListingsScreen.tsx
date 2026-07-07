@@ -14,7 +14,7 @@ import MockStatusBar from '../../components/MockStatusBar';
 
 type SavedListing = {
   id: string;
-  listing_id: string;
+  post_id: string;
   saved_at: string;
   listing: {
     id: string;
@@ -40,10 +40,11 @@ const SavedListingCard = ({
   onPress: () => void;
 }) => {
   const name = item.listing?.commodity?.name ?? 'Listing';
-  const code = item.listing?.code ?? item.listing_id.slice(0, 8).toUpperCase();
+  const code = item.listing?.code ?? item.post_id.slice(0, 8).toUpperCase();
   const price = item.listing?.price_per_unit;
   const location = item.listing?.location;
-  const status = item.listing?.status;
+  const postType = item.listing?.post_type;
+  const isSupply = postType === 'SUPPLY';
 
   return (
     <TouchableOpacity
@@ -51,11 +52,20 @@ const SavedListingCard = ({
       onPress={onPress}
       activeOpacity={0.88}
     >
-      <View style={styles.cardIconBox}>
-        <AppIcon name="listing" size={26} color="#1A6B34" />
+      <View style={[styles.cardIconBox, !isSupply && styles.cardIconBoxDemand]}>
+        <AppIcon name="listing" size={26} color={isSupply ? '#1A6B34' : '#B45309'} />
       </View>
       <View style={styles.cardBody}>
-        <Text style={styles.cardName} numberOfLines={1}>{name}</Text>
+        <View style={styles.cardNameRow}>
+          <Text style={styles.cardName} numberOfLines={1}>{name}</Text>
+          {postType ? (
+            <View style={[styles.typeBadge, !isSupply && styles.typeBadgeDemand]}>
+              <Text style={[styles.typeBadgeText, !isSupply && styles.typeBadgeTextDemand]}>
+                {isSupply ? 'Supply' : 'Demand'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Text style={styles.cardCode} numberOfLines={1}>{code}</Text>
         {location ? (
           <View style={styles.cardLocationRow}>
@@ -67,11 +77,6 @@ const SavedListingCard = ({
       <View style={styles.cardRight}>
         {price != null ? (
           <Text style={styles.cardPrice}>Rs {price.toLocaleString()}</Text>
-        ) : null}
-        {status ? (
-          <View style={[styles.statusBadge, status === 'approved' && styles.statusApproved]}>
-            <Text style={styles.statusText}>{status}</Text>
-          </View>
         ) : null}
         <AppIcon name="heart" size={16} color="#EF4444" />
       </View>
@@ -168,7 +173,10 @@ const SavedListingsScreen = ({ navigation }: any) => {
             <SavedListingCard
               item={item}
               onPress={() =>
-                navigation.navigate('CommodityDetail', { listingId: item.listing_id })
+                navigation.navigate('CommodityDetail', {
+                  listingId: item.post_id,
+                  listingType: item.listing?.post_type as 'SUPPLY' | 'DEMAND' | undefined,
+                })
               }
             />
           )}
@@ -258,8 +266,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  cardIconBoxDemand: { backgroundColor: '#FEF3C7' },
   cardBody: { flex: 1 },
+  cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   cardName: { fontSize: 14, fontWeight: '800', color: '#111827' },
+  typeBadge: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  typeBadgeDemand: { backgroundColor: '#FEF3C7' },
+  typeBadgeText: { fontSize: 9, fontWeight: '700', color: '#166534' },
+  typeBadgeTextDemand: { color: '#92400E' },
   cardCode: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
   cardLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
   cardLocation: { fontSize: 11, color: '#6B7280', flex: 1 },

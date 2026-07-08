@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import store from './store';
 import AppNavigator from './navigation/AppNavigator';
 import './utils/sockets'; // initializes socket auto-connect via store subscription
+import { useGlobalSocketListeners } from './utils/sockets/useGlobalSocketListeners';
 import { useHydrateLanguage } from './localization';
 import {
   initNotifications,
@@ -16,6 +17,7 @@ import { RootState } from './store/rootReducer';
 
 const AppContent = () => {
   useHydrateLanguage();
+  useGlobalSocketListeners();
 
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated,

@@ -49,3 +49,8 @@ export const onOfferRejected = (callback: (data: OfferStatusPayload) => void): (
   getSocket()?.on('offer.rejected', callback);
   return () => getSocket()?.off('offer.rejected', callback);
 };
+
+export const onOfferCancelled = (callback: (data: OfferStatusPayload) => void): (() => void) => {
+  getSocket()?.on('offer.cancelled', callback);
+  return () => getSocket()?.off('offer.cancelled', callback);
+};

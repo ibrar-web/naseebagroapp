@@ -10,6 +10,7 @@ import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
+import { AppIcon } from '../../../assets/icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostCreated'>;
 
@@ -121,7 +122,7 @@ const PostCreatedScreen = ({ navigation, route }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goMyPosts} style={styles.backBtn} activeOpacity={0.8}>
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isBuyer ? 'Demand Submitted' : 'Supply Submitted'}
@@ -249,7 +250,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backArrow: { fontSize: 22, color: '#111827', lineHeight: 24 },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   headerSpacer: { width: 34 },
 

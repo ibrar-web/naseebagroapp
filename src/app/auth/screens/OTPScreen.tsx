@@ -107,7 +107,7 @@ const OTPScreen = ({ navigation, route }: Props) => {
           style={styles.navBack}
           activeOpacity={0.7}
         >
-          <Text style={styles.navBackIcon}>←</Text>
+          <AppIcon name="back" size={20} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Verify Number</Text>
         <View style={styles.navSpacer} />
@@ -196,7 +196,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navBackIcon: { fontSize: 22, color: '#111827' },
   navTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   navSpacer: { width: 30 },
   body: {

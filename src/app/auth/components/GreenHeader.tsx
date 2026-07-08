@@ -26,7 +26,7 @@ const GreenHeader = ({ step, title, subtitle, icon, onBack }: Props) => (
           }}
           activeOpacity={0.7}
         >
-          <Text className="text-white text-lg">←</Text>
+          <AppIcon name="back" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       )}
 

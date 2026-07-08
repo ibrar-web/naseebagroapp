@@ -19,6 +19,7 @@ import TrucksTab from '../components/TrucksTab';
 import PaymentTab from '../components/PaymentTab';
 import StagesTab from '../components/StagesTab';
 import { MockStatusBar } from '../../components';
+import { AppIcon } from '../../../assets/icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DealDetail'>;
 
@@ -170,7 +171,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
                 style={styles.backBtn}
                 activeOpacity={0.85}
               >
-                <Text style={styles.backArrow}>←</Text>
+                <AppIcon name="back" size={20} color="#FFFFFF" />
               </TouchableOpacity>
 
               <View style={styles.statusBadgeWrap}>
@@ -252,13 +253,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  backArrow: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    lineHeight: 20,
-    fontWeight: '600',
-  },
-
   statusBadgeWrap: {
     backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: 8,

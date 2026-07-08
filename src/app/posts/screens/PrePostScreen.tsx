@@ -8,6 +8,7 @@ import {
   ScrollView,
   View,
 } from 'react-native';
+import { AppIcon } from '../../../assets/icons';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -142,7 +143,7 @@ const PrePostScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.8}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <AppIcon name="back" size={20} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isBuyer ? 'Create Demand' : 'Create Supply'}
@@ -206,7 +207,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
   },
-  backArrow: { fontSize: 22, color: '#111827', lineHeight: 24 },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   headerSpacer: { width: 34 },
   scrollContent: { padding: 20, paddingBottom: 40 },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Platform, StatusBar, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
@@ -13,7 +13,9 @@ const MockStatusBar = ({
   absolute = false,
 }: Props) => {
   const insets = useSafeAreaInsets();
-  const topPad = insets.top > 0 ? insets.top : 44;
+  const topPad = Platform.OS === 'ios'
+    ? (insets.top > 0 ? insets.top : 44)
+    : (insets.top || StatusBar.currentHeight || 0);
 
   return (
     <View

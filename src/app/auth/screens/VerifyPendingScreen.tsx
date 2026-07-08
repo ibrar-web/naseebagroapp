@@ -35,7 +35,7 @@ const VerifyPendingScreen = ({ navigation }: Props) => {
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Text className="text-gray-700 text-lg">←</Text>
+          <AppIcon name="back" size={20} color="#374151" />
         </TouchableOpacity>
       </View>
 

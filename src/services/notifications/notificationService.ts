@@ -118,7 +118,12 @@ function handleNotificationNavigation(data: Record<string, string>): void {
 
     case 'listing':
       if (entityId) {
-        navigationRef.navigate('CommodityDetail', { listingId: entityId });
+        if (type === 'approved' || type === 'rejected' || type === 'needs_revision') {
+          const postMode = (data.post_type as string) === 'supply' ? 'seller' : 'buyer';
+          navigationRef.navigate('PostDetail', { postId: entityId, mode: postMode });
+        } else {
+          navigationRef.navigate('CommodityDetail', { listingId: entityId });
+        }
       }
       break;
 

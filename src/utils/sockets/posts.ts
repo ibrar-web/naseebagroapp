@@ -5,18 +5,21 @@ import { getSocket } from './index';
 export type PostApprovedPayload = {
   id: string;
   code: string;
+  post_type: 'supply' | 'demand';
 };
 
 export type PostRejectedPayload = {
   id: string;
   code: string;
   reason: string;
+  post_type: 'supply' | 'demand';
 };
 
 export type PostNeedsRevisionPayload = {
   id: string;
   code: string;
   notes: string;
+  post_type: 'supply' | 'demand';
 };
 
 // ─── Listeners — each returns its own unsubscribe fn ─────────────────────────

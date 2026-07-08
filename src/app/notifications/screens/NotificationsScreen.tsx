@@ -121,6 +121,9 @@ const NotificationsScreen = ({ navigation }: any) => {
     if (item.entity_type === 'offer' && item.entity_id) {
       const offerMode = item.recipient_role ?? mode;
       navigation.navigate('Negotiation', { offerId: item.entity_id, mode: offerMode });
+    } else if (item.entity_type === 'listing' && item.entity_id) {
+      const postMode = item.recipient_role ?? mode;
+      navigation.navigate('PostDetail', { postId: item.entity_id, mode: postMode });
     }
   };
 

@@ -29,33 +29,36 @@ export const useGlobalSocketListeners = () => {
     if (!isAuthenticated) return;
 
     const unsubApproved = onPostApproved((data) => {
+      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
       Alert.alert(
         'Post Approved',
         `Your post ${data.code} has been approved and is now live.`,
         [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id }) },
+          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
           { text: 'OK', style: 'cancel' },
         ],
       );
     });
 
     const unsubRejected = onPostRejected((data) => {
+      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
       Alert.alert(
         'Post Rejected',
         `Your post ${data.code} was rejected.\n\nReason: ${data.reason}`,
         [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id }) },
+          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
           { text: 'OK', style: 'cancel' },
         ],
       );
     });
 
     const unsubRevision = onPostNeedsRevision((data) => {
+      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
       Alert.alert(
         'Post Needs Revision',
         `Your post ${data.code} needs changes.\n\n${data.notes}`,
         [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id }) },
+          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
           { text: 'OK', style: 'cancel' },
         ],
       );

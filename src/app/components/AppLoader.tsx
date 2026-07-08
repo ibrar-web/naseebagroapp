@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 type AppLoaderProps = {
   visible?: boolean;
@@ -17,25 +17,57 @@ const AppLoader = ({
   }
 
   const content = (
-    <View className="items-center justify-center rounded-3xl bg-white px-6 py-5 shadow-2xl shadow-black/10">
+    <View style={styles.card}>
       <ActivityIndicator size="large" color="#1A6B34" />
-      {message ? (
-        <Text className="mt-3 text-center text-gray-600 text-sm font-semibold">
-          {message}
-        </Text>
-      ) : null}
+      {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
   );
 
   if (overlay) {
-    return (
-      <View className="absolute inset-0 z-50 items-center justify-center bg-black/20 px-8">
-        {content}
-      </View>
-    );
+    return <View style={styles.overlay}>{content}</View>;
   }
 
-  return <View className="items-center justify-center py-8">{content}</View>;
+  return <View style={styles.inline}>{content}</View>;
 };
+
+const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.20)',
+    paddingHorizontal: 32,
+  },
+  inline: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  card: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  message: {
+    marginTop: 12,
+    textAlign: 'center',
+    color: '#4B5563',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
 
 export default AppLoader;

@@ -12,6 +12,7 @@ import {
   initNotifications,
   removeDeviceToken,
   setupNotificationListeners,
+  consumePendingNotification,
 } from './services/notifications/notificationService';
 import { RootState } from './store/rootReducer';
 
@@ -33,6 +34,8 @@ const AppContent = () => {
   useEffect(() => {
     if (isAuthenticated && !prevAuth.current) {
       initNotifications().catch(() => {});
+      // Navigate to any notification the user tapped while app was killed
+      consumePendingNotification();
     }
     if (!isAuthenticated && prevAuth.current) {
       removeDeviceToken().catch(() => {});

@@ -90,12 +90,27 @@ export async function removeDeviceToken(): Promise<void> {
   await AsyncStorage.multiRemove([TOKEN_KEY, TOKEN_TS_KEY]);
 }
 
+// Stored when app opens from killed state — consumed after auth is restored
+let _pendingColdStart: Record<string, string> | null = null;
+
+export function consumePendingNotification(): void {
+  if (_pendingColdStart) {
+    const data = _pendingColdStart;
+    _pendingColdStart = null;
+    handleNotificationNavigation(data);
+  }
+}
+
 function handleNotificationNavigation(data: Record<string, string>): void {
   if (!navigationRef.isReady()) return;
+
+  console.log('[FCM Nav] Navigating from notification, data:', JSON.stringify(data));
 
   const module = data.module as string | undefined;
   const type = data.type as string | undefined;
   const entityId = data.entity_id as string | undefined;
+
+  console.log('[FCM Nav] module:', module, '| type:', type, '| entityId:', entityId, '| post_type:', data.post_type);
 
   if (!module) return;
 
@@ -155,14 +170,18 @@ export function setupNotificationListeners(): () => void {
     // TODO: show in-app banner with remoteMessage.notification?.title / body
   });
 
-  // Background / quit state — user taps the notification
+  // Background — user taps the notification
   fcm.onNotificationOpenedApp((remoteMessage: any) => {
+    console.log('[FCM] Background tap notification:', JSON.stringify(remoteMessage.data));
     handleNotificationNavigation(remoteMessage.data ?? {});
   });
 
-  // App opened from quit state by tapping notification
+  // App opened from quit state — store for deferred nav (auth may not be ready yet)
   fcm.getInitialNotification().then((remoteMessage: any) => {
-    if (remoteMessage) handleNotificationNavigation(remoteMessage.data ?? {});
+    if (remoteMessage) {
+      console.log('[FCM] Cold-start notification:', JSON.stringify(remoteMessage.data));
+      _pendingColdStart = remoteMessage.data ?? {};
+    }
   });
 
   return unsubForeground;

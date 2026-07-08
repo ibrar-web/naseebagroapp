@@ -87,6 +87,9 @@ class HttpService {
             errorMessage || 'Please check your inputs.',
           );
           break;
+        case 404:
+          // Let the screen handle not-found — no global alert
+          break;
         case 500:
           Alert.alert(
             'Server Error',

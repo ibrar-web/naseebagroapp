@@ -186,9 +186,13 @@ const rowValueColor = (valueColor?: string, isHighlighted?: boolean) => {
 const PostDetailScreen = ({ navigation, route }: Props) => {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const currentMode = useAppSelector(s => s.app.mode) as AppMode;
-  const mode = route.params.mode ?? currentMode;
-  const isBuyer = mode === 'buyer';
-  const { postId } = route.params;
+  const { postId, post_type } = route.params;
+  // post_type takes priority (set by notifications) — avoids wrong API call
+  // when the user's in-app mode toggle doesn't match the post type.
+  const isBuyer = post_type
+    ? post_type === 'demand'
+    : (route.params.mode ?? currentMode) === 'buyer';
+  const mode: AppMode = isBuyer ? 'buyer' : 'seller';
 
   const [post, setPost] = useState<PostDetail | null>(null);
   const [activeTab, setActiveTab] = useState<string>('post_details');

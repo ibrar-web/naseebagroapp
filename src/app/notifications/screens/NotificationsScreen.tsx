@@ -117,13 +117,24 @@ const NotificationsScreen = ({ navigation }: any) => {
   };
 
   const handleTap = (item: ApiNotification) => {
+    console.log('[Notifications] handleTap item:', JSON.stringify({
+      id: item.id,
+      type: item.type,
+      entity_type: item.entity_type,
+      entity_id: item.entity_id,
+      recipient_role: item.recipient_role,
+    }));
     if (!item.is_read) markRead(item.id);
     if (item.entity_type === 'offer' && item.entity_id) {
       const offerMode = item.recipient_role ?? mode;
+      console.log('[Notifications] → navigate Negotiation offerId:', item.entity_id, 'mode:', offerMode);
       navigation.navigate('Negotiation', { offerId: item.entity_id, mode: offerMode });
     } else if (item.entity_type === 'listing' && item.entity_id) {
-      const postMode = item.recipient_role ?? mode;
-      navigation.navigate('PostDetail', { postId: item.entity_id, mode: postMode });
+      const postType: 'supply' | 'demand' = item.recipient_role === 'seller' ? 'supply' : 'demand';
+      console.log('[Notifications] → navigate PostDetail postId:', item.entity_id, 'post_type:', postType);
+      navigation.navigate('PostDetail', { postId: item.entity_id, post_type: postType });
+    } else {
+      console.log('[Notifications] handleTap: no navigation — entity_type:', item.entity_type, 'entity_id:', item.entity_id);
     }
   };
 
@@ -199,7 +210,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                 {section.items.map((item, index) => {
                   const { icon, iconBg, color } = iconForType(item.type);
                   const isLast = index === section.items.length - 1;
-                  const tappable = item.entity_type === 'offer' && item.entity_id;
+                  const tappable = !!item.entity_id && (item.entity_type === 'offer' || item.entity_type === 'listing');
 
                   return (
                     <TouchableOpacity

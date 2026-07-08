@@ -2,6 +2,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../utils/api';
 import { navigationRef } from '../../navigation/AppNavigator';
+import { showAppToast } from '../../app/components/toastConfig';
 
 const TOKEN_KEY = 'fcm_token';
 const TOKEN_TS_KEY = 'fcm_token_ts';
@@ -134,8 +135,8 @@ function handleNotificationNavigation(data: Record<string, string>): void {
     case 'listing':
       if (entityId) {
         if (type === 'approved' || type === 'rejected' || type === 'needs_revision') {
-          const postMode = (data.post_type as string) === 'supply' ? 'seller' : 'buyer';
-          navigationRef.navigate('PostDetail', { postId: entityId, mode: postMode });
+          const postType = (data.post_type as 'supply' | 'demand') ?? 'supply';
+          navigationRef.navigate('PostDetail', { postId: entityId, post_type: postType });
         } else {
           navigationRef.navigate('CommodityDetail', { listingId: entityId });
         }
@@ -164,14 +165,45 @@ export function setupNotificationListeners(): () => void {
 
   const fcm = getMessaging();
 
-  // Foreground message — show in-app banner (currently just logs; extend with a toast/banner library)
+  // Foreground message — show themed in-app toast
   const unsubForeground = fcm.onMessage(async (remoteMessage: any) => {
-    console.log('[FCM] Foreground message:', remoteMessage.notification?.title);
-    // TODO: show in-app banner with remoteMessage.notification?.title / body
+    const data: Record<string, string> = remoteMessage.data ?? {};
+    const title = remoteMessage.notification?.title ?? data.title ?? 'Notification';
+    const body = remoteMessage.notification?.body ?? data.body;
+    console.log('[FCM] Foreground message:', title, data);
+
+    const module = data.module;
+    const type = data.type;
+    const entityId = data.entity_id;
+    const postType = data.post_type as 'supply' | 'demand' | undefined;
+
+    const accentColor =
+      type === 'approved' ? '#4ADE80'
+      : type === 'rejected' ? '#F87171'
+      : type === 'needs_revision' ? '#FBBF24'
+      : module === 'deal' || module === 'truck' ? '#60A5FA'
+      : '#4ADE80';
+
+    const icon =
+      type === 'approved' ? 'approved'
+      : type === 'rejected' || type === 'needs_revision' ? 'notificationWarning'
+      : 'currency';
+
+    showAppToast({
+      title,
+      body,
+      accentColor,
+      icon,
+      postId: (module === 'listing' && entityId) ? entityId : undefined,
+      post_type: postType,
+      dealId: (module === 'deal' || module === 'truck') && entityId ? entityId : undefined,
+      offerId: module === 'negotiation' && entityId ? entityId : undefined,
+    });
   });
 
-  // Background — user taps the notification
+  // Background tap — clear any cold-start pending to prevent double navigation
   fcm.onNotificationOpenedApp((remoteMessage: any) => {
+    _pendingColdStart = null;
     console.log('[FCM] Background tap notification:', JSON.stringify(remoteMessage.data));
     handleNotificationNavigation(remoteMessage.data ?? {});
   });

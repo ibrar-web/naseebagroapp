@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { Alert } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/rootReducer';
-import { navigationRef } from '../../navigation/AppNavigator';
+import { showPostToast, showDealToast } from '../../app/components/toastConfig';
 import { onPostApproved, onPostRejected, onPostNeedsRevision } from './posts';
 import {
   onDealCreated,
@@ -12,12 +11,6 @@ import {
   onBuyerDocRejected,
   onPaymentApproved,
 } from './deals';
-
-const navigate = (screen: string, params?: object) => {
-  if (navigationRef.isReady()) {
-    (navigationRef as any).navigate(screen, params);
-  }
-};
 
 export const useGlobalSocketListeners = () => {
   const isAuthenticated = useSelector(
@@ -29,38 +22,32 @@ export const useGlobalSocketListeners = () => {
     if (!isAuthenticated) return;
 
     const unsubApproved = onPostApproved((data) => {
-      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
-      Alert.alert(
+      showPostToast(
         'Post Approved',
-        `Your post ${data.code} has been approved and is now live.`,
-        [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
-          { text: 'OK', style: 'cancel' },
-        ],
+        `Your ${data.post_type} post ${data.code} is now live.`,
+        data.id,
+        data.post_type,
+        'success',
       );
     });
 
     const unsubRejected = onPostRejected((data) => {
-      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
-      Alert.alert(
+      showPostToast(
         'Post Rejected',
-        `Your post ${data.code} was rejected.\n\nReason: ${data.reason}`,
-        [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
-          { text: 'OK', style: 'cancel' },
-        ],
+        `${data.code} — ${data.reason}`,
+        data.id,
+        data.post_type,
+        'error',
       );
     });
 
     const unsubRevision = onPostNeedsRevision((data) => {
-      const mode = data.post_type === 'supply' ? 'seller' : 'buyer';
-      Alert.alert(
+      showPostToast(
         'Post Needs Revision',
-        `Your post ${data.code} needs changes.\n\n${data.notes}`,
-        [
-          { text: 'View', onPress: () => navigate('PostDetail', { postId: data.id, mode }) },
-          { text: 'OK', style: 'cancel' },
-        ],
+        `${data.code} — ${data.notes}`,
+        data.id,
+        data.post_type,
+        'warning',
       );
     });
 
@@ -76,69 +63,27 @@ export const useGlobalSocketListeners = () => {
     if (!isAuthenticated) return;
 
     const unsubDealCreated = onDealCreated((data) => {
-      Alert.alert(
-        'Deal Created',
-        `Deal ${data.code} has been created.`,
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'Later', style: 'cancel' },
-        ],
-      );
+      showDealToast('Deal Created', `Deal ${data.code} is ready.`, data.deal_id);
     });
 
     const unsubTruckApproved = onTruckDocApproved((data) => {
-      Alert.alert(
-        'Document Approved',
-        'Your truck document has been approved.',
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'OK', style: 'cancel' },
-        ],
-      );
+      showDealToast('Truck Doc Approved', 'Your truck document has been approved.', data.deal_id);
     });
 
     const unsubTruckRejected = onTruckDocRejected((data) => {
-      Alert.alert(
-        'Document Rejected',
-        'Your truck document was rejected. Please re-upload.',
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'OK', style: 'cancel' },
-        ],
-      );
+      showDealToast('Truck Doc Rejected', 'Please re-upload your truck document.', data.deal_id);
     });
 
     const unsubBuyerApproved = onBuyerDocApproved((data) => {
-      Alert.alert(
-        'Document Approved',
-        'Your pohnch/bilty document has been approved.',
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'OK', style: 'cancel' },
-        ],
-      );
+      showDealToast('Document Approved', 'Your pohnch/bilty has been approved.', data.deal_id);
     });
 
     const unsubBuyerRejected = onBuyerDocRejected((data) => {
-      Alert.alert(
-        'Document Rejected',
-        'Your pohnch/bilty document was rejected. Please re-upload.',
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'OK', style: 'cancel' },
-        ],
-      );
+      showDealToast('Document Rejected', 'Please re-upload your pohnch/bilty.', data.deal_id);
     });
 
     const unsubPayment = onPaymentApproved((data) => {
-      Alert.alert(
-        'Payment Approved',
-        `A payment of ${data.amount} has been approved on your deal.`,
-        [
-          { text: 'View Deal', onPress: () => navigate('DealDetail', { dealId: data.deal_id }) },
-          { text: 'OK', style: 'cancel' },
-        ],
-      );
+      showDealToast('Payment Approved', `PKR ${data.amount} payment has been approved.`, data.deal_id);
     });
 
     return () => {

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import Toast from 'react-native-toast-message';
-import { navigationRef } from '../../navigation/AppNavigator';
+import { showOfferToast } from './toastConfig';
 import { useAppSelector } from '../../store';
 import { getSocket, connectSocket } from '../../utils/sockets';
 import {
@@ -9,25 +8,6 @@ import {
   OfferStatusPayload,
 } from '../../utils/sockets/negotiations';
 
-const isOnNegotiationScreen = (offerId: string) => {
-  if (!navigationRef.isReady()) return false;
-  const route = navigationRef.getCurrentRoute();
-  return route?.name === 'Negotiation' && (route.params as any)?.offerId === offerId;
-};
-
-export const showOfferToast = (offerId: string, title: string, body?: string) => {
-  if (isOnNegotiationScreen(offerId)) return;
-  Toast.show({
-    type: 'offer',
-    text1: title,
-    text2: body,
-    visibilityTime: 5000,
-    props: { offerId },
-  });
-};
-
-// Attach offer event listeners directly to the socket instance.
-// Returns a cleanup function that removes them.
 const attachListeners = () => {
   const socket = getSocket();
   if (!socket) return () => {};
@@ -38,15 +18,15 @@ const attachListeners = () => {
   const onCounter = (data: CounterOfferPayload) => {
     showOfferToast(
       data.offer_id,
-      'Counter Offer Received',
+      'Counter Offer',
       `Round ${data.round} — PKR ${Number(data.offered_price).toLocaleString('en-PK')}`,
     );
   };
   const onAccepted = (data: OfferStatusPayload) => {
-    showOfferToast(data.offer_id, 'Offer Accepted', 'A deal has been created');
+    showOfferToast(data.offer_id, 'Offer Accepted ✓', 'A deal has been created');
   };
   const onRejected = (data: OfferStatusPayload) => {
-    showOfferToast(data.offer_id, 'Offer Rejected');
+    showOfferToast(data.offer_id, 'Offer Rejected', 'The offer was declined');
   };
 
   socket.on('offer.created', onNew);
@@ -68,18 +48,13 @@ const OfferAlertToast = () => {
 
   useEffect(() => {
     if (!token) return;
-
-    // Ensure socket exists (no-op if already connected)
     connectSocket();
-
     const socket = getSocket();
     if (!socket) return;
 
-    // Clean up any previous listeners before re-attaching
     cleanupRef.current();
     cleanupRef.current = attachListeners();
 
-    // Re-attach on every reconnect (handles network drops)
     const handleReconnect = () => {
       cleanupRef.current();
       cleanupRef.current = attachListeners();

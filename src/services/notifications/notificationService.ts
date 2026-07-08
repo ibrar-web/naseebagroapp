@@ -116,6 +116,12 @@ function handleNotificationNavigation(data: Record<string, string>): void {
       }
       break;
 
+    case 'listing':
+      if (entityId) {
+        navigationRef.navigate('CommodityDetail', { listingId: entityId });
+      }
+      break;
+
     case 'profile':
       if (type === 'kyc_updated' || type === 'profile.kyc_updated') {
         navigationRef.navigate('MainTabs', { screen: 'Profile' });

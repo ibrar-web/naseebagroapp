@@ -392,9 +392,9 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
                     style={s.amountInput}
                     placeholder="0"
                     placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={(text) => setAmount(text.replace(/[^0-9]/g, ''))}
                     autoFocus
                   />
                 </View>

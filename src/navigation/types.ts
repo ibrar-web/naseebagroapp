@@ -80,6 +80,7 @@ export type RootStackParamList = {
   PersonalInfo: undefined;
   BusinessProfile: undefined;
   PaymentMethods: undefined;
+  PaymentHistory: undefined;
   VerificationStatus: undefined;
   SavedListings: undefined;
   NotificationsSettings: undefined;

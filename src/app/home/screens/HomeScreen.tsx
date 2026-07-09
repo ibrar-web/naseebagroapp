@@ -24,13 +24,22 @@ const { width: W } = Dimensions.get('window');
 
 // ── DATA ────────────────────────────────────────────────────────────────────
 
-const QUICK_ACTIONS = [
+const QUICK_ACTIONS: {
+  labelKey: TranslationKey;
+  subKey: TranslationKey;
+  emoji: string;
+  bg: string;
+  color: string;
+  route: string;
+  params?: object;
+}[] = [
   {
     labelKey: 'home.createSupply' as TranslationKey,
     subKey: 'home.createSupplySub' as TranslationKey,
     emoji: '+',
     bg: '#FFFDE6',
     color: '#D4AE02',
+    route: 'PrePost',
   },
   {
     labelKey: 'home.myListings' as TranslationKey,
@@ -38,6 +47,7 @@ const QUICK_ACTIONS = [
     emoji: '□',
     bg: '#E8F7EE',
     color: '#217A3C',
+    route: 'Post',
   },
   {
     labelKey: 'home.viewOrders' as TranslationKey,
@@ -45,6 +55,7 @@ const QUICK_ACTIONS = [
     emoji: '▣',
     bg: '#EEF6FF',
     color: '#3B82F6',
+    route: 'Deals',
   },
   {
     labelKey: 'home.payouts' as TranslationKey,
@@ -52,6 +63,7 @@ const QUICK_ACTIONS = [
     emoji: '₨',
     bg: '#F4F0FF',
     color: '#7C3AED',
+    route: 'PaymentMethods',
   },
 ];
 
@@ -297,6 +309,7 @@ const HomeScreen = ({ navigation }: any) => {
                   key={a.labelKey}
                   style={[styles.qaCard, { width: (W - 42) / 2 }]}
                   activeOpacity={0.85}
+                  onPress={() => navigation.navigate(a.route as any, a.params)}
                 >
                   <View style={[styles.qaIconBox, { backgroundColor: a.bg }]}>
                     <Text style={[styles.qaEmoji, { color: a.color }]}>

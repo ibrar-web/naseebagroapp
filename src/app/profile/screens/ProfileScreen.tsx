@@ -86,7 +86,7 @@ const MENU: MenuGroup[] = [
         icon: 'menuPayment',
         labelKey: 'profile.paymentHistory',
         subKey: 'profile.paymentHistorySub',
-        screen: 'PaymentMethods',
+        screen: 'PaymentHistory',
       },
     ],
   },

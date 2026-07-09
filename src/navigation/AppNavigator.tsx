@@ -54,6 +54,7 @@ import NotificationsScreen from '../app/notifications/screens/NotificationsScree
 import PersonalInfoScreen from '../app/profile/screens/PersonalInfoScreen';
 import BusinessProfileScreen from '../app/profile/screens/BusinessProfileScreen';
 import PaymentMethodsScreen from '../app/profile/screens/PaymentMethodsScreen';
+import PaymentHistoryScreen from '../app/profile/screens/PaymentHistoryScreen';
 import VerificationStatusScreen from '../app/profile/screens/VerificationStatusScreen';
 import SavedListingsScreen from '../app/profile/screens/SavedListingsScreen';
 import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSettingsScreen';
@@ -251,6 +252,10 @@ export const AppNavigator = () => {
           <Stack.Screen
             name="PaymentMethods"
             component={PaymentMethodsScreen}
+          />
+          <Stack.Screen
+            name="PaymentHistory"
+            component={PaymentHistoryScreen}
           />
           <Stack.Screen
             name="VerificationStatus"

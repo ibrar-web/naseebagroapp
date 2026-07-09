@@ -13,6 +13,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import AuthStatusBar from '../components/AuthStatusBar';
+import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OTP'>;

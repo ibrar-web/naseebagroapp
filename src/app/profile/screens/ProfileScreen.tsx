@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import type { TranslationKey } from '../../../localization';
 import { navigateToLogin } from '../../auth/utils/requireLogin';
 import MockStatusBar from '../../components/MockStatusBar';
 import LoginRequired from '../../components/alerts/LoginRequired';
+import api from '../../../utils/api/index';
 
 type MenuItem = {
   icon: AppIconName;
@@ -114,7 +115,24 @@ const ProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const user = useAppSelector(s => s.auth.user);
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const mode = useAppSelector(s => s.app.mode);
   const [loginSheetVisible, setLoginSheetVisible] = useState(false);
+  const [userStats, setUserStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    console.log('[ProfileStats] fetching...');
+    (api.profile.stats() as any)
+      .then((res: any) => {
+        console.log('[ProfileStats] response:', JSON.stringify(res?.data, null, 2));
+        setUserStats(res?.data?.data ?? res?.data);
+      })
+      .catch((err: any) => {
+        console.error('[ProfileStats] error:', err?.message ?? err);
+        console.error('[ProfileStats] status:', err?.response?.status);
+        console.error('[ProfileStats] response data:', JSON.stringify(err?.response?.data, null, 2));
+      });
+  }, [isAuthenticated]);
 
   const handleLogout = async () => {
     await EncryptedStorage.removeItem('session').catch(() => null);
@@ -158,11 +176,18 @@ const ProfileScreen = ({ navigation }: any) => {
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          {[
-            { val: '12', label: t('profile.deals') },
-            { val: '5', label: t('profile.supplies') },
-            { val: '4.8★', label: t('profile.rating') },
-          ].map((s, i) => (
+          {(mode === 'buyer'
+            ? [
+                { val: String(userStats?.buyer?.total_active_deals ?? '—'), label: t('profile.deals') },
+                { val: String(userStats?.buyer?.total_demands ?? '—'), label: t('profile.supplies') },
+                { val: userStats?.buyer ? `₨${Math.round(userStats.buyer.total_spent / 1000)}K` : '—', label: t('profile.rating') },
+              ]
+            : [
+                { val: String(userStats?.seller?.total_deals ?? '—'), label: t('profile.deals') },
+                { val: String(userStats?.seller?.total_supplies ?? '—'), label: t('profile.supplies') },
+                { val: userStats?.seller ? `₨${Math.round(userStats.seller.total_received / 1000)}K` : '—', label: t('profile.rating') },
+              ]
+          ).map((s, i) => (
             <View
               key={s.label}
               style={[styles.statItem, i > 0 && styles.statItemBorder]}

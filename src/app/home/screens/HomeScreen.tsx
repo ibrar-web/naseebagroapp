@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import MarketRates from '../components/MarketRates';
 import CategorySection from '../components/CategorySection';
+import api from '../../../utils/api/index';
 
 const { width: W } = Dimensions.get('window');
 
@@ -87,11 +88,28 @@ const HomeScreen = ({ navigation }: any) => {
   }, []);
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [userStats, setUserStats] = useState<any>(null);
 
   const isBuyer = mode === 'buyer';
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
 
   const displayName = user?.fullName ?? 'Muhammad Asad';
   const displayCity = user?.city ?? t('home.location');
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    console.log('[HomeStats] fetching...');
+    (api.profile.stats() as any)
+      .then((res: any) => {
+        console.log('[HomeStats] response:', JSON.stringify(res?.data, null, 2));
+        setUserStats(res?.data?.data ?? res?.data);
+      })
+      .catch((err: any) => {
+        console.error('[HomeStats] error:', err?.message ?? err);
+        console.error('[HomeStats] status:', err?.response?.status);
+        console.error('[HomeStats] response data:', JSON.stringify(err?.response?.data, null, 2));
+      });
+  }, [isAuthenticated]);
 
   const modeOptions = [
     { value: 'buyer' as const, icon: '🛒', label: t('home.buyerMode') },
@@ -99,18 +117,29 @@ const HomeScreen = ({ navigation }: any) => {
   ];
   const activeMode = modeOptions.find(o => o.value === mode) ?? modeOptions[0];
 
+  const fmtAmount = (n: number) => {
+    if (n >= 1_000_000) return `₨${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `₨${(n / 1_000).toFixed(0)}K`;
+    return `₨${n}`;
+  };
+
   const stats = isBuyer
     ? [
         {
           label: t('home.activeDeals'),
-          val: '3',
+          val: String(userStats?.buyer?.total_active_deals ?? '—'),
           color: '#217A3C',
           bg: '#F2FBF5',
         },
-        { label: t('home.demands'), val: '7', color: '#3B82F6', bg: '#EEF6FF' },
+        {
+          label: t('home.demands'),
+          val: String(userStats?.buyer?.total_demands ?? '—'),
+          color: '#3B82F6',
+          bg: '#EEF6FF',
+        },
         {
           label: t('home.totalSpent'),
-          val: '₨2.4M',
+          val: userStats?.buyer ? fmtAmount(userStats.buyer.total_spent) : '—',
           color: '#D4AE02',
           bg: '#FFFDE6',
         },
@@ -118,14 +147,19 @@ const HomeScreen = ({ navigation }: any) => {
     : [
         {
           label: t('home.supplies'),
-          val: '5',
+          val: String(userStats?.seller?.total_supplies ?? '—'),
           color: '#217A3C',
           bg: '#F2FBF5',
         },
-        { label: t('home.orders'), val: '4', color: '#3B82F6', bg: '#EEF6FF' },
+        {
+          label: t('home.orders'),
+          val: String(userStats?.seller?.total_deals ?? '—'),
+          color: '#3B82F6',
+          bg: '#EEF6FF',
+        },
         {
           label: t('home.earnings'),
-          val: '₨890K',
+          val: userStats?.seller ? fmtAmount(userStats.seller.total_received) : '—',
           color: '#D4AE02',
           bg: '#FFFDE6',
         },

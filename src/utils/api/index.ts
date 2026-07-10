@@ -50,6 +50,8 @@ export const api = {
           protectedRequest,
         ),
     },
+    stats: () =>
+      Get('profile/personal/stats', undefined, protectedRequest),
     paymentHistory: () =>
       Get('profile/personal/payment-history', undefined, protectedRequest),
     banking: {

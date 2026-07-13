@@ -8,6 +8,7 @@ import {
   Modal,
   StyleSheet,
   ImageBackground,
+  Image,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -17,6 +18,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
+import api from '../../../utils/api';
+import {
+  launchImageLibrary,
+  type Asset,
+} from 'react-native-image-picker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SubmitTicket'>;
 
@@ -31,27 +37,61 @@ const DISPUTE_REASONS = [
 ];
 
 const SubmitTicketScreen = ({ navigation, route }: Props) => {
-  const { dealId, dealCode, commodityName, dealSummary, imageUrl } =
+  const { dealId, mode, dealCode, commodityName, dealSummary, imageUrl } =
     route.params;
 
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [pickerVisible, setPickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<Asset[]>([]);
 
   const canSubmit = reason.length > 0;
+
+  const handleAttachFile = () => {
+    launchImageLibrary(
+      { mediaType: 'mixed', selectionLimit: 3 - attachedFiles.length, quality: 0.8 },
+      (response) => {
+        if (response.didCancel || response.errorCode) return;
+        const picked = response.assets ?? [];
+        setAttachedFiles(prev => [...prev, ...picked].slice(0, 3));
+      },
+    );
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      // TODO: wire up API call
-      await new Promise(r => setTimeout(r, 900));
+      const body = new FormData();
+      body.append('reason', reason);
+      if (note.trim()) body.append('note', note.trim());
+      attachedFiles.forEach(f => {
+        body.append('file', {
+          uri: f.uri,
+          name: f.fileName ?? 'file.jpg',
+          type: f.type ?? 'image/jpeg',
+        } as any);
+      });
+
+      if (mode === 'buyer') {
+        await api.buyer.submitDispute(dealId, body);
+      } else {
+        await api.seller.submitDispute(dealId, body);
+      }
+
       Alert.alert(
         'Ticket Submitted',
         'Your dispute ticket has been submitted. Our team will review it within 24 hours.',
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Something went wrong. Please try again.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
@@ -136,6 +176,52 @@ const SubmitTicketScreen = ({ navigation, route }: Props) => {
               onChangeText={setNote}
             />
           </View>
+        </View>
+
+        {/* Attach Files */}
+        <View style={s.section}>
+          <View style={s.attachHeader}>
+            <Text style={s.sectionLabel}>Attach Files</Text>
+            <Text style={s.attachCount}>{attachedFiles.length}/3</Text>
+          </View>
+
+          {attachedFiles.length > 0 && (
+            <View style={s.fileList}>
+              {attachedFiles.map((f, i) => (
+                <View key={i} style={s.fileRow}>
+                  <Image
+                    source={{ uri: f.uri }}
+                    style={s.fileThumb}
+                    resizeMode="cover"
+                  />
+                  <Text style={s.fileName} numberOfLines={1}>
+                    {f.fileName ?? `file_${i + 1}`}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => removeFile(i)}
+                    style={s.fileRemoveBtn}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={s.fileRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {attachedFiles.length < 3 && (
+            <TouchableOpacity
+              style={s.attachBtn}
+              onPress={handleAttachFile}
+              activeOpacity={0.8}
+            >
+              <Text style={s.attachBtnIcon}>+</Text>
+              <Text style={s.attachBtnText}>
+                {attachedFiles.length === 0 ? 'Add Files' : 'Add More'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -348,6 +434,50 @@ const s = StyleSheet.create({
   modalOptionSelected: { backgroundColor: '#F2FBF5', borderRadius: 8, paddingHorizontal: 8 },
   modalOptionText: { fontSize: 14, color: '#374151' },
   modalOptionTextSelected: { color: '#1A6B34', fontWeight: '700' },
+
+  attachHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  attachCount: { fontSize: 12, color: '#9CA3AF', fontWeight: '600' },
+
+  fileList: { gap: 8, marginBottom: 12 },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 8,
+    gap: 10,
+  },
+  fileThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#E5E7EB' },
+  fileName: { flex: 1, fontSize: 13, color: '#374151' },
+  fileRemoveBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileRemoveText: { fontSize: 11, color: '#EF4444', fontWeight: '700' },
+
+  attachBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: '#D1FAE5',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 13,
+    backgroundColor: '#F0FDF4',
+  },
+  attachBtnIcon: { fontSize: 18, color: '#217A3C', fontWeight: '700', lineHeight: 20 },
+  attachBtnText: { fontSize: 14, color: '#217A3C', fontWeight: '600' },
 });
 
 export default SubmitTicketScreen;

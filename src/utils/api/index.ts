@@ -179,6 +179,8 @@ export const api = {
       support_rating?: string;
     }) =>
       Post(`buyer/ratings/deal/${dealId}`, data, protectedRequest),
+    submitDispute: (dealId: string, data: FormData) =>
+      Post(`buyer/buydeals/${dealId}/dispute`, data, protectedRequest),
   },
 
   seller: {
@@ -221,6 +223,8 @@ export const api = {
       Get(`seller/selldeals/${id}/payments`, undefined, protectedRequest),
     addTruckDoc: (dealId: string, truckId: string, data: FormData) =>
       Post(`seller/selldeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
+    submitDispute: (dealId: string, data: FormData) =>
+      Post(`seller/selldeals/${dealId}/dispute`, data, protectedRequest),
   },
 };
 

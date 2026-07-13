@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ImageBackground,
-  ScrollView,
 } from 'react-native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
@@ -42,7 +41,31 @@ interface DealListItem {
 const TABS = ['All', 'Active', 'Closed'] as const;
 type TabType = (typeof TABS)[number];
 
-const STAGE_NAMES = ['Created', 'Dispatch', 'Transit', 'Delivery', 'Payment', 'Complete'];
+const BASE_STAGE_NAMES = ['Created', 'In Progress'];
+const FINAL_STAGE_LABEL: Record<string, string> = {
+  closed: 'Completed',
+  cancelled: 'Cancelled',
+  disputed: 'Disputed',
+};
+const FINAL_STAGE_CIRCLE_COLOR: Record<string, string> = {
+  closed: '#217A3C',
+  cancelled: '#EF4444',
+  disputed: '#F97316',
+};
+
+// backendStage comes from the API current_stage field:
+//   1 = matched (no trucks/payments yet) → display stage 1
+//   2–5 = open/in-progress (trucks or payments exist) → display stage 2
+//   6 = closed → display stage 3
+//   0 = cancelled, or 'disputed' status → display stage 3
+const getDisplayStage = (status: string, backendStage?: number): number => {
+  if (status === 'cancelled' || status === 'disputed' || backendStage === 6 || backendStage === 0) return 3;
+  if (backendStage !== undefined && backendStage >= 2) return 2;
+  if (backendStage === 1) return 1;
+  // fallback if backendStage not available
+  if (status === 'open') return 2;
+  return 1;
+};
 
 const STATUS_COLORS: Record<DealStatus, { bg: string; text: string }> = {
   matched: { bg: '#F3CD03', text: '#0D3B1F' },
@@ -66,71 +89,61 @@ const isClosed = (s: DealStatus) => s === 'closed' || s === 'cancelled';
 const formatPKR = (n: number) =>
   'PKR ' + Math.round(n).toLocaleString('en-PK');
 
-const StageTimeline = ({ currentStage }: { currentStage: number }) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={styles.timeline}
-    contentContainerStyle={styles.timelineContent}
-  >
-    {STAGE_NAMES.map((name, idx) => {
-      const stageNum = idx + 1;
-      const isCompleted = stageNum < currentStage;
-      const isCurrent = stageNum === currentStage;
-      const leftLineActive = stageNum > 1 && currentStage >= stageNum;
-      const rightLineActive = stageNum < 6 && currentStage > stageNum;
+const StageTimeline = ({ status, backendStage }: { status: string; backendStage?: number }) => {
+  const displayStage = getDisplayStage(status, backendStage);
+  const finalLabel = FINAL_STAGE_LABEL[status] ?? 'Completed';
+  const finalColor = FINAL_STAGE_CIRCLE_COLOR[status] ?? '#217A3C';
+  const allStages = [...BASE_STAGE_NAMES, finalLabel];
+  // Only show stages up to and including the current one
+  const visibleStages = allStages.slice(0, displayStage);
 
-      return (
-        <View key={name} style={styles.stageItem}>
-          <View style={styles.stageCircleRow}>
-            {idx > 0 ? (
-              <View
-                style={[
-                  styles.stageLine,
-                  leftLineActive && styles.stageLineActive,
-                ]}
-              />
-            ) : (
-              <View style={styles.stageLineSpacer} />
-            )}
-            <View
-              style={[
-                styles.stageCircle,
-                isCurrent || isCompleted
-                  ? styles.stageCircleActive
-                  : styles.stageCirclePending,
-              ]}
-            >
-              {isCompleted ? (
-                <Text style={styles.stageCheckmark}>✓</Text>
-              ) : isCurrent ? (
-                <View style={styles.stageDot} />
-              ) : null}
+  return (
+    <View style={styles.timeline}>
+      <View style={styles.timelineContent}>
+        {visibleStages.map((name, idx) => {
+          const stageNum = idx + 1;
+          const isCompleted = stageNum < displayStage;
+          const isFinal = stageNum === 3;
+          const activeColor = isFinal ? finalColor : '#F3CD03';
+
+          return (
+            <View key={name} style={styles.stageItem}>
+              <View style={styles.stageCircleRow}>
+                {idx > 0 ? (
+                  <View style={[styles.stageLine, styles.stageLineActive]} />
+                ) : (
+                  <View style={styles.stageLineSpacer} />
+                )}
+                <View
+                  style={[
+                    styles.stageCircle,
+                    isCompleted
+                      ? [styles.stageCircleActive, { backgroundColor: activeColor, borderColor: activeColor }]
+                      : [styles.stageCircleActive, { backgroundColor: activeColor, borderColor: activeColor }],
+                  ]}
+                >
+                  {isCompleted ? (
+                    <Text style={[styles.stageCheckmark, isFinal && styles.stageCheckmarkWhite]}>✓</Text>
+                  ) : (
+                    <View style={[styles.stageDot, isFinal && styles.stageDotWhite]} />
+                  )}
+                </View>
+                {idx < visibleStages.length - 1 ? (
+                  <View style={[styles.stageLine, styles.stageLineActive]} />
+                ) : (
+                  <View style={styles.stageLineSpacer} />
+                )}
+              </View>
+              <Text style={[styles.stageName, styles.stageNameActive]}>
+                {name}
+              </Text>
             </View>
-            {idx < STAGE_NAMES.length - 1 ? (
-              <View
-                style={[
-                  styles.stageLine,
-                  rightLineActive && styles.stageLineActive,
-                ]}
-              />
-            ) : (
-              <View style={styles.stageLineSpacer} />
-            )}
-          </View>
-          <Text
-            style={[
-              styles.stageName,
-              (isCurrent || isCompleted) && styles.stageNameActive,
-            ]}
-          >
-            {name}
-          </Text>
-        </View>
-      );
-    })}
-  </ScrollView>
-);
+          );
+        })}
+      </View>
+    </View>
+  );
+};
 
 const DealCard = ({
   item,
@@ -144,9 +157,9 @@ const DealCard = ({
   const qty = item.offer?.quantity;
   const price =
     item.offer?.current_buyer_price ?? item.offer?.current_seller_price;
-  const currentStage = item.current_stage ?? 1;
+  const displayStage = getDisplayStage(item.status, item.current_stage);
   const imageUri = item.commodity?.image_url ?? null;
-  const stageName = STAGE_NAMES[(currentStage - 1) % STAGE_NAMES.length];
+  const stageName = FINAL_STAGE_LABEL[item.status] ?? ['Created', 'In Progress', 'Completed'][displayStage - 1];
 
   return (
     <TouchableOpacity
@@ -164,7 +177,7 @@ const DealCard = ({
           <View style={styles.cardImageTopRow}>
             <View style={styles.stepBadge}>
               <Text style={styles.stepBadgeText}>
-                Step {currentStage}/6 · {stageName}
+                Step {displayStage}/3 · {stageName}
               </Text>
             </View>
             <View
@@ -211,7 +224,7 @@ const DealCard = ({
         </View>
       </View>
 
-      <StageTimeline currentStage={currentStage} />
+      <StageTimeline status={item.status} backendStage={item.current_stage} />
 
       <View style={styles.cardFooter}>
         <Text style={styles.footerDate}>
@@ -537,12 +550,14 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
   },
   stageCheckmark: { fontSize: 11, fontWeight: '800', color: '#0D3B1F' },
+  stageCheckmarkWhite: { color: '#FFFFFF' },
   stageDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#0D3B1F',
   },
+  stageDotWhite: { backgroundColor: '#FFFFFF' },
   stageName: {
     fontSize: 9,
     color: '#9CA3AF',

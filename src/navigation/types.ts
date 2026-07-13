@@ -102,6 +102,7 @@ export type RootStackParamList = {
   };
   SubmitTicket: {
     dealId: string;
+    mode: 'buyer' | 'seller';
     dealCode?: string | null;
     commodityName?: string | null;
     dealSummary?: string | null;

@@ -211,6 +211,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
               onPress={() =>
                 navigation.navigate('SubmitTicket', {
                   dealId,
+                  mode,
                   dealCode: deal?.code,
                   commodityName: deal?.commodity?.name,
                   dealSummary: summaryLine || null,

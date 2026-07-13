@@ -25,47 +25,39 @@ interface StageItem {
   name: string;
   desc: string;
   key: string;
+  color?: string;
 }
 
-const STAGES: StageItem[] = [
+const BASE_STAGES: Omit<StageItem, 'color'>[] = [
   {
     key: 'created',
-    name: 'Deal Created',
-    desc: 'Your deal has been matched and confirmed with the seller.',
+    name: 'Created',
+    desc: 'Your deal has been matched and confirmed.',
   },
   {
-    key: 'dispatch',
-    name: 'Dispatch Preparation',
-    desc: 'Seller is preparing and registering trucks for dispatch.',
-  },
-  {
-    key: 'transit',
-    name: 'In Transit',
-    desc: 'Trucks are loaded and en route to the delivery location.',
-  },
-  {
-    key: 'delivery',
-    name: 'Delivered',
-    desc: 'Trucks have arrived and delivery has been confirmed.',
-  },
-  {
-    key: 'payment',
-    name: 'Payment',
-    desc: 'Buyer is processing payment; receipts are under verification.',
-  },
-  {
-    key: 'complete',
-    name: 'Complete',
-    desc: 'All deliveries and payments have been settled successfully.',
+    key: 'in_progress',
+    name: 'In Progress',
+    desc: 'Trucks have been dispatched and payments are being processed.',
   },
 ];
 
-const STATUS_TO_STAGE: Record<string, number> = {
-  matched: 1,
-  open: 3,
-  closed: 6,
-  cancelled: 0,
-  disputed: 2,
+const FINAL_STAGE: Record<string, StageItem> = {
+  closed: { key: 'completed', name: 'Completed', desc: 'All deliveries and payments have been settled successfully.', color: '#217A3C' },
+  cancelled: { key: 'cancelled', name: 'Cancelled', desc: 'This deal has been cancelled.', color: '#EF4444' },
+  disputed: { key: 'disputed', name: 'Disputed', desc: 'This deal is under review by admin.', color: '#F97316' },
+};
+
+// backendStage comes from the API current_stage field:
+//   1 = matched (no trucks/payments yet) → display stage 1
+//   2–5 = open/in-progress (trucks or payments exist) → display stage 2
+//   6 = closed → display stage 3
+//   0 = cancelled, or 'disputed' status → display stage 3
+const getDisplayStage = (status: string, backendStage?: number): number => {
+  if (status === 'cancelled' || status === 'disputed' || backendStage === 6 || backendStage === 0) return 3;
+  if (backendStage !== undefined && backendStage >= 2) return 2;
+  if (backendStage === 1) return 1;
+  if (status === 'open') return 2;
+  return 1;
 };
 
 const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
@@ -107,8 +99,11 @@ const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
 
   if (!deal) return null;
 
-  const currentStage = deal.current_stage ?? STATUS_TO_STAGE[deal.status] ?? 1;
-  const isCancelled = deal.status === 'cancelled';
+  const displayStage = getDisplayStage(deal.status, deal.current_stage);
+  const finalStage = FINAL_STAGE[deal.status] ?? FINAL_STAGE.closed;
+  const allStages = [...BASE_STAGES, finalStage];
+  // Only render stages up to and including the current one
+  const stages = allStages.slice(0, displayStage);
 
   return (
     <ScrollView
@@ -127,52 +122,36 @@ const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
       <View style={s.headerCard}>
         <Text style={s.headerTitle}>Deal Progress</Text>
         <Text style={s.headerSub}>
-          {isCancelled
-            ? 'This deal has been cancelled.'
-            : `Stage ${currentStage} of ${STAGES.length}`}
+          {stages[stages.length - 1]?.name ?? ''}
         </Text>
       </View>
 
       <View style={s.timeline}>
-        {STAGES.map((stage, idx) => {
+        {stages.map((stage, idx) => {
           const stageNum = idx + 1;
-          const isCompleted = !isCancelled && stageNum < currentStage;
-          const isCurrent = !isCancelled && stageNum === currentStage;
-          const isPending = isCancelled || stageNum > currentStage;
-
-          const circleStyle = isCompleted
-            ? s.circleCompleted
-            : isCurrent
-              ? s.circleCurrent
-              : s.circlePending;
-
-          const circleInner = isCompleted ? (
-            <Text style={s.checkIcon}>✓</Text>
-          ) : (
-            <Text
-              style={[
-                s.stageNum,
-                isCurrent ? s.stageNumCurrent : s.stageNumPending,
-              ]}
-            >
-              {stageNum}
-            </Text>
-          );
-
-          const isLast = idx === STAGES.length - 1;
+          const isCompleted = stageNum < displayStage;
+          const isCurrent = stageNum === displayStage;
+          const isLast = idx === stages.length - 1;
+          const accentColor = (stage as StageItem).color ?? '#217A3C';
 
           return (
             <View key={stage.key} style={s.stageRow}>
               <View style={s.timelineCol}>
-                <View style={[s.circle, circleStyle]}>{circleInner}</View>
-                {!isLast && (
-                  <View
-                    style={[
-                      s.connector,
-                      isCompleted ? s.connectorDone : s.connectorPending,
-                    ]}
-                  />
-                )}
+                <View
+                  style={[
+                    s.circle,
+                    isCompleted
+                      ? [s.circleCompleted, { backgroundColor: accentColor }]
+                      : [s.circleCurrent, { backgroundColor: accentColor, shadowColor: accentColor }],
+                  ]}
+                >
+                  {isCompleted ? (
+                    <Text style={s.checkIcon}>✓</Text>
+                  ) : (
+                    <Text style={[s.stageNum, s.stageNumCurrent]}>{stageNum}</Text>
+                  )}
+                </View>
+                {!isLast && <View style={[s.connector, s.connectorDone]} />}
               </View>
 
               <View
@@ -186,9 +165,7 @@ const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
                   <Text
                     style={[
                       s.stageName,
-                      isCompleted && s.stageNameDone,
-                      isCurrent && s.stageNameCurrent,
-                      isPending && s.stageNamePending,
+                      isCompleted ? s.stageNameDone : s.stageNameCurrent,
                     ]}
                   >
                     {stage.name}
@@ -204,9 +181,7 @@ const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
                     </View>
                   )}
                 </View>
-                <Text
-                  style={[s.stageDesc, isPending && s.stageDescPending]}
-                >
+                <Text style={s.stageDesc}>
                   {stage.desc}
                 </Text>
                 {isCompleted && (

@@ -1,15 +1,3 @@
-import {
-  NODE_ENV,
-  LOCAL_API,
-  LOCAL_SOCKET,
-  DEV_API,
-  DEV_SOCKET,
-  PROD_API,
-  PROD_SOCKET,
-  APP_VERSION,
-  APP_TIMEOUT,
-} from '@env';
-
 type EnvType = 'local' | 'development' | 'production';
 
 interface EnvironmentConfig {
@@ -18,33 +6,39 @@ interface EnvironmentConfig {
   TIMEOUT: number;
   VERSION: string;
   APP_ENV: EnvType;
+  NODE_ENV: string;
 }
 
 const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
   local: {
-    API_BASE_URL: LOCAL_API,
-    SOCKET_URL: LOCAL_SOCKET,
-    TIMEOUT: Number(APP_TIMEOUT) || 30000,
-    VERSION: APP_VERSION || '1.0.0',
+    API_BASE_URL: 'http://192.168.100.26:3004/api/v1',
+    SOCKET_URL: 'http://192.168.100.26:3004',
+    TIMEOUT: 30000,
+    VERSION: '1.0.0',
     APP_ENV: 'local',
+    NODE_ENV: 'local',
   },
   development: {
-    API_BASE_URL: DEV_API,
-    SOCKET_URL: DEV_SOCKET,
-    TIMEOUT: Number(APP_TIMEOUT) || 30000,
-    VERSION: APP_VERSION || '1.0.0',
+    API_BASE_URL: 'https://naseebagri.com/api/v1',
+    SOCKET_URL: 'https://naseebagri.com',
+    TIMEOUT: 30000,
+    VERSION: '1.0.0',
     APP_ENV: 'development',
+    NODE_ENV: 'development',
   },
   production: {
-    API_BASE_URL: PROD_API,
-    SOCKET_URL: PROD_SOCKET,
-    TIMEOUT: Number(APP_TIMEOUT) || 30000,
-    VERSION: APP_VERSION || '1.0.0',
+    API_BASE_URL: 'https://api.naseebagro.com/api/v1',
+    SOCKET_URL: 'wss://api.naseebagro.com',
+    TIMEOUT: 30000,
+    VERSION: '1.0.0',
     APP_ENV: 'production',
+    NODE_ENV: 'production',
   },
 };
 
-const currentEnv = (NODE_ENV || 'development') as EnvType;
+// Change this line to switch environments: 'local' | 'development' | 'production'
+const currentEnv: EnvType = 'development';
+
 export const ENV = ENVIRONMENT_CONFIG[currentEnv];
-console.log('ENV',currentEnv, ENV);
+console.log('ENV', currentEnv, ENV);
 export default ENV;

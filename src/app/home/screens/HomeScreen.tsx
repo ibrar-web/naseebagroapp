@@ -8,7 +8,9 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  Alert,
 } from 'react-native';
+import ENV from '../../../environment';
 import { useNetInfo } from '../../../utils/useNetInfo';
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { switchMode } from '../../../store/slices/appSlice';
@@ -98,16 +100,25 @@ const HomeScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    console.log('[HomeStats] fetching...');
+    const apiUrl = ENV.API_BASE_URL;
+    console.log('[HomeStats] fetching from:', apiUrl);
     (api.profile.stats() as any)
       .then((res: any) => {
         console.log('[HomeStats] response:', JSON.stringify(res?.data, null, 2));
         setUserStats(res?.data?.data ?? res?.data);
+        Alert.alert(
+          'API Success',
+          `ENV: ${ENV.APP_ENV}\nURL: ${apiUrl}\nStatus: OK`,
+        );
       })
       .catch((err: any) => {
         console.error('[HomeStats] error:', err?.message ?? err);
         console.error('[HomeStats] status:', err?.response?.status);
         console.error('[HomeStats] response data:', JSON.stringify(err?.response?.data, null, 2));
+        Alert.alert(
+          'API Failed',
+          `ENV: ${ENV.APP_ENV}\nURL: ${apiUrl}\n\nError: ${err?.message ?? 'Unknown'}\nStatus: ${err?.response?.status ?? 'No response'}\nDetail: ${JSON.stringify(err?.response?.data ?? err?.code ?? '')}`,
+        );
       });
   }, [isAuthenticated]);
 

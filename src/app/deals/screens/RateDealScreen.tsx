@@ -12,38 +12,65 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RateDeal'>;
 
 const QUESTIONS: {
   key: string;
+  apiKey: string;
   label: string;
-  options: string[];
+  options: { label: string; value: string }[];
 }[] = [
   {
     key: 'delivery',
+    apiKey: 'delivery_rating',
     label: '1. Was delivery on time?',
-    options: ['Yes, on time', 'Slightly delayed', 'Very delayed'],
+    options: [
+      { label: 'Yes, on time', value: 'on_time' },
+      { label: 'Slightly delayed', value: 'slightly_delayed' },
+      { label: 'Very delayed', value: 'very_delayed' },
+    ],
   },
   {
     key: 'quantity',
+    apiKey: 'quantity_rating',
     label: '2. Was the quantity accurate?',
-    options: ['Yes, accurate', 'Minor difference', 'Significant difference'],
+    options: [
+      { label: 'Yes, accurate', value: 'accurate' },
+      { label: 'Minor difference', value: 'minor_difference' },
+      { label: 'Significant difference', value: 'significant_difference' },
+    ],
   },
   {
     key: 'quality',
+    apiKey: 'quality_rating',
     label: '3. Was the commodity quality good?',
-    options: ['Excellent', 'As expected', 'Below expectation'],
+    options: [
+      { label: 'Excellent', value: 'excellent' },
+      { label: 'As expected', value: 'as_expected' },
+      { label: 'Below expectation', value: 'below_expectation' },
+    ],
   },
   {
     key: 'process',
+    apiKey: 'process_rating',
     label: '4. Was the overall process smooth?',
-    options: ['Very smooth', 'Minor issues', 'Difficult process'],
+    options: [
+      { label: 'Very smooth', value: 'very_smooth' },
+      { label: 'Minor issues', value: 'minor_issues' },
+      { label: 'Difficult process', value: 'difficult_process' },
+    ],
   },
   {
     key: 'support',
+    apiKey: 'support_rating',
     label: '5. Was the Naseeb team helpful?',
-    options: ['Very helpful', 'Somewhat helpful', 'Not helpful'],
+    options: [
+      { label: 'Very helpful', value: 'very_helpful' },
+      { label: 'Somewhat helpful', value: 'somewhat_helpful' },
+      { label: 'Not helpful', value: 'not_helpful' },
+    ],
   },
 ];
 
@@ -60,11 +87,21 @@ const RateDealScreen = ({ navigation, route }: Props) => {
     if (!allAnswered) return;
     setSubmitting(true);
     try {
-      // TODO: wire up API call
-      await new Promise(r => setTimeout(r, 800));
+      const payload: Parameters<typeof api.buyer.submitRating>[1] = {
+        score: starRating,
+      };
+      for (const q of QUESTIONS) {
+        if (answers[q.key]) {
+          (payload as any)[q.apiKey] = answers[q.key];
+        }
+      }
+      await api.buyer.submitRating(dealId, payload);
       Alert.alert('Thank you!', 'Your rating has been submitted.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Something went wrong. Please try again.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
@@ -143,12 +180,12 @@ const RateDealScreen = ({ navigation, route }: Props) => {
             <Text style={s.questionLabel}>{q.label}</Text>
             <View style={s.optionsCol}>
               {q.options.map(opt => {
-                const selected = answers[q.key] === opt;
+                const selected = answers[q.key] === opt.value;
                 return (
                   <TouchableOpacity
-                    key={opt}
+                    key={opt.value}
                     onPress={() =>
-                      setAnswers(prev => ({ ...prev, [q.key]: opt }))
+                      setAnswers(prev => ({ ...prev, [q.key]: opt.value }))
                     }
                     activeOpacity={0.75}
                     style={[s.optionRow, selected && s.optionRowSelected]}
@@ -161,7 +198,7 @@ const RateDealScreen = ({ navigation, route }: Props) => {
                     <Text
                       style={[s.optionText, selected && s.optionTextSelected]}
                     >
-                      {opt}
+                      {opt.label}
                     </Text>
                   </TouchableOpacity>
                 );

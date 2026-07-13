@@ -61,6 +61,11 @@ import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSet
 import AppSettingsScreen from '../app/profile/screens/AppSettingsScreen';
 import SupportScreen from '../app/profile/screens/SupportScreen';
 import TermsScreen from '../app/profile/screens/TermsScreen';
+import DisputesQueriesScreen from '../app/profile/screens/DisputesQueriesScreen';
+import DisputeDetailScreen from '../app/profile/screens/DisputeDetailScreen';
+import QueryChatScreen from '../app/profile/screens/QueryChatScreen';
+import RateDealScreen from '../app/deals/screens/RateDealScreen';
+import SubmitTicketScreen from '../app/deals/screens/SubmitTicketScreen';
 import { useTranslation } from '../localization';
 import type { TranslationKey } from '../localization';
 import { AppIcon } from '../assets/icons';
@@ -269,6 +274,11 @@ export const AppNavigator = () => {
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
           <Stack.Screen name="Support" component={SupportScreen} />
           <Stack.Screen name="Terms" component={TermsScreen} />
+          <Stack.Screen name="DisputesQueries" component={DisputesQueriesScreen} />
+          <Stack.Screen name="DisputeDetail" component={DisputeDetailScreen} />
+          <Stack.Screen name="QueryChat" component={QueryChatScreen} />
+          <Stack.Screen name="RateDeal" component={RateDealScreen} />
+          <Stack.Screen name="SubmitTicket" component={SubmitTicketScreen} />
 
           {/* Auth */}
           <Stack.Screen

@@ -101,6 +101,12 @@ const MENU: MenuGroup[] = [
         screen: 'Support',
       },
       {
+        icon: 'menuDisputes',
+        labelKey: 'profile.disputes' as any,
+        subKey: 'profile.disputesSub' as any,
+        screen: 'DisputesQueries',
+      },
+      {
         icon: 'menuTerms',
         labelKey: 'profile.termsPrivacy',
         subKey: 'profile.termsPrivacySub',

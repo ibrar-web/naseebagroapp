@@ -133,6 +133,8 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   const imageUri = deal?.commodity?.image_url ?? null;
   const statusLabel =
     STATUS_LABEL_MAP[deal?.status ?? ''] ?? deal?.status ?? '—';
+  const isCompleted = deal?.status === 'closed';
+  const isActive = deal?.status !== 'cancelled';
 
   const summaryLine = [
     deal?.offer?.quantity ? `${deal.offer.quantity} bags` : null,
@@ -198,6 +200,47 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
           </View>
         </ImageBackground>
       </View>
+
+      {/* Action buttons bar */}
+      {(isActive || isCompleted) && (
+        <View style={styles.actionBar}>
+          {isActive && (
+            <TouchableOpacity
+              style={styles.actionBtnOutline}
+              activeOpacity={0.8}
+              onPress={() =>
+                navigation.navigate('SubmitTicket', {
+                  dealId,
+                  dealCode: deal?.code,
+                  commodityName: deal?.commodity?.name,
+                  dealSummary: summaryLine || null,
+                  imageUrl: imageUri,
+                })
+              }
+            >
+              <AppIcon name="ticket" size={14} color="#6B7280" />
+              <Text style={styles.actionBtnOutlineText}>Submit Ticket</Text>
+            </TouchableOpacity>
+          )}
+          {isCompleted && (
+            <TouchableOpacity
+              style={styles.actionBtnFill}
+              activeOpacity={0.8}
+              onPress={() =>
+                navigation.navigate('RateDeal', {
+                  dealId,
+                  dealCode: deal?.code,
+                  commodityName: deal?.commodity?.name,
+                  dealSummary: summaryLine || null,
+                })
+              }
+            >
+              <Text style={styles.actionBtnFillStar}>★</Text>
+              <Text style={styles.actionBtnFillText}>Rate Deal</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <TabView
         navigationState={{ index: tabIndex, routes }}
@@ -291,6 +334,41 @@ const styles = StyleSheet.create({
   },
   tabIndicator: { backgroundColor: '#217A3C', height: 2.5 },
   tabLabel: { fontSize: 11, fontWeight: '700' },
+
+  actionBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  actionBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  actionBtnOutlineText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  actionBtnFill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#145228',
+  },
+  actionBtnFillStar: { fontSize: 14, color: '#F3CD03' },
+  actionBtnFillText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 });
 
 export default DealDetailScreen;

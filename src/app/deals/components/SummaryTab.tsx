@@ -33,6 +33,7 @@ export interface DealSummaryData {
   buyer_company_name?: string | null;
   total_amount: number;
   payable_to_seller?: number | null;
+  has_rated?: boolean;
   created_at: string;
   commodity?: { id: string; name: string; image_url?: string | null } | null;
   offer?: {
@@ -255,6 +256,25 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
         <Text style={s.contactBtnText}>📞  Contact Admin</Text>
       </TouchableOpacity>
 
+      {mode === 'buyer' && deal.status === 'closed' && !deal.has_rated && (
+        <TouchableOpacity
+          style={s.ratingBtn}
+          onPress={() =>
+            (navigation as any).navigate('RateDeal', {
+              dealId: deal.deal_id,
+              dealCode: deal.code,
+              commodityName: deal.commodity?.name ?? null,
+              dealSummary: deal.offer
+                ? `${deal.offer.quantity ?? '?'} bags · PKR ${Number(deal.offer.price_per_unit ?? 0).toLocaleString()}`
+                : null,
+            })
+          }
+          activeOpacity={0.85}
+        >
+          <Text style={s.ratingBtnText}>★  Submit Rating</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={s.bottomSpacer} />
 
       {/* Company name bottom-sheet modal */}
@@ -430,7 +450,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -438,6 +458,20 @@ const s = StyleSheet.create({
     elevation: 1,
   },
   contactBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
+
+  ratingBtn: {
+    backgroundColor: '#217A3C',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 14,
+    shadowColor: '#2E9E52',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  ratingBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 
   overlay: { flex: 1, justifyContent: 'flex-end' },
   overlayBg: {

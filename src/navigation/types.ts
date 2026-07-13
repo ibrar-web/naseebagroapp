@@ -87,6 +87,26 @@ export type RootStackParamList = {
   AppSettings: undefined;
   Support: undefined;
   Terms: undefined;
+
+  // Disputes & Queries
+  DisputesQueries: undefined;
+  DisputeDetail: { disputeId: string };
+  QueryChat: { queryId?: string } | undefined;
+
+  // Deal rating & ticket
+  RateDeal: {
+    dealId: string;
+    dealCode?: string | null;
+    commodityName?: string | null;
+    dealSummary?: string | null;
+  };
+  SubmitTicket: {
+    dealId: string;
+    dealCode?: string | null;
+    commodityName?: string | null;
+    dealSummary?: string | null;
+    imageUrl?: string | null;
+  };
 };
 
 export type RootStackNavProp = NativeStackNavigationProp<RootStackParamList>;

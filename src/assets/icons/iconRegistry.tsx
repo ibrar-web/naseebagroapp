@@ -309,6 +309,34 @@ const vectorIconRegistry = {
     Icon: Feather,
     name: 'shield' as FeatherIconName,
   },
+  alertTriangle: {
+    Icon: Feather,
+    name: 'alert-triangle' as FeatherIconName,
+  },
+  alertCircle: {
+    Icon: Feather,
+    name: 'alert-circle' as FeatherIconName,
+  },
+  sendMessage: {
+    Icon: Feather,
+    name: 'send' as FeatherIconName,
+  },
+  menuDisputes: {
+    Icon: Feather,
+    name: 'alert-circle' as FeatherIconName,
+  },
+  starOutline: {
+    Icon: Feather,
+    name: 'star' as FeatherIconName,
+  },
+  ticket: {
+    Icon: Feather,
+    name: 'tag' as FeatherIconName,
+  },
+  checkCircle: {
+    Icon: Feather,
+    name: 'check-circle' as FeatherIconName,
+  },
 } as const;
 
 const imageRegistry = {

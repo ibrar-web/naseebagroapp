@@ -29,6 +29,8 @@ export const profileTranslations = {
     'profile.paymentHistory': 'Payment History',
     'profile.paymentHistorySub': 'All transactions & receipts',
     'profile.logout': 'Log Out',
+    'profile.disputes': 'Disputes & Queries',
+    'profile.disputesSub': 'Tickets & support queries',
 
     'personal.title': 'Personal Information',
     'personal.changePhoto': 'Change Photo',
@@ -213,6 +215,8 @@ export const profileTranslations = {
     'profile.paymentHistory': 'ادائیگی کی تاریخ',
     'profile.paymentHistorySub': 'تمام لین دین اور رسیدیں',
     'profile.logout': 'لاگ آؤٹ',
+    'profile.disputes': 'تنازعات اور سوالات',
+    'profile.disputesSub': 'ٹکٹس اور سپورٹ سوالات',
 
     'personal.title': 'ذاتی معلومات',
     'personal.changePhoto': 'تصویر تبدیل کریں',

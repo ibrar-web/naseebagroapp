@@ -34,6 +34,7 @@ export interface DealSummaryData {
   total_amount: number;
   payable_to_seller?: number | null;
   has_rated?: boolean;
+  buyer_rating?: { score: number; note?: string | null; created_at?: string } | null;
   created_at: string;
   commodity?: { id: string; name: string; image_url?: string | null } | null;
   offer?: {
@@ -256,9 +257,9 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
         <Text style={s.contactBtnText}>📞  Contact Admin</Text>
       </TouchableOpacity>
 
-      {mode === 'buyer' && deal.status === 'closed' && !deal.has_rated && (
+      {mode === 'buyer' && deal.status === 'closed' && (
         <TouchableOpacity
-          style={s.ratingBtn}
+          style={[s.ratingBtn, deal.has_rated && s.ratingBtnViewed]}
           onPress={() =>
             (navigation as any).navigate('RateDeal', {
               dealId: deal.deal_id,
@@ -267,11 +268,21 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
               dealSummary: deal.offer
                 ? `${deal.offer.quantity ?? '?'} bags · PKR ${Number(deal.offer.price_per_unit ?? 0).toLocaleString()}`
                 : null,
+              existingRating: deal.buyer_rating ?? null,
+              onRatingSubmitted: (score: number, note?: string) => {
+                setDeal((prev: any) => prev ? {
+                  ...prev,
+                  has_rated: true,
+                  buyer_rating: { score, note: note ?? null },
+                } : prev);
+              },
             })
           }
           activeOpacity={0.85}
         >
-          <Text style={s.ratingBtnText}>★  Submit Rating</Text>
+          <Text style={s.ratingBtnText}>
+            {deal.has_rated ? '★  View My Rating' : '★  Submit Rating'}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -471,6 +482,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
+  ratingBtnViewed: { backgroundColor: '#4B5563' },
   ratingBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 
   overlay: { flex: 1, justifyContent: 'flex-end' },

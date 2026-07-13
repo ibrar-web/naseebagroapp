@@ -27,6 +27,8 @@ interface DealHeader {
   code: string | null;
   status: string;
   total_amount: number;
+  has_rated?: boolean;
+  buyer_rating?: { score: number; note?: string | null; created_at?: string } | null;
   commodity?: { name: string; image_url?: string | null } | null;
   offer?: { quantity?: number; payment_term_type?: string | null } | null;
 }
@@ -223,9 +225,9 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
               <Text style={styles.actionBtnOutlineText}>Submit Ticket</Text>
             </TouchableOpacity>
           )}
-          {isCompleted && (
+          {isCompleted && mode === 'buyer' && (
             <TouchableOpacity
-              style={styles.actionBtnFill}
+              style={[styles.actionBtnFill, deal?.has_rated && styles.actionBtnFillRated]}
               activeOpacity={0.8}
               onPress={() =>
                 navigation.navigate('RateDeal', {
@@ -233,11 +235,21 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
                   dealCode: deal?.code,
                   commodityName: deal?.commodity?.name,
                   dealSummary: summaryLine || null,
+                  existingRating: deal?.buyer_rating ?? null,
+                  onRatingSubmitted: (score, note) => {
+                    setDeal(prev => prev ? {
+                      ...prev,
+                      has_rated: true,
+                      buyer_rating: { score, note: note ?? null },
+                    } : prev);
+                  },
                 })
               }
             >
               <Text style={styles.actionBtnFillStar}>★</Text>
-              <Text style={styles.actionBtnFillText}>Rate Deal</Text>
+              <Text style={styles.actionBtnFillText}>
+                {deal?.has_rated ? 'View Rating' : 'Rate Deal'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -368,6 +380,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#145228',
   },
+  actionBtnFillRated: { backgroundColor: '#4B5563' },
   actionBtnFillStar: { fontSize: 14, color: '#F3CD03' },
   actionBtnFillText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 });

@@ -99,6 +99,8 @@ export type RootStackParamList = {
     dealCode?: string | null;
     commodityName?: string | null;
     dealSummary?: string | null;
+    existingRating?: { score: number; note?: string | null; created_at?: string } | null;
+    onRatingSubmitted?: (score: number, note?: string) => void;
   };
   SubmitTicket: {
     dealId: string;

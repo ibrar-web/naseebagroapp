@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Alert } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { store } from '../store';
 import { ENV } from '../environment';
@@ -48,62 +47,17 @@ class HttpService {
         return Promise.reject(error);
       }
 
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        Alert.alert('Timeout', 'Request timed out. Please try again later.');
-        return Promise.reject(error);
-      }
-
       const status = error?.response?.status ?? error.message;
-      const errorMessage =
-        error?.response?.data?.message || 'Something went wrong.';
-      console.log('status :', status, errorMessage);
-      switch (status) {
-        case 'Network Error':
-          Alert.alert('Network Error', `Cannot reach server.`);
-          break;
-        case 400:
-          Alert.alert('Alert', errorMessage);
-          break;
-        case 401:
-          store.dispatch(resetAllReduxStates());
-          EncryptedStorage.removeItem('session').catch(() => undefined);
-          showAuthRequiredSheet();
-          break;
-        case 403:
-          Alert.alert(
-            'Alert',
-            errorMessage,
-          );
-          break;
-        case 409:
-          Alert.alert(
-            'Alert',
-            errorMessage,
-          );
-          break;
-        case 422:
-          Alert.alert(
-            'Validation Error',
-            errorMessage || 'Please check your inputs.',
-          );
-          break;
-        case 404:
-          // Let the screen handle not-found — no global alert
-          break;
-        case 500:
-          Alert.alert(
-            'Server Error',
-            'A server error occurred. Please try again later.',
-          );
-          break;
-        default:
-          Alert.alert(
-            'Error',
-            'An unexpected error occurred. Please try again.',
-          );
-          break;
+      console.log('[HTTP]', status, error?.response?.data?.message ?? error.message);
+
+      // 401 is handled globally — log out and show auth sheet
+      if (status === 401) {
+        store.dispatch(resetAllReduxStates());
+        EncryptedStorage.removeItem('session').catch(() => undefined);
+        showAuthRequiredSheet();
       }
 
+      // All other errors are rejected and handled by the calling screen
       return Promise.reject(error);
     } catch (catchError) {
       console.log('Error in handleError:', catchError);

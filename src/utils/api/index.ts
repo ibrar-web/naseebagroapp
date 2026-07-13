@@ -170,17 +170,14 @@ export const api = {
       Patch(`buyer/buydeals/${dealId}/trucks/${truckId}`, data, protectedRequest),
     addTruckDocument: (dealId: string, truckId: string, data: FormData) =>
       Post(`buyer/buydeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
-    submitRating: (dealId: string, data: {
-      score: number;
-      delivery_rating?: string;
-      quantity_rating?: string;
-      quality_rating?: string;
-      process_rating?: string;
-      support_rating?: string;
-    }) =>
+    submitRating: (dealId: string, data: { score: number; note?: string }) =>
       Post(`buyer/ratings/deal/${dealId}`, data, protectedRequest),
     submitDispute: (dealId: string, data: FormData) =>
       Post(`buyer/buydeals/${dealId}/dispute`, data, protectedRequest),
+    getDisputes: () =>
+      Get('buyer/disputes/my', undefined, protectedRequest),
+    getDisputeById: (id: string) =>
+      Get(`buyer/disputes/${id}`, undefined, protectedRequest),
   },
 
   seller: {
@@ -225,6 +222,21 @@ export const api = {
       Post(`seller/selldeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
     submitDispute: (dealId: string, data: FormData) =>
       Post(`seller/selldeals/${dealId}/dispute`, data, protectedRequest),
+    getDisputes: () =>
+      Get('seller/disputes/my', undefined, protectedRequest),
+    getDisputeById: (id: string) =>
+      Get(`seller/disputes/${id}`, undefined, protectedRequest),
+  },
+
+  queries: {
+    create: (data: { subject: string; message: string }) =>
+      Post('profile/queries', data, protectedRequest),
+    list: () =>
+      Get('profile/queries', undefined, protectedRequest),
+    getById: (id: string) =>
+      Get(`profile/queries/${id}`, undefined, protectedRequest),
+    sendMessage: (id: string, data: { content: string }) =>
+      Post(`profile/queries/${id}/messages`, data, protectedRequest),
   },
 };
 

@@ -23,8 +23,11 @@ import api from '../../../utils/api';
 import { useAppSelector } from '../../../store';
 import { promptLogin } from '../../auth/utils/requireLogin';
 
+type BankOption = { id: string; name: string };
+
 type BankingDetail = {
   id: string;
+  bankId: string;
   bankName: string;
   accountTitle: string;
   accountNumber: string;
@@ -33,6 +36,7 @@ type BankingDetail = {
 };
 
 type BankingForm = {
+  bankId: string;
   bankName: string;
   accountTitle: string;
   accountNumber: string;
@@ -40,6 +44,7 @@ type BankingForm = {
 };
 
 const emptyForm: BankingForm = {
+  bankId: '',
   bankName: '',
   accountTitle: '',
   accountNumber: '',
@@ -77,13 +82,14 @@ const normalizeBankingDetails = (response: any): BankingDetail[] =>
   parseBankingList(response)
     .map((item: any) => ({
       id: str(item?.id, item?._id, item?.banking_detail_id),
-      bankName: str(item?.bank_name, item?.bankName, item?.bank),
+      bankId: str(item?.bank?.id, item?.bank_id),
+      bankName: str(item?.bank?.name, item?.bank_name, item?.bankName, item?.bank),
       accountTitle: str(item?.account_title, item?.accountTitle, item?.account_name, item?.accountName),
       accountNumber: str(item?.bank_account_number, item?.account_number, item?.accountNumber),
       iban: str(item?.bank_iban_number, item?.iban, item?.IBAN),
       isPrimary: Boolean(item?.is_primary ?? item?.isPrimary ?? false),
     }))
-    .filter((item: BankingDetail) => item.id || item.bankName || item.accountTitle || item.iban);
+    .filter((item: any) => item.id || item.bankName || item.accountTitle || item.iban);
 
 const maskAccount = (accountNumber: string, iban: string) => {
   const value = accountNumber || iban;
@@ -99,7 +105,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showBankPicker, setShowBankPicker] = useState(false);
-  const [banks, setBanks] = useState<string[]>([]);
+  const [banks, setBanks] = useState<BankOption[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
   const [bankSearch, setBankSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -109,21 +115,21 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   useEffect(() => {
     api.marketplace.public.listBanks()
       .then((res: any) => {
-        const names: string[] = (res?.data ?? []).map((b: any) => b.name);
-        setBanks(names);
+        const list: BankOption[] = (Array.isArray(res) ? res : res?.data ?? []).map((b: any) => ({ id: String(b.id), name: String(b.name) }));
+        setBanks(list);
       })
       .catch(() => {})
       .finally(() => setBanksLoading(false));
   }, []);
 
   const filteredBanks = bankSearch.trim()
-    ? banks.filter(b => b.toLowerCase().includes(bankSearch.toLowerCase()))
+    ? banks.filter(b => b.name.toLowerCase().includes(bankSearch.toLowerCase()))
     : banks;
 
   const isMFBank = isMicrofinanceBank(form.bankName);
 
   const canSubmit =
-    form.bankName.trim().length > 0 &&
+    form.bankId.trim().length > 0 &&
     form.accountTitle.trim().length > 1 &&
     form.accountNumber.trim().length > 4 &&
     (isMFBank || form.iban.trim().length > 4);
@@ -162,7 +168,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   const startEdit = (account: BankingDetail) => {
     if (!token) { promptLogin(navigation); return; }
     setEditingId(account.id);
-    setForm({ bankName: account.bankName, accountTitle: account.accountTitle, accountNumber: account.accountNumber, iban: account.iban });
+    setForm({ bankId: account.bankId, bankName: account.bankName, accountTitle: account.accountTitle, accountNumber: account.accountNumber, iban: account.iban });
     setShowBankPicker(false);
     setShowForm(true);
   };
@@ -177,11 +183,11 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
   const handleSubmit = async () => {
     if (!canSubmit || saving) return;
     if (!token) { promptLogin(navigation); return; }
-    const payload = {
-      bank_name: form.bankName.trim(),
+    const payload: any = {
+      bank_id: form.bankId,
       account_title: form.accountTitle.trim(),
       bank_account_number: form.accountNumber.trim(),
-      bank_iban_number: form.iban.trim(),
+      ...(isMFBank ? {} : { bank_iban_number: form.iban.trim() }),
     };
     setSaving(true);
     try {
@@ -354,25 +360,26 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                       <ActivityIndicator color="#1A6B34" style={s.pickerLoader} />
                     ) : (
                       <ScrollView style={s.pickerList} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                        {filteredBanks.map((bank: string) => (
+                        {filteredBanks.map((bank: BankOption) => (
                           <TouchableOpacity
-                            key={bank}
+                            key={bank.id}
                             onPress={() => {
-                            const nextIsMF = isMicrofinanceBank(bank);
-                            const prevIsMF = isMicrofinanceBank(form.bankName);
-                            setForm(f => ({
-                              ...f,
-                              bankName: bank,
-                              ...(nextIsMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
-                            }));
-                            setShowBankPicker(false);
-                            setBankSearch('');
-                          }}
-                            style={[s.pickerItem, form.bankName === bank && s.pickerItemActive]}
+                              const nextIsMF = isMicrofinanceBank(bank.name);
+                              const prevIsMF = isMicrofinanceBank(form.bankName);
+                              setForm(f => ({
+                                ...f,
+                                bankId: bank.id,
+                                bankName: bank.name,
+                                ...(nextIsMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
+                              }));
+                              setShowBankPicker(false);
+                              setBankSearch('');
+                            }}
+                            style={[s.pickerItem, form.bankId === bank.id && s.pickerItemActive]}
                             activeOpacity={0.75}
                           >
-                            <Text style={[s.pickerItemText, form.bankName === bank && s.pickerItemTextActive]}>
-                              {bank}
+                            <Text style={[s.pickerItemText, form.bankId === bank.id && s.pickerItemTextActive]}>
+                              {bank.name}
                             </Text>
                           </TouchableOpacity>
                         ))}
@@ -391,7 +398,10 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
                     <TextInput
                       style={s.fieldInput}
                       value={form[field.key]}
-                      onChangeText={val => setForm(f => ({ ...f, [field.key]: val }))}
+                      onChangeText={val => {
+                        const sanitized = field.key === 'accountNumber' ? val.replace(/[^0-9]/g, '') : val;
+                        setForm(f => ({ ...f, [field.key]: sanitized }));
+                      }}
                       placeholder={field.placeholder ?? field.label}
                       placeholderTextColor="#9CA3AF"
                       keyboardType={field.keyboard ?? 'default'}

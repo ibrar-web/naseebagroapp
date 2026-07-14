@@ -31,6 +31,22 @@ class HttpService {
       headers,
     });
 
+    this.service.interceptors.request.use(
+      (config: any) => {
+        const fullUrl = `${config.baseURL ?? ''}/${config.url ?? ''}`.replace(/([^:]\/)\/+/g, '$1');
+        console.log('[HTTP REQUEST]', config.method?.toUpperCase(), fullUrl);
+        console.log('[HTTP REQUEST] headers:', JSON.stringify(config.headers));
+        if (config.data) {
+          console.log('[HTTP REQUEST] body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data));
+        }
+        return config;
+      },
+      (error: any) => {
+        console.error('[HTTP REQUEST ERROR]', error?.message);
+        return Promise.reject(error);
+      },
+    );
+
     this.service.interceptors.response.use(
       this.handleSuccess,
       this.handleError,
@@ -38,29 +54,39 @@ class HttpService {
   }
 
   handleSuccess(response: any) {
+    console.log('[HTTP RESPONSE]', response?.status, response?.config?.url);
     return response;
   }
 
   handleError(error: any) {
+    const status = error?.response?.status;
+    const url = error?.config?.url ?? 'unknown';
+    const baseURL = error?.config?.baseURL ?? ENV.API_BASE_URL;
+    const fullUrl = `${baseURL}/${url}`.replace(/([^:]\/)\/+/g, '$1');
+    const responseData = error?.response?.data;
+    const errorCode = error?.code;
+
+    console.error('[HTTP ERROR] URL:', fullUrl);
+    console.error('[HTTP ERROR] status:', status);
+    console.error('[HTTP ERROR] code:', errorCode);
+    console.error('[HTTP ERROR] message:', error?.message);
+    console.error('[HTTP ERROR] response data:', JSON.stringify(responseData));
+
     try {
       if (axios.isCancel(error)) {
         return Promise.reject(error);
       }
 
-      const status = error?.response?.status ?? error.message;
-      console.log('[HTTP]', status, error?.response?.data?.message ?? error.message);
-
-      // 401 is handled globally — log out and show auth sheet
       if (status === 401) {
         store.dispatch(resetAllReduxStates());
         EncryptedStorage.removeItem('session').catch(() => undefined);
         showAuthRequiredSheet();
       }
 
-      // All other errors are rejected and handled by the calling screen
       return Promise.reject(error);
     } catch (catchError) {
-      console.log('Error in handleError:', catchError);
+      console.error('[HTTP ERROR] handleError catch:', catchError);
+      return Promise.reject(error);
     }
   }
 
@@ -83,6 +109,8 @@ class HttpService {
       this.service.defaults.headers.Authorization = `Bearer ${token}`;
       return null;
     }
+
+    console.warn('[HTTP] No auth token — request blocked before sending');
 
     const error = new Error('Login required') as Error & { code: string };
     error.code = 'AUTH_REQUIRED';

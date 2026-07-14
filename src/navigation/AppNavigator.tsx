@@ -189,16 +189,27 @@ const MainTabs = () => (
 
 export const AppNavigator = () => {
   const [loginSheetVisible, setLoginSheetVisible] = useState(false);
+  const redirectToMarketRef = React.useRef(false);
 
   useEffect(
-    () => subscribeAuthRequiredSheet(() => setLoginSheetVisible(true)),
+    () => subscribeAuthRequiredSheet((payload) => {
+      redirectToMarketRef.current = payload.redirectToMarket ?? false;
+      setLoginSheetVisible(true);
+    }),
     [],
   );
 
-  const closeLoginSheet = () => setLoginSheetVisible(false);
+  const closeLoginSheet = () => {
+    setLoginSheetVisible(false);
+    if (redirectToMarketRef.current && navigationRef.isReady()) {
+      redirectToMarketRef.current = false;
+      navigationRef.navigate('MainTabs', { screen: 'Market' } as any);
+    }
+  };
 
   const openLogin = () => {
-    closeLoginSheet();
+    redirectToMarketRef.current = false;
+    setLoginSheetVisible(false);
     if (navigationRef.isReady()) {
       navigationRef.navigate('Login');
     }

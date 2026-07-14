@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useAppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { setRegisterBizInfo } from '../../../store/slices/registerSlice';
 import api from '../../../utils/api';
 import { AppIcon } from '../../../assets/icons';
@@ -33,10 +33,11 @@ const BIZ_TYPES = [
 
 const BizInfoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
+  const saved = useAppSelector(s => s.register);
   const [form, setForm] = useState({
-    businessName: '',
-    businessType: '',
-    city: '',
+    businessName: saved.businessName ?? '',
+    businessType: saved.businessType ?? '',
+    city: saved.city ?? '',
     address: '',
   });
   const [cities, setCities] = useState<CityOption[]>([]);

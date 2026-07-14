@@ -31,11 +31,19 @@ const STEP_TOTAL = 5;
 
 const WALLETS = ['JazzCash', 'Easypaisa', 'SadaPay'];
 
+type BankOption = { id: string; name: string };
+
 const isMicrofinanceBank = (name: string): boolean => {
   const lower = name.toLowerCase();
   return (
-    lower.includes('microfinance') ||
     lower.includes('easypaisa') ||
+    lower.includes('jazzcash') ||
+    lower.includes('jazz cash') ||
+    lower.includes('sadapay') ||
+    lower.includes('sada pay') ||
+    lower.includes('nayapay') ||
+    lower.includes('naya pay') ||
+    lower.includes('microfinance') ||
     lower === 'hugobank' ||
     lower === 'kt bank' ||
     lower.includes('raqami')
@@ -46,9 +54,9 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const registerForm = useAppSelector(state => state.register);
 
-  const [banks, setBanks] = useState<string[]>([]);
+  const [banks, setBanks] = useState<BankOption[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
-  const [form, setForm] = useState({ bank: '', accountTitle: '', accountNumber: '', iban: '' });
+  const [form, setForm] = useState({ bankId: '', bankName: '', accountTitle: '', accountNumber: '', iban: '' });
   const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState('');
@@ -57,27 +65,29 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
   useEffect(() => {
     api.marketplace.public.listBanks()
       .then((res: any) => {
-        const names: string[] = (res?.data ?? []).map((b: any) => b.name);
-        setBanks(names);
+        const list: BankOption[] = (Array.isArray(res) ? res : res?.data ?? []).map((b: any) => ({ id: b.id, name: b.name }));
+        setBanks(list);
       })
       .catch(() => {})
       .finally(() => setBanksLoading(false));
   }, []);
 
   const filteredBanks = bankSearch.trim()
-    ? banks.filter(b => b.toLowerCase().includes(bankSearch.toLowerCase()))
+    ? banks.filter(b => b.name.toLowerCase().includes(bankSearch.toLowerCase()))
     : banks;
 
-  const isMFBank = isMicrofinanceBank(form.bank);
+  const isMFBank = isMicrofinanceBank(form.bankName);
 
   const toggleWallet = (w: string) =>
     setSelectedWallets(prev =>
       prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w],
     );
 
+  // Microfinance: mobile number as account, no IBAN
+  // Standard bank: both account number and IBAN required
   const canSubmit = isMFBank
-    ? form.bank.length > 0 && form.accountTitle.length > 2 && form.accountNumber.length >= 10
-    : form.bank.length > 0 && form.accountTitle.length > 2 && form.iban.length >= 10;
+    ? form.bankId.length > 0 && form.accountTitle.length > 2 && form.accountNumber.length >= 10
+    : form.bankId.length > 0 && form.accountTitle.length > 2 && form.accountNumber.length >= 5 && form.iban.length >= 10;
 
   const handleSubmit = async () => {
     if (!canSubmit || loading) return;
@@ -88,8 +98,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       formData.append('email', registerForm.email);
       formData.append('phone', '+92' + registerForm.phone);
       formData.append('password', registerForm.password);
-      formData.append('date_of_birth', registerForm.dateOfBirth);
-      formData.append('role', registerForm.role);
+      formData.append('role', 'user');
 
       if (registerForm.city) formData.append('city', registerForm.city);
       if (registerForm.cnic) formData.append('cnic', registerForm.cnic);
@@ -136,20 +145,30 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
             })
           : Promise.resolve(),
         api.profile.banking.create({
-          bank_name: form.bank,
+          bank_id: form.bankId,
           account_title: form.accountTitle,
-          bank_account_number: isMFBank ? form.accountNumber : form.iban,
-          bank_iban_number: isMFBank ? '' : form.iban,
+          bank_account_number: form.accountNumber,
+          ...(isMFBank ? {} : { bank_iban_number: form.iban }),
         }),
       ]);
 
       dispatch(resetRegisterForm());
       navigation.navigate('VerifyPending');
-    } catch {
-      Alert.alert(
-        'Registration Failed',
-        'Please check your details and try again.',
-      );
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.status;
+      const serverMsg: string = err?.response?.data?.message ?? err?.message ?? '';
+      if (status === 409 || serverMsg.toLowerCase().includes('already registered')) {
+        Alert.alert(
+          'Email Already Registered',
+          'This email is already registered. Please login and complete your profile.',
+          [
+            { text: 'Login', onPress: () => navigation.navigate('Login' as any) },
+            { text: 'Cancel', style: 'cancel' },
+          ],
+        );
+      } else {
+        Alert.alert('Registration Failed', 'Please check your details and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -211,8 +230,8 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
             style={styles.selectBtn}
             activeOpacity={0.8}
           >
-            <Text style={[styles.selectText, !form.bank && styles.placeholderText]}>
-              {form.bank || 'Select bank...'}
+            <Text style={[styles.selectText, !form.bankName && styles.placeholderText]}>
+              {form.bankName || 'Select bank...'}
             </Text>
             <Text style={styles.chevron}>▾</Text>
           </TouchableOpacity>
@@ -236,36 +255,44 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                 >
-                  {filteredBanks.map(bank => (
-                    <TouchableOpacity
-                      key={bank}
-                      onPress={() => {
-                        const nextIsMF = isMicrofinanceBank(bank);
-                        const prevIsMF = isMicrofinanceBank(form.bank);
-                        setForm(p => ({
-                          ...p,
-                          bank,
-                          ...(nextIsMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
-                        }));
-                        setShowBankPicker(false);
-                        setBankSearch('');
-                      }}
-                      style={[
-                        styles.pickerItem,
-                        form.bank === bank && styles.pickerItemActive,
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      <Text
+                  {filteredBanks.map(bank => {
+                    const isMF = isMicrofinanceBank(bank.name);
+                    return (
+                      <TouchableOpacity
+                        key={bank.id}
+                        onPress={() => {
+                          const prevIsMF = isMicrofinanceBank(form.bankName);
+                          setForm(p => ({
+                            ...p,
+                            bankId: bank.id,
+                            bankName: bank.name,
+                            ...(isMF !== prevIsMF ? { accountNumber: '', iban: '' } : {}),
+                          }));
+                          setShowBankPicker(false);
+                          setBankSearch('');
+                        }}
                         style={[
-                          styles.pickerItemText,
-                          form.bank === bank && styles.pickerItemTextActive,
+                          styles.pickerItem,
+                          form.bankId === bank.id && styles.pickerItemActive,
                         ]}
+                        activeOpacity={0.7}
                       >
-                        {bank}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text
+                            style={[
+                              styles.pickerItemText,
+                              form.bankId === bank.id && styles.pickerItemTextActive,
+                            ]}
+                          >
+                            {bank.name}
+                          </Text>
+                          {isMF && (
+                            <Text style={styles.mfBadge}>Mobile</Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                   {filteredBanks.length === 0 && (
                     <Text style={styles.emptyText}>No banks found</Text>
                   )}
@@ -289,31 +316,44 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         </View>
 
         {isMFBank ? (
-          /* Microfinance: mobile number only, no IBAN */
+          /* Microfinance (Easypaisa, JazzCash, SadaPay, Naya Pay): mobile number as account, no IBAN */
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>Mobile / Account Number</Text>
             <TextInput
               style={styles.input}
               placeholder="03XX XXXXXXX"
               placeholderTextColor="#9CA3AF"
               value={form.accountNumber}
-              onChangeText={v => setForm(p => ({ ...p, accountNumber: v }))}
-              keyboardType="phone-pad"
+              onChangeText={v => setForm(p => ({ ...p, accountNumber: v.replace(/[^0-9]/g, '') }))}
+              keyboardType="numeric"
             />
           </View>
         ) : (
-          /* Standard bank: IBAN required */
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>IBAN / Account Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="PK00XXXX0000000000000000"
-              placeholderTextColor="#9CA3AF"
-              value={form.iban}
-              onChangeText={v => setForm(p => ({ ...p, iban: v }))}
-              autoCapitalize="characters"
-            />
-          </View>
+          /* Standard bank: account number + IBAN both required */
+          <>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Account Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 0123456789"
+                placeholderTextColor="#9CA3AF"
+                value={form.accountNumber}
+                onChangeText={v => setForm(p => ({ ...p, accountNumber: v.replace(/[^0-9]/g, '') }))}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>IBAN</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="PK00XXXX0000000000000000"
+                placeholderTextColor="#9CA3AF"
+                value={form.iban}
+                onChangeText={v => setForm(p => ({ ...p, iban: v.toUpperCase() }))}
+                autoCapitalize="characters"
+              />
+            </View>
+          </>
         )}
 
         {/* Mobile Wallets */}
@@ -477,6 +517,15 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 13,
     paddingVertical: 20,
+  },
+  mfBadge: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#7C3AED',
+    backgroundColor: '#F4F0FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   walletsRow: { flexDirection: 'row', gap: 8 },
   walletBtn: {

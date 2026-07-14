@@ -8,9 +8,7 @@ import {
   Image,
   Dimensions,
   RefreshControl,
-  Alert,
 } from 'react-native';
-import ENV from '../../../environment';
 import { useNetInfo } from '../../../utils/useNetInfo';
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { switchMode } from '../../../store/slices/appSlice';
@@ -81,12 +79,10 @@ const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const { isConnected } = useNetInfo();
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // MarketRates component handles its own fetch on mount;
-    // trigger a re-mount key to force reload on pull-to-refresh
     setRefreshKey(k => k + 1);
-    setRefreshing(false);
+    setTimeout(() => setRefreshing(false), 800);
   }, []);
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -95,30 +91,20 @@ const HomeScreen = ({ navigation }: any) => {
   const isBuyer = mode === 'buyer';
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
 
-  const displayName = user?.fullName ?? 'Muhammad Asad';
-  const displayCity = user?.city ?? t('home.location');
+  const displayName = user?.fullName ?? 'Guest';
+  const displayCity = user?.city ?? 'Guest';
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    const apiUrl = ENV.API_BASE_URL;
-    console.log('[HomeStats] fetching from:', apiUrl);
+    if (!isAuthenticated) {
+      return;
+    }
+
     (api.profile.stats() as any)
       .then((res: any) => {
-        console.log('[HomeStats] response:', JSON.stringify(res?.data, null, 2));
-        setUserStats(res?.data?.data ?? res?.data);
-        Alert.alert(
-          'API Success',
-          `ENV: ${ENV.APP_ENV}\nURL: ${apiUrl}\nStatus: OK`,
-        );
+        setUserStats(res?.data ?? res);
       })
       .catch((err: any) => {
-        console.error('[HomeStats] error:', err?.message ?? err);
-        console.error('[HomeStats] status:', err?.response?.status);
-        console.error('[HomeStats] response data:', JSON.stringify(err?.response?.data, null, 2));
-        Alert.alert(
-          'API Failed',
-          `ENV: ${ENV.APP_ENV}\nURL: ${apiUrl}\n\nError: ${err?.message ?? 'Unknown'}\nStatus: ${err?.response?.status ?? 'No response'}\nDetail: ${JSON.stringify(err?.response?.data ?? err?.code ?? '')}`,
-        );
+        console.error('[HomeStats] FAILED', err?.message);
       });
   }, [isAuthenticated]);
 
@@ -321,7 +307,7 @@ const HomeScreen = ({ navigation }: any) => {
               </Text>
             </View>
 
-            <CategorySection navigation={navigation} />
+            <CategorySection key={refreshKey} navigation={navigation} />
           </>
         ) : (
           <>

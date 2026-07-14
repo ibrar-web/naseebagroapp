@@ -14,7 +14,7 @@ import {
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useAppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { setRegisterIdInfo } from '../../../store/slices/registerSlice';
 import { AppIcon } from '../../../assets/icons';
 import { Feather } from '../../../assets/icons/feather';
@@ -56,9 +56,10 @@ const pickImage = (onPick: (uri: string, name: string) => void) => {
 
 const IdVerifyScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
-  const [cnic, setCnic] = useState('');
-  const [front, setFront] = useState<UploadState>(null);
-  const [back, setBack] = useState<UploadState>(null);
+  const saved = useAppSelector(s => s.register);
+  const [cnic, setCnic] = useState(saved.cnic ?? '');
+  const [front, setFront] = useState<UploadState>(saved.cnicFront ?? null);
+  const [back, setBack] = useState<UploadState>(saved.cnicBack ?? null);
 
   const canContinue = cnic.length >= 13 && front !== null && back !== null;
 
@@ -146,9 +147,9 @@ const IdVerifyScreen = ({ navigation }: Props) => {
             placeholder="XXXXX-XXXXXXX-X"
             placeholderTextColor="#9CA3AF"
             value={cnic}
-            onChangeText={setCnic}
-            keyboardType="numbers-and-punctuation"
-            maxLength={15}
+            onChangeText={v => setCnic(v.replace(/[^0-9]/g, ''))}
+            keyboardType="numeric"
+            maxLength={13}
           />
           <Text style={styles.hint}>13-digit National ID number</Text>
         </View>

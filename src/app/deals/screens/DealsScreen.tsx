@@ -9,10 +9,12 @@ import {
   RefreshControl,
   ImageBackground,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../../store';
 import { useTranslation } from '../../../localization';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
+import { showAuthRequiredSheet } from '../../auth/utils/authRequiredSheet';
 
 type DealStatus = 'open' | 'matched' | 'closed' | 'cancelled' | 'disputed';
 
@@ -266,13 +268,23 @@ const TabBadge = ({
 
 const DealsScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
   const { t } = useTranslation();
   const [deals, setDeals] = useState<DealListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('All');
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        showAuthRequiredSheet({ redirectToMarket: true });
+      }
+    }, [isAuthenticated]),
+  );
+
   const fetchDeals = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       const res = (
         mode === 'buyer'
@@ -283,7 +295,7 @@ const DealsScreen = ({ navigation }: any) => {
     } catch {
       // keep existing data on failure
     }
-  }, [mode]);
+  }, [mode, isAuthenticated]);
 
   useEffect(() => {
     setLoading(true);

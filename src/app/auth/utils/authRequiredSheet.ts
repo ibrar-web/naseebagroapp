@@ -1,7 +1,8 @@
-type AuthRequiredListener = () => void;
+export type AuthSheetPayload = { redirectToMarket?: boolean };
+type AuthRequiredListener = (payload: AuthSheetPayload) => void;
 
 const listeners = new Set<AuthRequiredListener>();
-let pendingAuthPrompt = false;
+let pendingAuthPrompt: AuthSheetPayload | null = null;
 
 export const subscribeAuthRequiredSheet = (
   listener: AuthRequiredListener,
@@ -9,8 +10,9 @@ export const subscribeAuthRequiredSheet = (
   listeners.add(listener);
 
   if (pendingAuthPrompt) {
-    pendingAuthPrompt = false;
-    listener();
+    const payload = pendingAuthPrompt;
+    pendingAuthPrompt = null;
+    listener(payload);
   }
 
   return () => {
@@ -18,12 +20,12 @@ export const subscribeAuthRequiredSheet = (
   };
 };
 
-export const showAuthRequiredSheet = () => {
+export const showAuthRequiredSheet = (payload: AuthSheetPayload = {}) => {
   if (!listeners.size) {
-    pendingAuthPrompt = true;
+    pendingAuthPrompt = payload;
     return false;
   }
 
-  listeners.forEach(listener => listener());
+  listeners.forEach(listener => listener(payload));
   return true;
 };

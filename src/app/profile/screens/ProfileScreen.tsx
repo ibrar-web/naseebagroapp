@@ -150,8 +150,8 @@ const ProfileScreen = ({ navigation }: any) => {
       );
   };
 
-  const displayName = user?.fullName ?? 'Muhammad Asad';
-  const displayEmail = user?.email ?? 'asad@traders.com';
+  const displayName = user?.fullName ?? 'Guest';
+  const displayEmail = user?.email ?? 'Guest';
 
   return (
     <View style={styles.container}>

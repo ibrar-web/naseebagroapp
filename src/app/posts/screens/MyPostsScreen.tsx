@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { AppIcon } from '../../../assets/icons';
 import { useAppSelector } from '../../../store';
 import MockStatusBar from '../../components/MockStatusBar';
 import BuyerPostsTab from '../components/BuyerPostsTab';
 import SellerPostsTab from '../components/SellerPostsTab';
+import { showAuthRequiredSheet } from '../../auth/utils/authRequiredSheet';
 
 const MyPostsScreen = ({ navigation, route }: any) => {
   const mode = useAppSelector(s => s.app.mode);
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
   const isBuyer = mode === 'buyer';
   const initialTab = route?.params?.initialTab;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        showAuthRequiredSheet({ redirectToMarket: true });
+      }
+    }, [isAuthenticated]),
+  );
 
   return (
     <View style={styles.screen}>
@@ -31,10 +42,12 @@ const MyPostsScreen = ({ navigation, route }: any) => {
         </TouchableOpacity>
       </View>
 
-      {isBuyer ? (
-        <BuyerPostsTab navigation={navigation} initialTab={initialTab} />
-      ) : (
-        <SellerPostsTab navigation={navigation} initialTab={initialTab} />
+      {isAuthenticated && (
+        isBuyer ? (
+          <BuyerPostsTab navigation={navigation} initialTab={initialTab} />
+        ) : (
+          <SellerPostsTab navigation={navigation} initialTab={initialTab} />
+        )
       )}
     </View>
   );

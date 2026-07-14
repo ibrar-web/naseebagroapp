@@ -73,8 +73,8 @@ const OTPScreen = ({ navigation, route }: Props) => {
     setVerifying(true);
     try {
       const code = otp.join('');
-      const res = await api.auth.verifyOtp({ phone: `+92${phone}`, code });
-      if (res?.data?.valid) {
+      const res = await api.auth.verifyOtp({ phone: `+92${phone}`, code }) as any;
+      if (res?.valid) {
         navigation.replace('Location');
       } else {
         Alert.alert('Invalid OTP', 'The code you entered is incorrect or expired.');

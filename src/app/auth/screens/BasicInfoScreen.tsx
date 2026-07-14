@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
-import { useAppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { setRegisterBasicInfo } from '../../../store/slices/registerSlice';
 import { AppIcon } from '../../../assets/icons';
 import { Feather } from '../../../assets/icons/feather';
@@ -26,7 +26,13 @@ const STEP_ACTIVE = 0;
 
 const BasicInfoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const saved = useAppSelector(s => s.register);
+  const [form, setForm] = useState({
+    name: saved.fullName,
+    email: saved.email,
+    password: saved.password,
+    confirm: saved.password,
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 

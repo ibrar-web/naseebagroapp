@@ -7,10 +7,12 @@ import MockStatusBar from '../../components/MockStatusBar';
 import BuyerPostsTab from '../components/BuyerPostsTab';
 import SellerPostsTab from '../components/SellerPostsTab';
 import { showAuthRequiredSheet } from '../../auth/utils/authRequiredSheet';
+import { requireCompleteProfile } from '../../auth/utils/profileGate';
 
 const MyPostsScreen = ({ navigation, route }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const user = useAppSelector(s => s.auth.user);
   const isBuyer = mode === 'buyer';
   const initialTab = route?.params?.initialTab;
 
@@ -33,7 +35,10 @@ const MyPostsScreen = ({ navigation, route }: any) => {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => navigation.navigate('PrePost')}
+          onPress={() => {
+            if (!requireCompleteProfile(user, navigation)) return;
+            navigation.navigate('PrePost');
+          }}
           style={styles.newButton}
           activeOpacity={0.82}
         >

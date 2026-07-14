@@ -33,6 +33,8 @@ type BankingDetail = {
   accountNumber: string;
   iban: string;
   isPrimary: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  notes: string | null;
 };
 
 type BankingForm = {
@@ -78,6 +80,13 @@ const parseBankingList = (response: any): any[] => {
   return [];
 };
 
+const normalizeBankingStatus = (value: any): BankingDetail['status'] => {
+  const s = String(value ?? '').toLowerCase();
+  if (['approved', 'verified'].includes(s)) return 'approved';
+  if (['rejected', 'declined', 'failed'].includes(s)) return 'rejected';
+  return 'pending';
+};
+
 const normalizeBankingDetails = (response: any): BankingDetail[] =>
   parseBankingList(response)
     .map((item: any) => ({
@@ -88,8 +97,18 @@ const normalizeBankingDetails = (response: any): BankingDetail[] =>
       accountNumber: str(item?.bank_account_number, item?.account_number, item?.accountNumber),
       iban: str(item?.bank_iban_number, item?.iban, item?.IBAN),
       isPrimary: Boolean(item?.is_primary ?? item?.isPrimary ?? false),
+      status: normalizeBankingStatus(item?.status),
+      notes: item?.notes ? String(item.notes) : null,
     }))
     .filter((item: any) => item.id || item.bankName || item.accountTitle || item.iban);
+
+const getBankStatusCfg = (status: BankingDetail['status']) => {
+  switch (status) {
+    case 'approved': return { bg: '#F0FDF4', color: '#217A3C', label: 'Approved' };
+    case 'rejected': return { bg: '#FEF2F2', color: '#EF4444', label: 'Rejected' };
+    default: return { bg: '#FFFBEB', color: '#D97706', label: 'Pending Review' };
+  }
+};
 
 const maskAccount = (accountNumber: string, iban: string) => {
   const value = accountNumber || iban;
@@ -268,49 +287,64 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {accounts.map(account => (
-          <View key={account.id || account.iban} style={s.card}>
-            {/* Card header row */}
-            <View style={s.cardTop}>
-              <View style={s.cardIconBox}>
-                <AppIcon name="bank" size={20} color="#3B82F6" />
-              </View>
-              <View style={s.cardInfo}>
-                <Text style={s.cardBankName}>{account.bankName || t('payments.bankName')}</Text>
-                <Text style={s.cardMasked}>{maskAccount(account.accountNumber, account.iban)}</Text>
-              </View>
-              {account.isPrimary && (
-                <View style={s.primaryBadge}>
-                  <Text style={s.primaryText}>PRIMARY</Text>
+        {accounts.map(account => {
+          const statusCfg = getBankStatusCfg(account.status);
+          return (
+            <View key={account.id || account.iban} style={s.card}>
+              {/* Card header row */}
+              <View style={s.cardTop}>
+                <View style={s.cardIconBox}>
+                  <AppIcon name="bank" size={20} color="#3B82F6" />
                 </View>
+                <View style={s.cardInfo}>
+                  <Text style={s.cardBankName}>{account.bankName || t('payments.bankName')}</Text>
+                  <Text style={s.cardMasked}>{maskAccount(account.accountNumber, account.iban)}</Text>
+                </View>
+                {account.isPrimary && (
+                  <View style={s.primaryBadge}>
+                    <Text style={s.primaryText}>PRIMARY</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Status badge */}
+              <View style={s.statusRow}>
+                <View style={[s.statusChip, { backgroundColor: statusCfg.bg }]}>
+                  <Text style={[s.statusChipText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+                </View>
+              </View>
+              {account.status === 'rejected' && account.notes ? (
+                <View style={[s.notesBox, { backgroundColor: statusCfg.bg }]}>
+                  <Text style={[s.notesText, { color: statusCfg.color }]}>{account.notes}</Text>
+                </View>
+              ) : null}
+
+              {/* Detail rows */}
+              {[
+                { label: t('payments.accountName'), value: account.accountTitle },
+                { label: t('payments.accountNo'), value: account.accountNumber },
+                { label: t('payments.iban'), value: account.iban },
+              ].map(row =>
+                row.value ? (
+                  <View key={row.label} style={s.cardRow}>
+                    <Text style={s.cardRowLabel}>{row.label}</Text>
+                    <Text style={s.cardRowValue}>{row.value}</Text>
+                  </View>
+                ) : null,
               )}
-            </View>
 
-            {/* Detail rows */}
-            {[
-              { label: t('payments.accountName'), value: account.accountTitle },
-              { label: t('payments.accountNo'), value: account.accountNumber },
-              { label: t('payments.iban'), value: account.iban },
-            ].map(row =>
-              row.value ? (
-                <View key={row.label} style={s.cardRow}>
-                  <Text style={s.cardRowLabel}>{row.label}</Text>
-                  <Text style={s.cardRowValue}>{row.value}</Text>
-                </View>
-              ) : null,
-            )}
-
-            {/* Actions */}
-            <View style={s.cardActions}>
-              <TouchableOpacity onPress={() => startEdit(account)} style={s.editBtn} activeOpacity={0.8}>
-                <Text style={s.editBtnText}>{t('payments.edit')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(account)} style={s.deleteBtn} activeOpacity={0.8}>
-                <Text style={s.deleteBtnText}>{t('payments.delete')}</Text>
-              </TouchableOpacity>
+              {/* Actions */}
+              <View style={s.cardActions}>
+                <TouchableOpacity onPress={() => startEdit(account)} style={s.editBtn} activeOpacity={0.8}>
+                  <Text style={s.editBtnText}>{t('payments.edit')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(account)} style={s.deleteBtn} activeOpacity={0.8}>
+                  <Text style={s.deleteBtnText}>{t('payments.delete')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {/* Add new account button */}
         <TouchableOpacity style={s.addBtn} onPress={startCreate} activeOpacity={0.85}>
@@ -527,6 +561,12 @@ const s = StyleSheet.create({
   },
   cardRowLabel: { fontSize: 12, color: '#6B7280' },
   cardRowValue: { fontSize: 12, fontWeight: '600', color: '#111827' },
+
+  statusRow: { flexDirection: 'row', marginBottom: 10 },
+  statusChip: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  statusChipText: { fontSize: 11, fontWeight: '700' },
+  notesBox: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 10 },
+  notesText: { fontSize: 12, fontWeight: '500', lineHeight: 17 },
 
   cardActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   editBtn: { flex: 1, backgroundColor: '#F2FBF5', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },

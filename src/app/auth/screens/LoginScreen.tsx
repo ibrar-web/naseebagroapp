@@ -46,6 +46,7 @@ const LoginScreen = ({ navigation }: Props) => {
       };
 
       const result = (await api.auth.login(payload)) as any;
+      console.log('[Login] API response:', JSON.stringify(result, null, 2));
       const { access_token, user }: { access_token: string; user: User } =
         result;
       await EncryptedStorage.setItem(

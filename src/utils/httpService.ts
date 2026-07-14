@@ -1,9 +1,11 @@
 import axios from 'axios';
+import { Alert } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { store } from '../store';
 import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
 import { showAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
+import { navigationRef } from '../navigation/AppNavigator';
 
 type HttpServiceOptions = {
   authRequired?: boolean;
@@ -35,7 +37,6 @@ class HttpService {
       (config: any) => {
         const fullUrl = `${config.baseURL ?? ''}/${config.url ?? ''}`.replace(/([^:]\/)\/+/g, '$1');
         console.log('[HTTP REQUEST]', config.method?.toUpperCase(), fullUrl);
-        console.log('[HTTP REQUEST] headers:', JSON.stringify(config.headers));
         if (config.data) {
           console.log('[HTTP REQUEST] body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data));
         }
@@ -54,33 +55,80 @@ class HttpService {
   }
 
   handleSuccess(response: any) {
-    console.log('[HTTP RESPONSE]', response?.status, response?.config?.url);
     return response;
   }
 
   handleError(error: any) {
-    const status = error?.response?.status;
-    const url = error?.config?.url ?? 'unknown';
-    const baseURL = error?.config?.baseURL ?? ENV.API_BASE_URL;
-    const fullUrl = `${baseURL}/${url}`.replace(/([^:]\/)\/+/g, '$1');
-    const responseData = error?.response?.data;
-    const errorCode = error?.code;
-
-    console.error('[HTTP ERROR] URL:', fullUrl);
-    console.error('[HTTP ERROR] status:', status);
-    console.error('[HTTP ERROR] code:', errorCode);
-    console.error('[HTTP ERROR] message:', error?.message);
-    console.error('[HTTP ERROR] response data:', JSON.stringify(responseData));
-
     try {
       if (axios.isCancel(error)) {
         return Promise.reject(error);
       }
 
-      if (status === 401) {
-        store.dispatch(resetAllReduxStates());
-        EncryptedStorage.removeItem('session').catch(() => undefined);
-        showAuthRequiredSheet();
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        Alert.alert('Timeout', 'Request timed out. Please try again later.');
+        return Promise.reject(error);
+      }
+
+      const status = error?.response?.status ?? error.message;
+      const errorMessage: string = error?.response?.data?.message || 'Something went wrong.';
+      console.log('[HTTP ERROR] status:', status, errorMessage);
+
+      switch (status) {
+        case 'Network Error':
+          Alert.alert('Network Error', 'Cannot reach server. Please check your connection.');
+          break;
+
+        case 400:
+          Alert.alert('Error', errorMessage);
+          break;
+
+        case 401:
+          store.dispatch(resetAllReduxStates());
+          EncryptedStorage.removeItem('session').catch(() => undefined);
+          showAuthRequiredSheet();
+          break;
+
+        case 403: {
+          const isProfileIncomplete = errorMessage.toLowerCase().includes('profile');
+          Alert.alert(
+            isProfileIncomplete ? 'Profile Incomplete' : 'Access Denied',
+            errorMessage,
+            isProfileIncomplete
+              ? [
+                  {
+                    text: 'Complete Profile',
+                    onPress: () => {
+                      if (navigationRef.isReady()) {
+                        navigationRef.navigate('VerificationStatus' as any);
+                      }
+                    },
+                  },
+                  { text: 'Cancel', style: 'cancel' },
+                ]
+              : [{ text: 'OK' }],
+          );
+          break;
+        }
+
+        case 409:
+          Alert.alert('Alert', errorMessage);
+          break;
+
+        case 422:
+          Alert.alert('Validation Error', errorMessage || 'Please check your inputs.');
+          break;
+
+        case 404:
+          // Let the screen handle not-found — no global alert
+          break;
+
+        case 500:
+          Alert.alert('Server Error', 'A server error occurred. Please try again later.');
+          break;
+
+        default:
+          Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+          break;
       }
 
       return Promise.reject(error);

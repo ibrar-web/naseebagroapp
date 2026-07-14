@@ -82,6 +82,8 @@ export type RootStackParamList = {
   PaymentMethods: undefined;
   PaymentHistory: undefined;
   VerificationStatus: undefined;
+  KycDetails: undefined;
+  BusinessDocs: undefined;
   SavedListings: undefined;
   NotificationsSettings: undefined;
   AppSettings: undefined;

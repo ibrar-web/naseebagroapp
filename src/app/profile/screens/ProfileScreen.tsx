@@ -121,6 +121,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const user = useAppSelector(s => s.auth.user);
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const profileCompletion = user?.profile_completion ?? 30;
   const mode = useAppSelector(s => s.app.mode);
   const [loginSheetVisible, setLoginSheetVisible] = useState(false);
   const [userStats, setUserStats] = useState<any>(null);
@@ -179,6 +180,32 @@ const ProfileScreen = ({ navigation }: any) => {
             )}
           </View>
         </View>
+
+        {/* Profile completion */}
+        {isAuthenticated && (
+          <TouchableOpacity
+            style={styles.completionRow}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('VerificationStatus')}
+          >
+            <View style={styles.completionTextRow}>
+              <Text style={styles.completionLabel}>Profile Completion</Text>
+              <Text style={styles.completionPct}>{profileCompletion}%</Text>
+            </View>
+            <View style={styles.completionTrack}>
+              <View style={[styles.completionFill, { width: `${profileCompletion}%` as any }]} />
+            </View>
+            {profileCompletion < 100 && (
+              <Text style={styles.completionHint}>
+                {profileCompletion < 50
+                  ? 'Upload & verify your CNIC to continue'
+                  : profileCompletion < 90
+                  ? 'Complete phone & business verification'
+                  : 'Verify a bank account to unlock full access'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Stats row */}
         <View style={styles.statsRow}>
@@ -369,6 +396,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  completionRow: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  completionTextRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  completionLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
+  completionPct: { fontSize: 13, fontWeight: '800', color: '#F3CD03' },
+  completionTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
+  completionFill: { height: 6, borderRadius: 3, backgroundColor: '#F3CD03' },
+  completionHint: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+
   statsRow: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.08)',

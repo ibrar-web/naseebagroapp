@@ -37,6 +37,7 @@ export interface User {
   is_verified: boolean;
   verified_at: string | null;
   is_active: boolean;
+  profile_completion: number;
   created_at: string;
   updated_at: string;
   profile: UserProfile | null;

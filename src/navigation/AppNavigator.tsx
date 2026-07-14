@@ -56,6 +56,7 @@ import BusinessProfileScreen from '../app/profile/screens/BusinessProfileScreen'
 import PaymentMethodsScreen from '../app/profile/screens/PaymentMethodsScreen';
 import PaymentHistoryScreen from '../app/profile/screens/PaymentHistoryScreen';
 import VerificationStatusScreen from '../app/profile/screens/VerificationStatusScreen';
+import KycDetailsScreen from '../app/profile/screens/KycDetailsScreen';
 import SavedListingsScreen from '../app/profile/screens/SavedListingsScreen';
 import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSettingsScreen';
 import AppSettingsScreen from '../app/profile/screens/AppSettingsScreen';
@@ -277,6 +278,7 @@ export const AppNavigator = () => {
             name="VerificationStatus"
             component={VerificationStatusScreen}
           />
+          <Stack.Screen name="KycDetails" component={KycDetailsScreen} />
           <Stack.Screen name="SavedListings" component={SavedListingsScreen} />
           <Stack.Screen
             name="NotificationsSettings"

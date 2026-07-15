@@ -23,6 +23,7 @@ const GREEN = '#217A3C';
 const DARK_GREEN = '#145228';
 const STEP_TOTAL = 5;
 const STEP_ACTIVE = 0;
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*(),.?":{}|<>_\-[\]\\/;'`~+=]/;
 
 const BasicInfoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
@@ -40,12 +41,21 @@ const BasicInfoScreen = ({ navigation }: Props) => {
     dispatch(setRegisterBasicInfo({ fullName: form.name, email: form.email, password: form.password, dateOfBirth: '' }));
   }, [form.name, form.email, form.password, dispatch]);
 
+  const passwordHasSpecialChar = SPECIAL_CHAR_REGEX.test(form.password);
+  const passwordError =
+    form.password.length > 0 && form.password.length < 8
+      ? 'Password must be at least 8 characters'
+      : form.password.length > 0 && !passwordHasSpecialChar
+      ? 'Password must include at least one special character'
+      : '';
+
   const confirmError = form.confirm.length > 0 && form.confirm !== form.password;
 
   const canContinue =
     form.name.length > 2 &&
     form.email.includes('@') &&
     form.password.length >= 8 &&
+    passwordHasSpecialChar &&
     form.password === form.confirm;
 
   const set = (key: keyof typeof form) => (val: string) =>
@@ -127,7 +137,7 @@ const BasicInfoScreen = ({ navigation }: Props) => {
         {/* Password */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Password</Text>
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, !!passwordError && styles.inputWrapperError]}>
             <TextInput
               style={styles.inputWithEye}
               placeholder="Create a strong password"
@@ -145,6 +155,7 @@ const BasicInfoScreen = ({ navigation }: Props) => {
               <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
+          {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
         </View>
 
         {/* Confirm Password */}

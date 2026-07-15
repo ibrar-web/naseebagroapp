@@ -65,11 +65,16 @@ const KycDetailsScreen = ({ navigation }: any) => {
         ? ((verRes.value as any)?.verification_status ?? verRes.value)
         : null;
 
+      console.log('[KYC] raw profileRes:', JSON.stringify(profileRes, null, 2));
+      console.log('[KYC] raw verRes:', JSON.stringify(verRes, null, 2));
+      console.log('[KYC] parsed p:', JSON.stringify(p, null, 2));
+      console.log('[KYC] front_url:', p?.cnic_front_image_url);
+      console.log('[KYC] back_url:', p?.cnic_back_image_url);
+
       setCnic(p?.cnic ?? null);
       setFrontUrl(p?.cnic_front_image_url ?? null);
       setBackUrl(p?.cnic_back_image_url ?? null);
 
-      // Prefer KycDocument-level status (from personal profile), fall back to user-level
       const resolvedStatus = p?.kyc_status ?? v?.kyc_status;
       setStatus(toStatus(resolvedStatus));
       setNotes(p?.kyc_notes ?? v?.kyc_notes ?? v?.kyc_rejection_reason ?? null);
@@ -124,6 +129,8 @@ const KycDetailsScreen = ({ navigation }: any) => {
 
   const cfg = STATUS_CFG[status];
   const isRejected = status === 'rejected';
+  const hasNoImages = !frontUrl && !backUrl;
+  const canUpload = isRejected || hasNoImages;
 
   return (
     <View style={s.container}>
@@ -183,11 +190,17 @@ const KycDetailsScreen = ({ navigation }: any) => {
         <DocImageCard label="Front Side" url={newFront?.uri ?? frontUrl} />
         <DocImageCard label="Back Side" url={newBack?.uri ?? backUrl} />
 
-        {/* Re-upload section — shown when rejected */}
-        {isRejected ? (
+        {/* Upload section — shown when no images uploaded yet, or when rejected */}
+        {canUpload ? (
           <View style={s.reuploadCard}>
-            <Text style={s.reuploadTitle}>Re-upload Documents</Text>
-            <Text style={s.reuploadSub}>Your verification was rejected. Please upload clearer documents.</Text>
+            <Text style={s.reuploadTitle}>
+              {isRejected ? 'Re-upload Documents' : 'Upload CNIC Documents'}
+            </Text>
+            <Text style={s.reuploadSub}>
+              {isRejected
+                ? 'Your verification was rejected. Please upload clearer documents.'
+                : 'Upload the front and back of your CNIC to complete verification.'}
+            </Text>
             <View style={s.reuploadRow}>
               <TouchableOpacity style={s.uploadBtn} onPress={() => pickImage('front')} activeOpacity={0.8}>
                 <AppIcon name="verificationCamera" size={18} color="#217A3C" />
@@ -205,7 +218,9 @@ const KycDetailsScreen = ({ navigation }: any) => {
                 disabled={uploading}
                 activeOpacity={0.85}
               >
-                <Text style={s.resubmitBtnText}>{uploading ? 'Submitting...' : 'Resubmit for Verification'}</Text>
+                <Text style={s.resubmitBtnText}>
+                  {uploading ? 'Submitting...' : isRejected ? 'Resubmit for Verification' : 'Submit for Verification'}
+                </Text>
               </TouchableOpacity>
             ) : null}
           </View>

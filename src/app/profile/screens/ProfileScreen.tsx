@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import { secureStorage } from '../../../utils/secureStorage';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout, updateUser } from '../../../store/slices/authSlice';
@@ -152,7 +152,7 @@ const ProfileScreen = ({ navigation }: any) => {
   }, [isAuthenticated, dispatch]));
 
   const handleLogout = async () => {
-    await EncryptedStorage.removeItem('session').catch(() => null);
+    await secureStorage.removeItem('session').catch(() => null);
     dispatch(logout());
     navigation
       .getParent()
@@ -217,54 +217,37 @@ const ProfileScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         )}
 
-        {/* Stats row */}
+        {/* Stats row — 4 sections: deals, supplies, spent/earned, rating */}
         <View style={styles.statsRow}>
-          {(mode === 'buyer'
-            ? [
-                { val: String(userStats?.buyer?.total_active_deals ?? '—'), label: t('profile.deals') },
-                { val: String(userStats?.buyer?.total_demands ?? '—'), label: t('profile.supplies') },
-                { val: userStats?.buyer ? `₨${Math.round(userStats.buyer.total_spent / 1000)}K` : '—', label: 'Spent' },
-              ]
-            : [
-                { val: String(userStats?.seller?.total_deals ?? '—'), label: t('profile.deals') },
-                { val: String(userStats?.seller?.total_supplies ?? '—'), label: t('profile.supplies') },
-                { val: userStats?.seller ? `₨${Math.round(userStats.seller.total_received / 1000)}K` : '—', label: 'Earned' },
-              ]
-          ).map((st, i) => (
-            <View
-              key={st.label}
-              style={[styles.statItem, i > 0 && styles.statItemBorder]}
-            >
-              <Text style={styles.statValue}>{st.val}</Text>
-              <Text style={styles.statLabel}>{st.label}</Text>
-            </View>
-          ))}
+          {(() => {
+            const avg = userStats
+              ? Number((mode === 'buyer' ? userStats.buyer?.avg_rating : userStats.seller?.avg_rating) ?? 0)
+              : 0;
+            const count = userStats
+              ? Number((mode === 'buyer' ? userStats.buyer?.rating_count : userStats.seller?.rating_count) ?? 0)
+              : 0;
+            const stats = mode === 'buyer'
+              ? [
+                  { val: String(userStats?.buyer?.total_active_deals ?? '—'), label: t('profile.deals') },
+                  { val: String(userStats?.buyer?.total_demands ?? '—'), label: t('profile.supplies') },
+                  { val: userStats?.buyer ? `₨${Math.round(userStats.buyer.total_spent / 1000)}K` : '—', label: 'Spent' },
+                ]
+              : [
+                  { val: String(userStats?.seller?.total_deals ?? '—'), label: t('profile.deals') },
+                  { val: String(userStats?.seller?.total_supplies ?? '—'), label: t('profile.supplies') },
+                  { val: userStats?.seller ? `₨${Math.round(userStats.seller.total_received / 1000)}K` : '—', label: 'Earned' },
+                ];
+            const ratingVal = avg > 0 ? `${avg.toFixed(1)}★` : '—';
+            const ratingLabel = count > 0 ? `${count} review${count === 1 ? '' : 's'}` : 'Rating';
+            const all = [...stats, { val: ratingVal, label: ratingLabel }];
+            return all.map((st, i) => (
+              <View key={st.label} style={[styles.statItem, i > 0 && styles.statItemBorder]}>
+                <Text style={[styles.statValue, i === 3 && styles.statValueRating]}>{st.val}</Text>
+                <Text style={styles.statLabel}>{st.label}</Text>
+              </View>
+            ));
+          })()}
         </View>
-
-        {/* Star rating row */}
-        {userStats && (
-          <View style={styles.ratingRow}>
-            {(() => {
-              const avg = mode === 'buyer'
-                ? Number(userStats.buyer?.avg_rating ?? 0)
-                : Number(userStats.seller?.avg_rating ?? 0);
-              const count = mode === 'buyer'
-                ? Number(userStats.buyer?.rating_count ?? 0)
-                : Number(userStats.seller?.rating_count ?? 0);
-              const stars = Math.round(avg);
-              return (
-                <>
-                  <Text style={styles.ratingStars}>
-                    {[1, 2, 3, 4, 5].map(n => (n <= stars ? '★' : '☆')).join('')}
-                  </Text>
-                  <Text style={styles.ratingText}>
-                    {avg > 0 ? `${avg.toFixed(1)} · ${count} review${count === 1 ? '' : 's'}` : 'No reviews yet'}
-                  </Text>
-                </>
-              );
-            })()}
-          </View>
-        )}
       </View>
 
       {/* ── SCROLLABLE MENU ── */}
@@ -457,20 +440,12 @@ const styles = StyleSheet.create({
     borderLeftColor: 'rgba(255,255,255,0.15)',
   },
   statValue: { fontSize: 20, fontWeight: '900', color: '#FFFFFF' },
+  statValueRating: { fontSize: 16, color: '#F3CD03' },
   statLabel: {
     fontSize: 10,
     color: 'rgba(255,255,255,0.55)',
     fontWeight: '500',
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
-  ratingStars: { fontSize: 15, color: '#F3CD03', letterSpacing: 1 },
-  ratingText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
   section: { marginTop: 20, paddingHorizontal: 16 },

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import { secureStorage } from '../../../utils/secureStorage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
@@ -19,7 +19,7 @@ const SplashScreen = ({ navigation }: Props) => {
     const restoreSession = async () => {
       // Keep splash visible for at least 1.2s
       const [raw] = await Promise.all([
-        EncryptedStorage.getItem('session').catch(() => null),
+        secureStorage.getItem('session').catch(() => null),
         new Promise<void>(resolve => setTimeout(() => resolve(), 1200)),
       ]);
 
@@ -42,7 +42,7 @@ const SplashScreen = ({ navigation }: Props) => {
         } catch {
           // Corrupted session data should not block guest browsing.
         }
-        await EncryptedStorage.removeItem('session').catch(() => null);
+        await secureStorage.removeItem('session').catch(() => null);
       }
       navigation.replace('MainTabs');
     };

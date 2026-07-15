@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import { secureStorage } from '../../../utils/secureStorage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
@@ -49,7 +49,7 @@ const LoginScreen = ({ navigation }: Props) => {
       console.log('[Login] API response:', JSON.stringify(result, null, 2));
       const { access_token, user }: { access_token: string; user: User } =
         result;
-      await EncryptedStorage.setItem(
+      await secureStorage.setItem(
         'session',
         JSON.stringify({ token: access_token, user }),
       );

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Alert } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import { secureStorage } from './secureStorage';
 import { store } from '../store';
 import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
@@ -89,7 +89,7 @@ class HttpService {
             break;
           }
           store.dispatch(resetAllReduxStates());
-          EncryptedStorage.removeItem('session').catch(() => undefined);
+          secureStorage.removeItem('session').catch(() => undefined);
           showAuthRequiredSheet();
           break;
         }

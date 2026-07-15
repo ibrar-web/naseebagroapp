@@ -11,7 +11,7 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import { secureStorage } from '../../../utils/secureStorage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch, useAppSelector } from '../../../store';
@@ -137,7 +137,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
         user: User;
       };
 
-      await EncryptedStorage.setItem(
+      await secureStorage.setItem(
         'session',
         JSON.stringify({ token: result.access_token, user: result.user }),
       );

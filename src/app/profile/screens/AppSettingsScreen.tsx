@@ -8,7 +8,9 @@ import {
   RefreshControl,
   Modal,
   StyleSheet,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import {
@@ -151,6 +153,26 @@ const AppSettingsScreen = ({ navigation }: any) => {
     ).catch(() => undefined);
   };
 
+  const handleClearCache = () => {
+    Alert.alert('Clear Cache', 'Remove all cached app data? You will stay logged in.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const keys = await AsyncStorage.getAllKeys();
+            const toRemove = keys.filter(k => k !== 'session');
+            if (toRemove.length > 0) await AsyncStorage.multiRemove(toRemove);
+            Alert.alert('Cache Cleared', 'App cache has been cleared successfully.');
+          } catch {
+            Alert.alert('Error', 'Failed to clear cache. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSelectCurrency = (currency: string) => {
     const previousCurrency = settings.currency;
     updateSettings(
@@ -184,7 +206,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
     {
       titleKey: 'appSettings.security',
       rows: [
-        { icon: 'pin', labelKey: 'appSettings.changePin' },
+        { icon: 'pin', labelKey: 'appSettings.changePin', onPress: () => navigation.navigate('ChangePassword') },
         {
           icon: 'biometric',
           labelKey: 'appSettings.biometricLogin',
@@ -202,7 +224,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
     {
       titleKey: 'appSettings.data',
       rows: [
-        { icon: 'cache', labelKey: 'appSettings.clearCache', value: t('common.cacheValue') },
+        { icon: 'cache', labelKey: 'appSettings.clearCache', value: t('common.cacheValue'), onPress: handleClearCache },
         { icon: 'version', labelKey: 'appSettings.appVersion', value: t('common.versionValue') },
       ],
     },

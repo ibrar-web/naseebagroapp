@@ -468,7 +468,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
               <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={actionLoading} activeOpacity={0.85}>
                 {actionLoading
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.acceptBtnText}>Accept → Deal ✓</Text>}
+                  : <><Text style={styles.acceptBtnText}>Accept Deal ✓</Text><AppIcon name="arrowRight" size={15} color="#fff" /></>}
               </TouchableOpacity>
             )}
             {!offer.canCounter && !offer.canAccept && !offer.canReject && (
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   rejectBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
   counterBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#FFFDE6', borderWidth: 1, borderColor: 'rgba(243,205,3,0.33)', borderRadius: 11, alignItems: 'center' },
   counterBtnText: { fontSize: 12, fontWeight: '700', color: '#92400E' },
-  acceptBtn: { flex: 2, paddingVertical: 12, backgroundColor: '#1A6B34', borderRadius: 11, alignItems: 'center', shadowColor: '#1A6B34', shadowOpacity: 0.33, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  acceptBtn: { flex: 2, paddingVertical: 12, backgroundColor: '#1A6B34', borderRadius: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#1A6B34', shadowOpacity: 0.33, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   acceptBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   terminalBadge: { flex: 1, paddingVertical: 12, backgroundColor: '#F3F4F6', borderRadius: 11, alignItems: 'center' },
   terminalText: { fontSize: 13, fontWeight: '700', color: '#6B7280' },

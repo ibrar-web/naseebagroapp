@@ -238,7 +238,10 @@ const NotificationsScreen = ({ navigation }: any) => {
                         </View>
                         <Text style={styles.itemBody} numberOfLines={2}>{item.body}</Text>
                         {tappable && (
-                          <Text style={styles.tapHint}>Tap to open →</Text>
+                          <View style={styles.tapHintRow}>
+                            <Text style={styles.tapHint}>Tap to open</Text>
+                            <AppIcon name="arrowRight" size={10} color="#217A3C" />
+                          </View>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -352,5 +355,6 @@ const styles = StyleSheet.create({
   unreadTitle: { fontWeight: '800' },
   itemTime: { fontSize: 10, color: '#9CA3AF', flexShrink: 0, marginTop: 1 },
   itemBody: { fontSize: 12, color: '#6B7280', marginTop: 3, lineHeight: 17 },
-  tapHint: { fontSize: 10, color: '#217A3C', fontWeight: '600', marginTop: 4 },
+  tapHintRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  tapHint: { fontSize: 10, color: '#217A3C', fontWeight: '600' },
 });

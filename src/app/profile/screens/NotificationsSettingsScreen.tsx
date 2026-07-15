@@ -14,7 +14,8 @@ import { AppLoader, MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
 import { toBoolean, unwrapApiData } from '../utils/profileApi';
-import { useAppSelector } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { updateUser } from '../../../store/slices/authSlice';
 
 type ToggleKey = 'deals' | 'offers' | 'payments' | 'delivery' | 'promotions' | 'sms';
 
@@ -30,7 +31,7 @@ const TOGGLES: ToggleRow[] = [
   { key: 'deals', apiKey: 'deal_alerts', labelKey: 'notifications.newDealAlerts', subKey: 'notifications.newDealAlertsSub' },
   { key: 'offers', apiKey: 'offer_updates', labelKey: 'notifications.offerUpdates', subKey: 'notifications.offerUpdatesSub' },
   { key: 'payments', apiKey: 'payment_alerts', fallbackKeys: ['payment_dispatch_alerts'], labelKey: 'notifications.paymentAlerts', subKey: 'notifications.paymentAlertsSub' },
-  { key: 'delivery', apiKey: 'dispatch_delivery_alerts', fallbackKeys: ['payment_dispatch_alerts'], labelKey: 'notifications.dispatchDelivery', subKey: 'notifications.dispatchDeliverySub' },
+  { key: 'delivery', apiKey: 'delivery_alerts', fallbackKeys: ['dispatch_delivery_alerts', 'payment_dispatch_alerts'], labelKey: 'notifications.dispatchDelivery', subKey: 'notifications.dispatchDeliverySub' },
   { key: 'promotions', apiKey: 'promotion_alerts', labelKey: 'notifications.promotions', subKey: 'notifications.promotionsSub' },
   { key: 'sms', apiKey: 'sms_alerts', labelKey: 'notifications.sms', subKey: 'notifications.smsSub' },
 ];
@@ -53,6 +54,7 @@ const Toggle = ({
 
 const NotificationsSettingsScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const token = useAppSelector(s => s.auth.token);
   const [prefs, setPrefs] = useState<Record<ToggleKey, boolean>>({
     deals: false, offers: false, payments: false, delivery: false, promotions: false, sms: false,
@@ -95,7 +97,17 @@ const NotificationsSettingsScreen = ({ navigation }: any) => {
     try { await loadNotifications(true); } finally { setRefreshing(false); }
   }, [loadNotifications]);
 
-  useFocusEffect(useCallback(() => { loadNotifications(); }, [loadNotifications]));
+  useFocusEffect(useCallback(() => {
+    loadNotifications();
+    if (token) {
+      api.auth.getCurrentUser()
+        .then((res: any) => {
+          const fresh = res?.data ?? res ?? {};
+          if (fresh.id) dispatch(updateUser(fresh));
+        })
+        .catch(() => {});
+    }
+  }, [loadNotifications, token, dispatch]));
 
   const toggle = async (item: ToggleRow) => {
     if (updatingKey) return;

@@ -82,11 +82,17 @@ class HttpService {
           Alert.alert('Error', errorMessage);
           break;
 
-        case 401:
+        case 401: {
+          const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
+          if (currentRoute === 'Login') {
+            // Let the login screen's catch block handle the error with its own Alert
+            break;
+          }
           store.dispatch(resetAllReduxStates());
           EncryptedStorage.removeItem('session').catch(() => undefined);
           showAuthRequiredSheet();
           break;
+        }
 
         case 403: {
           const isProfileIncomplete = errorMessage.toLowerCase().includes('profile');

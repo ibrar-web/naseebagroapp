@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,10 @@ const BasicInfoScreen = ({ navigation }: Props) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  useEffect(() => {
+    dispatch(setRegisterBasicInfo({ fullName: form.name, email: form.email, password: form.password, dateOfBirth: '' }));
+  }, [form.name, form.email, form.password, dispatch]);
 
   const confirmError = form.confirm.length > 0 && form.confirm !== form.password;
 
@@ -177,7 +181,8 @@ const BasicInfoScreen = ({ navigation }: Props) => {
           disabled={!canContinue}
           activeOpacity={0.88}
         >
-          <Text style={styles.ctaText}>→ Continue</Text>
+          <Text style={styles.ctaText}>Continue</Text>
+          <AppIcon name="arrowRight" size={18} color="#fff" />
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -240,8 +245,10 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, color: '#EF4444', marginTop: 5 },
   spacer: { flex: 1, minHeight: 24 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

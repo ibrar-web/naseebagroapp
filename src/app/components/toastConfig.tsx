@@ -38,7 +38,10 @@ const OfferToast = ({ text1, text2, props }: NotificationToastProps) => {
       <View style={styles.textArea}>
         <Text style={styles.title} numberOfLines={1}>{text1}</Text>
         {!!text2 && <Text style={styles.body} numberOfLines={2}>{text2}</Text>}
-        <Text style={styles.hint}>Tap to open →</Text>
+        <View style={styles.hintRow}>
+          <Text style={styles.hint}>Tap to open</Text>
+          <AppIcon name="arrowRight" size={10} color="rgba(255,255,255,0.30)" />
+        </View>
       </View>
       <View style={styles.accentBar} />
     </TouchableOpacity>
@@ -72,7 +75,10 @@ const NotificationToast = ({ text1, text2, props }: NotificationToastProps) => {
       <View style={styles.textArea}>
         <Text style={styles.title} numberOfLines={1}>{text1}</Text>
         {!!text2 && <Text style={styles.body} numberOfLines={2}>{text2}</Text>}
-        <Text style={styles.hint}>Tap to open →</Text>
+        <View style={styles.hintRow}>
+          <Text style={styles.hint}>Tap to open</Text>
+          <AppIcon name="arrowRight" size={10} color="rgba(255,255,255,0.30)" />
+        </View>
       </View>
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
     </TouchableOpacity>
@@ -187,6 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     lineHeight: 15,
   },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   hint: {
     fontSize: 10,
     color: 'rgba(255,255,255,0.30)',

@@ -55,9 +55,13 @@ const LoginScreen = ({ navigation }: Props) => {
       );
       dispatch(loginSuccess({ user, token: access_token }));
       navigation.replace('MainTabs');
-    } catch (error) {
+    } catch (error: any) {
       console.log('error :', error);
-      Alert.alert('Login Failed', 'Please check your email and password.');
+      const status = error?.response?.status ?? error?.status;
+      const msg = status === 401
+        ? 'Incorrect email or password. Please try again.'
+        : (error?.response?.data?.message ?? 'Something went wrong. Please try again.');
+      Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);
     }

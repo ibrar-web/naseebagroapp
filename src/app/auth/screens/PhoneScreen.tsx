@@ -30,16 +30,24 @@ const PhoneScreen = ({ navigation }: Props) => {
   const [phone, setPhone] = useState('');
   const [channel, setChannel] = useState<Channel>('sms');
   const [loading, setLoading] = useState(false);
-  const canContinue = phone.length >= 10;
+
+  // Strip leading 0 to get the 10-digit subscriber number
+  const normalizePhone = (p: string) => p.startsWith('0') ? p.slice(1) : p;
+  const isValidPK = (p: string) => {
+    const n = normalizePhone(p);
+    return n.length === 10 && n.startsWith('3');
+  };
+  const canContinue = isValidPK(phone);
 
   const handleSendOtp = async () => {
     if (!canContinue || loading) return;
     setLoading(true);
     try {
-      const fullPhone = `+92${phone}`;
+      const normalized = normalizePhone(phone);
+      const fullPhone = `+92${normalized}`;
       await api.auth.sendOtp({ phone: fullPhone, channel });
-      dispatch(setRegisterPhone(phone));
-      navigation.navigate('OTP', { phone, channel });
+      dispatch(setRegisterPhone(normalized));
+      navigation.navigate('OTP', { phone: normalized, channel });
     } catch (err: any) {
       Alert.alert(
         'Could not send OTP',
@@ -92,7 +100,7 @@ const PhoneScreen = ({ navigation }: Props) => {
               placeholder="3XX XXXXXXX"
               placeholderTextColor="#9CA3AF"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={v => setPhone(v.replace(/[^0-9]/g, ''))}
               keyboardType="phone-pad"
               maxLength={11}
             />
@@ -142,7 +150,10 @@ const PhoneScreen = ({ navigation }: Props) => {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.ctaText}>→ Send OTP</Text>
+            <>
+              <Text style={styles.ctaText}>Send OTP</Text>
+              <AppIcon name="arrowRight" size={18} color="#fff" />
+            </>
           )}
         </TouchableOpacity>
 
@@ -262,8 +273,10 @@ const styles = StyleSheet.create({
   infoText: { flex: 1, fontSize: 12, color: DARK_GREEN, lineHeight: 18 },
   spacer: { flex: 1, minHeight: 24 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
+import { AppIcon } from '../../../assets/icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyApproved'>;
 
@@ -63,13 +64,14 @@ const VerifyApprovedScreen = ({ navigation }: Props) => {
 
       <TouchableOpacity
         onPress={() => navigation.replace('MainTabs')}
-        className="absolute bottom-12 left-6 right-6 py-4 rounded-2xl items-center bg-orange-500"
-        style={{ shadowColor: '#F3CD03', shadowOpacity: 0.45, shadowRadius: 12, elevation: 6 }}
+        className="absolute bottom-12 left-6 right-6 py-4 rounded-2xl bg-orange-500"
+        style={{ shadowColor: '#F3CD03', shadowOpacity: 0.45, shadowRadius: 12, elevation: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         activeOpacity={0.88}
       >
         <Text className="text-white text-base font-extrabold">
           {t('auth.startTrading')}
         </Text>
+        <AppIcon name="arrowRight" size={18} color="#fff" />
       </TouchableOpacity>
     </View>
   );

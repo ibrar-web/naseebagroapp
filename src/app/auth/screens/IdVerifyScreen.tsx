@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -60,6 +60,10 @@ const IdVerifyScreen = ({ navigation }: Props) => {
   const [cnic, setCnic] = useState(saved.cnic ?? '');
   const [front, setFront] = useState<UploadState>(saved.cnicFront ?? null);
   const [back, setBack] = useState<UploadState>(saved.cnicBack ?? null);
+
+  useEffect(() => {
+    dispatch(setRegisterIdInfo({ cnic, cnicFront: front, cnicBack: back }));
+  }, [cnic, front, back, dispatch]);
 
   const canContinue = cnic.length >= 13 && front !== null && back !== null;
 
@@ -186,7 +190,8 @@ const IdVerifyScreen = ({ navigation }: Props) => {
           disabled={!canContinue}
           activeOpacity={0.88}
         >
-          <Text style={styles.ctaText}>→ Continue</Text>
+          <Text style={styles.ctaText}>Continue</Text>
+          <AppIcon name="arrowRight" size={18} color="#fff" />
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -292,8 +297,10 @@ const styles = StyleSheet.create({
   securityText: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 18 },
   spacer: { flex: 1, minHeight: 16 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

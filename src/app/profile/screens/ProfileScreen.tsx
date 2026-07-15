@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '../../../store';
-import { logout } from '../../../store/slices/authSlice';
+import { logout, updateUser } from '../../../store/slices/authSlice';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
@@ -141,6 +141,16 @@ const ProfileScreen = ({ navigation }: any) => {
       });
   }, [isAuthenticated]);
 
+  useFocusEffect(useCallback(() => {
+    if (!isAuthenticated) return;
+    api.auth.getCurrentUser()
+      .then((res: any) => {
+        const fresh = res?.data ?? res ?? {};
+        if (fresh.id) dispatch(updateUser(fresh));
+      })
+      .catch(() => {});
+  }, [isAuthenticated, dispatch]));
+
   const handleLogout = async () => {
     await EncryptedStorage.removeItem('session').catch(() => null);
     dispatch(logout());
@@ -213,23 +223,48 @@ const ProfileScreen = ({ navigation }: any) => {
             ? [
                 { val: String(userStats?.buyer?.total_active_deals ?? '—'), label: t('profile.deals') },
                 { val: String(userStats?.buyer?.total_demands ?? '—'), label: t('profile.supplies') },
-                { val: userStats?.buyer ? `₨${Math.round(userStats.buyer.total_spent / 1000)}K` : '—', label: t('profile.rating') },
+                { val: userStats?.buyer ? `₨${Math.round(userStats.buyer.total_spent / 1000)}K` : '—', label: 'Spent' },
               ]
             : [
                 { val: String(userStats?.seller?.total_deals ?? '—'), label: t('profile.deals') },
                 { val: String(userStats?.seller?.total_supplies ?? '—'), label: t('profile.supplies') },
-                { val: userStats?.seller ? `₨${Math.round(userStats.seller.total_received / 1000)}K` : '—', label: t('profile.rating') },
+                { val: userStats?.seller ? `₨${Math.round(userStats.seller.total_received / 1000)}K` : '—', label: 'Earned' },
               ]
-          ).map((s, i) => (
+          ).map((st, i) => (
             <View
-              key={s.label}
+              key={st.label}
               style={[styles.statItem, i > 0 && styles.statItemBorder]}
             >
-              <Text style={styles.statValue}>{s.val}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+              <Text style={styles.statValue}>{st.val}</Text>
+              <Text style={styles.statLabel}>{st.label}</Text>
             </View>
           ))}
         </View>
+
+        {/* Star rating row */}
+        {userStats && (
+          <View style={styles.ratingRow}>
+            {(() => {
+              const avg = mode === 'buyer'
+                ? Number(userStats.buyer?.avg_rating ?? 0)
+                : Number(userStats.seller?.avg_rating ?? 0);
+              const count = mode === 'buyer'
+                ? Number(userStats.buyer?.rating_count ?? 0)
+                : Number(userStats.seller?.rating_count ?? 0);
+              const stars = Math.round(avg);
+              return (
+                <>
+                  <Text style={styles.ratingStars}>
+                    {[1, 2, 3, 4, 5].map(n => (n <= stars ? '★' : '☆')).join('')}
+                  </Text>
+                  <Text style={styles.ratingText}>
+                    {avg > 0 ? `${avg.toFixed(1)} · ${count} review${count === 1 ? '' : 's'}` : 'No reviews yet'}
+                  </Text>
+                </>
+              );
+            })()}
+          </View>
+        )}
       </View>
 
       {/* ── SCROLLABLE MENU ── */}
@@ -427,6 +462,15 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     fontWeight: '500',
   },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  ratingStars: { fontSize: 15, color: '#F3CD03', letterSpacing: 1 },
+  ratingText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
   section: { marginTop: 20, paddingHorizontal: 16 },

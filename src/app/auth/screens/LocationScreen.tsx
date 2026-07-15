@@ -7,9 +7,13 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { setRegisterCity } from '../../../store/slices/registerSlice';
 import api from '../../../utils/api';
 import { AppIcon } from '../../../assets/icons';
 import AuthStatusBar from '../components/AuthStatusBar';
@@ -22,6 +26,8 @@ const GREEN = '#217A3C';
 const DARK_GREEN = '#145228';
 
 const LocationScreen = ({ navigation }: Props) => {
+  const dispatch = useAppDispatch();
+  const savedCity = useAppSelector(s => s.register.city);
   const [cities, setCities] = useState<CityOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -30,7 +36,14 @@ const LocationScreen = ({ navigation }: Props) => {
 
   useEffect(() => {
     api.marketplace.public.listCities()
-      .then((res: any) => setCities(res?.data ?? []))
+      .then((res: any) => {
+        const list: CityOption[] = res?.data ?? [];
+        setCities(list);
+        if (savedCity) {
+          const match = list.find(c => c.name === savedCity);
+          if (match) setSelected(match);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -42,11 +55,21 @@ const LocationScreen = ({ navigation }: Props) => {
     : cities;
 
   return (
-    <View style={styles.flex}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* Green gradient header */}
       <View style={styles.header}>
         <AuthStatusBar />
         <View style={styles.bgCircle} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.7}
+        >
+          <AppIcon name="back" size={20} color="#fff" />
+        </TouchableOpacity>
         <View style={styles.titleRow}>
           <View style={styles.iconBox}>
             <AppIcon name="profileCity" size={26} color="#fff" />
@@ -64,7 +87,7 @@ const LocationScreen = ({ navigation }: Props) => {
       <View style={styles.body}>
         {/* Info card */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>ℹ</Text>
+          <AppIcon name="alertCircle" size={16} color={GREEN} />
           <Text style={styles.infoText}>
             Your location is only used to filter nearby listings and improve
             search results. It is never shared with buyers or sellers.
@@ -87,7 +110,7 @@ const LocationScreen = ({ navigation }: Props) => {
             >
               {selected ? selected.name : 'Choose your city...'}
             </Text>
-            <Text style={styles.chevron}>▾</Text>
+            <AppIcon name="chevronDown" size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
           {showPicker && (
@@ -118,6 +141,7 @@ const LocationScreen = ({ navigation }: Props) => {
                       key={city.id}
                       onPress={() => {
                         setSelected(city);
+                        dispatch(setRegisterCity(city.name));
                         setShowPicker(false);
                         setSearch('');
                       }}
@@ -160,7 +184,8 @@ const LocationScreen = ({ navigation }: Props) => {
           activeOpacity={0.88}
           disabled={!selected}
         >
-          <Text style={styles.ctaText}>→ Continue</Text>
+          <Text style={styles.ctaText}>Continue</Text>
+          <AppIcon name="arrowRight" size={18} color="#fff" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -171,7 +196,7 @@ const LocationScreen = ({ navigation }: Props) => {
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -195,11 +220,18 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     backgroundColor: 'rgba(255,255,255,0.067)',
   },
+  backBtn: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 10,
+    padding: 8,
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 16,
-    marginTop: 50,
+    marginTop: 16,
   },
   iconBox: {
     width: 52,
@@ -233,7 +265,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  infoIcon: { color: GREEN, fontSize: 16, marginTop: 1 },
   infoText: {
     flex: 1,
     fontSize: 12,
@@ -260,7 +291,6 @@ const styles = StyleSheet.create({
   },
   selectText: { fontSize: 14, color: '#111827' },
   placeholderText: { color: '#9CA3AF' },
-  chevron: { color: '#9CA3AF', fontSize: 14 },
   pickerCard: {
     marginTop: 4,
     borderWidth: 1,
@@ -308,8 +338,10 @@ const styles = StyleSheet.create({
   },
   spacer: { flex: 1 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

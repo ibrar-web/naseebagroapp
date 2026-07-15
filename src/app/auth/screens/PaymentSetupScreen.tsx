@@ -15,7 +15,7 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch, useAppSelector } from '../../../store';
-import { resetRegisterForm } from '../../../store/slices/registerSlice';
+import { resetRegisterForm, setRegisterPayment } from '../../../store/slices/registerSlice';
 import { loginSuccess, type User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
 import { AppIcon } from '../../../assets/icons';
@@ -28,8 +28,6 @@ const DARK_GREEN = '#145228';
 const YELLOW = '#F3CD03';
 const STEP_ACTIVE = 3;
 const STEP_TOTAL = 5;
-
-const WALLETS = ['JazzCash', 'Easypaisa', 'SadaPay'];
 
 type BankOption = { id: string; name: string };
 
@@ -56,11 +54,20 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
 
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
-  const [form, setForm] = useState({ bankId: '', bankName: '', accountTitle: '', accountNumber: '', iban: '' });
-  const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
+  const [form, setForm] = useState({
+    bankId: registerForm.bankId ?? '',
+    bankName: registerForm.bankName ?? '',
+    accountTitle: registerForm.accountTitle ?? '',
+    accountNumber: registerForm.accountNumber ?? '',
+    iban: registerForm.iban ?? '',
+  });
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    dispatch(setRegisterPayment({ bankId: form.bankId, bankName: form.bankName, accountTitle: form.accountTitle, accountNumber: form.accountNumber, iban: form.iban }));
+  }, [form.bankId, form.bankName, form.accountTitle, form.accountNumber, form.iban, dispatch]);
 
   useEffect(() => {
     api.marketplace.public.listBanks()
@@ -78,11 +85,6 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
 
   const isMFBank = isMicrofinanceBank(form.bankName);
 
-  const toggleWallet = (w: string) =>
-    setSelectedWallets(prev =>
-      prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w],
-    );
-
   // Microfinance: mobile number as account, no IBAN
   // Standard bank: both account number and IBAN required
   const canSubmit = isMFBank
@@ -90,7 +92,11 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
     : form.bankId.length > 0 && form.accountTitle.length > 2 && form.accountNumber.length >= 5 && form.iban.length >= 10;
 
   const handleSubmit = async () => {
-    if (!canSubmit || loading) return;
+    if (loading) return;
+    if (!form.bankId) { Alert.alert('Missing Field', 'Please select a bank.'); return; }
+    if (form.accountTitle.trim().length < 2) { Alert.alert('Missing Field', 'Please enter your account title.'); return; }
+    if (form.accountNumber.trim().length < 5) { Alert.alert('Missing Field', isMFBank ? 'Please enter your mobile / account number.' : 'Please enter your account number.'); return; }
+    if (!isMFBank && form.iban.trim().length < 10) { Alert.alert('Missing Field', 'Please enter your IBAN.'); return; }
     setLoading(true);
     try {
       const formData = new FormData();
@@ -310,7 +316,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
             placeholder="As per bank records"
             placeholderTextColor="#9CA3AF"
             value={form.accountTitle}
-            onChangeText={v => setForm(p => ({ ...p, accountTitle: v }))}
+            onChangeText={v => setForm(p => ({ ...p, accountTitle: v.replace(/[^a-zA-Z\s]/g, '') }))}
             autoCapitalize="words"
           />
         </View>
@@ -349,46 +355,16 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
                 placeholder="PK00XXXX0000000000000000"
                 placeholderTextColor="#9CA3AF"
                 value={form.iban}
-                onChangeText={v => setForm(p => ({ ...p, iban: v.toUpperCase() }))}
+                onChangeText={v => setForm(p => ({ ...p, iban: v.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
                 autoCapitalize="characters"
               />
             </View>
           </>
         )}
 
-        {/* Mobile Wallets */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>
-            Mobile Wallet{' '}
-            <Text style={styles.optional}>(Optional)</Text>
-          </Text>
-          <View style={styles.walletsRow}>
-            {WALLETS.map(w => {
-              const active = selectedWallets.includes(w);
-              return (
-                <TouchableOpacity
-                  key={w}
-                  onPress={() => toggleWallet(w)}
-                  style={[styles.walletBtn, active && styles.walletBtnActive]}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.walletText,
-                      active && styles.walletTextActive,
-                    ]}
-                  >
-                    {w}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
         <View style={styles.spacer} />
 
-        {/* Submit — yellow per design */}
+        {/* Submit */}
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={!canSubmit || loading}
@@ -398,7 +374,10 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
           {loading ? (
             <ActivityIndicator color={DARK_GREEN} />
           ) : (
-            <Text style={styles.submitText}>✓ Submit Registration</Text>
+            <>
+              <Text style={styles.submitText}>Submit Registration</Text>
+              <AppIcon name="arrowRight" size={18} color={DARK_GREEN} />
+            </>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -527,26 +506,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 6,
   },
-  walletsRow: { flexDirection: 'row', gap: 8 },
-  walletBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  walletBtnActive: {
-    borderColor: YELLOW,
-    backgroundColor: YELLOW,
-  },
-  walletText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
-  walletTextActive: { color: DARK_GREEN },
   spacer: { flex: 1, minHeight: 24 },
   submitBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: YELLOW,
     borderRadius: 12,
     paddingVertical: 16,

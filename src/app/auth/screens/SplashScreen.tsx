@@ -5,8 +5,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useTranslation } from '../../../localization';
 import { useAppDispatch } from '../../../store';
-import { loginSuccess } from '../../../store/slices/authSlice';
+import { loginSuccess, updateUser } from '../../../store/slices/authSlice';
 import type { User } from '../../../store/slices/authSlice';
+import api from '../../../utils/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
@@ -29,6 +30,13 @@ const SplashScreen = ({ navigation }: Props) => {
           if (token && user) {
             dispatch(loginSuccess({ user, token }));
             navigation.replace('MainTabs');
+            // Refresh user data from server in background
+            api.auth.getCurrentUser()
+              .then((res: any) => {
+                const fresh: Partial<User> = res?.data ?? res ?? {};
+                if (fresh.id) dispatch(updateUser(fresh));
+              })
+              .catch(() => {});
             return;
           }
         } catch {

@@ -45,6 +45,10 @@ const vectorIconRegistry = {
     Icon: Feather,
     name: 'chevron-right' as FeatherIconName,
   },
+  arrowRight: {
+    Icon: Feather,
+    name: 'arrow-right' as FeatherIconName,
+  },
   contactEmail: {
     Icon: Feather,
     name: 'mail' as FeatherIconName,

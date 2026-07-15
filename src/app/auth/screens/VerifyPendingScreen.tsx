@@ -94,13 +94,14 @@ const VerifyPendingScreen = ({ navigation }: Props) => {
         {/* Buttons */}
         <TouchableOpacity
           onPress={() => navigation.navigate('MainTabs')}
-          className="py-4 rounded-2xl items-center bg-green-700 mb-3"
-          style={styles.primaryBtn}
+          className="py-4 rounded-2xl bg-green-700 mb-3"
+          style={[styles.primaryBtn, styles.primaryBtnRow]}
           activeOpacity={0.88}
         >
           <Text className="text-white text-base font-bold">
             {t('auth.previewHome')}
           </Text>
+          <AppIcon name="arrowRight" size={18} color="#fff" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -144,6 +145,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  primaryBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 });
 

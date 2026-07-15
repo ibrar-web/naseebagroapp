@@ -325,7 +325,7 @@ export const normalizeOfferItem = (
         const s = status.toLowerCase();
         if (s.includes('counter') || s.includes('awaiting'))
           return 'Counter received — respond';
-        if (s.includes('accepted')) return 'View Deal →';
+        if (s.includes('accepted')) return 'View Deal';
         return 'View detail';
       })(),
     ),

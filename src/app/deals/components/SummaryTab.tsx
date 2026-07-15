@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../../utils/api';
+import { AppIcon } from '../../../assets/icons';
 
 // Keep exporting the types so navigation / other screens can still import them
 export interface Truck {
@@ -244,7 +245,8 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
             onPress={() => setShowModal(true)}
             activeOpacity={0.85}
           >
-            <Text style={s.companyBtnText}>+ Add Company Name →</Text>
+            <Text style={s.companyBtnText}>+ Add Company Name</Text>
+            <AppIcon name="arrowRight" size={14} color="#0D3B1F" />
           </TouchableOpacity>
         </View>
       )}
@@ -330,11 +332,12 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
                 {saving ? (
                   <ActivityIndicator color="#0D3B1F" size="small" />
                 ) : (
-                  <Text
-                    style={[s.saveBtnText, !canSave && s.saveBtnTextDisabled]}
-                  >
-                    Save & Send to Seller →
-                  </Text>
+                  <>
+                    <Text style={[s.saveBtnText, !canSave && s.saveBtnTextDisabled]}>
+                      Save & Send to Seller
+                    </Text>
+                    <AppIcon name="arrowRight" size={14} color={canSave ? '#0D3B1F' : '#9CA3AF'} />
+                  </>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -451,7 +454,10 @@ const s = StyleSheet.create({
     backgroundColor: '#F3CD03',
     borderRadius: 11,
     paddingVertical: 11,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   companyBtnText: { fontSize: 13, fontWeight: '700', color: '#0D3B1F' },
 
@@ -530,7 +536,10 @@ const s = StyleSheet.create({
     backgroundColor: '#F3CD03',
     borderRadius: 12,
     paddingVertical: 13,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: 10,
   },
   saveBtnDisabled: { backgroundColor: '#E5E7EB' },

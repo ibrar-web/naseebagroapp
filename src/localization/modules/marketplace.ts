@@ -42,7 +42,7 @@ export const marketplaceTranslations = {
     'market.interest': 'Interest',
     'market.active': 'Active',
     'market.pending': 'Pending',
-    'market.submitOffer': 'Submit Offer →',
+    'market.submitOffer': 'Submit Offer',
     'market.noResults': 'No results found',
     'market.adjustSearch': 'Try adjusting your search or filters',
 
@@ -81,7 +81,8 @@ export const marketplaceTranslations = {
     'listing.estDelivery': 'Est. Delivery',
     'listing.totalPer': 'Total (per 40kg)',
     'listing.chat': '💬 Chat',
-    'listing.sendInterest': 'Send Interest →',
+    'listing.sendInterest': 'Send Interest',
+    'listing.sendOffer': 'Send Offer',
   },
   ur: {
     'home.buyer': 'خریدار',
@@ -126,7 +127,7 @@ export const marketplaceTranslations = {
     'market.interest': 'دلچسپی',
     'market.active': 'فعال',
     'market.pending': 'زیر التواء',
-    'market.submitOffer': 'آفر جمع کریں →',
+    'market.submitOffer': 'آفر جمع کریں',
     'market.noResults': 'کوئی نتیجہ نہیں ملا',
     'market.adjustSearch': 'اپنی تلاش یا فلٹرز تبدیل کریں',
 
@@ -166,6 +167,7 @@ export const marketplaceTranslations = {
     'listing.estDelivery': 'متوقع ڈیلیوری',
     'listing.totalPer': 'کل (فی 40kg)',
     'listing.chat': '💬 چیٹ',
-    'listing.sendInterest': 'دلچسپی بھیجیں →',
+    'listing.sendInterest': 'دلچسپی بھیجیں',
+    'listing.sendOffer': 'آفر بھیجیں',
   },
 } as const;

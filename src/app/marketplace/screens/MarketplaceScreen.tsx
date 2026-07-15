@@ -856,7 +856,7 @@ const MarketplaceListingCard = ({
     : isBuyer
     ? 'SUPPLY'
     : 'OPEN DEMAND';
-  const actionLabel = isBuyer ? t('listing.sendInterest') : 'Send Offer';
+  const actionLabel = isBuyer ? t('listing.sendInterest') : t('listing.sendOffer');
   const millsTitle = isBuyer ? 'Mill Prices' : 'Demand Prices';
   const category = item.commodity?.category?.name ?? 'Commodity';
   const rating = toStr(item.rating_display) || toStr(item.seller?.rating, '0.0');
@@ -981,11 +981,12 @@ const MarketplaceListingCard = ({
             className="flex-1 rounded-xl bg-yellow-400 py-3 flex-row items-center justify-center"
             style={styles.interestButton}
             activeOpacity={0.86}
+            onPress={onPress}
           >
-            <AppIcon name="currency" size={14} color="#0D3B1F" />
-            <Text className="text-green-950 text-[13px] font-bold ml-1.5">
+            <Text className="text-green-950 text-[13px] font-bold mr-1.5">
               {actionLabel}
             </Text>
+            <AppIcon name="arrowRight" size={15} color="#0D3B1F" />
           </TouchableOpacity>
         </View>
       </View>

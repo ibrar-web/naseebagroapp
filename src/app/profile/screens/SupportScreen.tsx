@@ -6,13 +6,12 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
-  Alert,
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { MockStatusBar } from '../../components';
 
-const CONTACT_OPTIONS: {
+type ContactOption = {
   key: string;
   label: string;
   sub: string;
@@ -20,50 +19,48 @@ const CONTACT_OPTIONS: {
   iconColor: string;
   icon: AppIconName;
   action: () => void;
-}[] = [
-  {
-    key: 'call',
-    label: 'Call Us',
-    sub: '+92 300 NASEEB (627332)',
-    bgColor: '#F2FBF5',
-    iconColor: '#217A3C',
-    icon: 'contactPhone',
-    action: () => Linking.openURL('tel:+923006273320'),
-  },
-  {
-    key: 'email',
-    label: 'Email Support',
-    sub: 'support@naseeb.pk',
-    bgColor: '#EEF6FF',
-    iconColor: '#3B82F6',
-    icon: 'contactEmail',
-    action: () => Linking.openURL('mailto:support@naseeb.pk'),
-  },
-  {
-    key: 'whatsapp',
-    label: 'WhatsApp',
-    sub: '+92 312 0000000',
-    bgColor: '#E8FFF0',
-    iconColor: '#25D366',
-    icon: 'contactWhatsapp',
-    action: () => Linking.openURL('whatsapp://send?phone=923120000000'),
-  },
-  {
-    key: 'ticket',
-    label: 'Submit a Ticket',
-    sub: 'We reply within 4 hours',
-    bgColor: '#EDE9FE',
-    iconColor: '#7C3AED',
-    icon: 'document',
-    action: () =>
-      Alert.alert(
-        'Submit a Ticket',
-        'Please email us at support@naseeb.pk with details of your issue.',
-      ),
-  },
-];
+};
 
 const SupportScreen = ({ navigation }: any) => {
+  const CONTACT_OPTIONS: ContactOption[] = [
+    {
+      key: 'call',
+      label: 'Call Us',
+      sub: '+92 300 NASEEB (627332)',
+      bgColor: '#F2FBF5',
+      iconColor: '#217A3C',
+      icon: 'contactPhone',
+      action: () => Linking.openURL('tel:+923006273320'),
+    },
+    {
+      key: 'email',
+      label: 'Email Support',
+      sub: 'officialnaseebagri@gmail.com',
+      bgColor: '#EEF6FF',
+      iconColor: '#3B82F6',
+      icon: 'contactEmail',
+      action: () => Linking.openURL('mailto:officialnaseebagri@gmail.com'),
+    },
+    {
+      key: 'whatsapp',
+      label: 'WhatsApp',
+      sub: '+92 312 0000000',
+      bgColor: '#E8FFF0',
+      iconColor: '#25D366',
+      icon: 'contactWhatsapp',
+      action: () => Linking.openURL('whatsapp://send?phone=923120000000'),
+    },
+    {
+      key: 'ticket',
+      label: 'Submit a Ticket',
+      sub: 'We reply within 4 hours',
+      bgColor: '#EDE9FE',
+      iconColor: '#7C3AED',
+      icon: 'document',
+      action: () => navigation.navigate('SubmitTicket', { dealId: '', mode: 'buyer' }),
+    },
+  ];
+
   return (
     <View style={s.container}>
       {/* Header */}

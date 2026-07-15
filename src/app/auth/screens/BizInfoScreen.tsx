@@ -38,13 +38,17 @@ const BizInfoScreen = ({ navigation }: Props) => {
     businessName: saved.businessName ?? '',
     businessType: saved.businessType ?? '',
     city: saved.city ?? '',
-    address: '',
+    address: saved.address ?? '',
   });
   const [cities, setCities] = useState<CityOption[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(true);
   const [citySearch, setCitySearch] = useState('');
   const [showBizTypePicker, setShowBizTypePicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+
+  useEffect(() => {
+    dispatch(setRegisterBizInfo({ city: form.city, businessName: form.businessName, businessType: form.businessType, address: form.address }));
+  }, [form.city, form.businessName, form.businessType, form.address, dispatch]);
 
   useEffect(() => {
     api.marketplace.public.listCities()
@@ -249,6 +253,7 @@ const BizInfoScreen = ({ navigation }: Props) => {
               city: form.city,
               businessName: form.businessName,
               businessType: form.businessType,
+              address: form.address,
             }));
             navigation.navigate('IdVerify');
           }}
@@ -256,7 +261,8 @@ const BizInfoScreen = ({ navigation }: Props) => {
           disabled={!canContinue}
           activeOpacity={0.88}
         >
-          <Text style={styles.ctaText}>→ Continue</Text>
+          <Text style={styles.ctaText}>Continue</Text>
+          <AppIcon name="arrowRight" size={18} color="#fff" />
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -366,8 +372,10 @@ const styles = StyleSheet.create({
   },
   spacer: { flex: 1, minHeight: 24 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

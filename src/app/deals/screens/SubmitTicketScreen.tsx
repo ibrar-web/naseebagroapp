@@ -37,8 +37,8 @@ const DISPUTE_REASONS = [
 ];
 
 const SubmitTicketScreen = ({ navigation, route }: Props) => {
-  const { dealId, mode, dealCode, commodityName, dealSummary, imageUrl } =
-    route.params;
+  const { dealId = '', mode = 'buyer', dealCode, commodityName, dealSummary, imageUrl } =
+    route.params ?? {};
 
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');

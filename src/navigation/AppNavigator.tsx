@@ -60,6 +60,7 @@ import KycDetailsScreen from '../app/profile/screens/KycDetailsScreen';
 import SavedListingsScreen from '../app/profile/screens/SavedListingsScreen';
 import NotificationsSettingsScreen from '../app/profile/screens/NotificationsSettingsScreen';
 import AppSettingsScreen from '../app/profile/screens/AppSettingsScreen';
+import ChangePasswordScreen from '../app/profile/screens/ChangePasswordScreen';
 import SupportScreen from '../app/profile/screens/SupportScreen';
 import TermsScreen from '../app/profile/screens/TermsScreen';
 import DisputesQueriesScreen from '../app/profile/screens/DisputesQueriesScreen';
@@ -285,6 +286,7 @@ export const AppNavigator = () => {
             component={NotificationsSettingsScreen}
           />
           <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
+          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
           <Stack.Screen name="Support" component={SupportScreen} />
           <Stack.Screen name="Terms" component={TermsScreen} />
           <Stack.Screen name="DisputesQueries" component={DisputesQueriesScreen} />

@@ -105,13 +105,14 @@ export type RootStackParamList = {
     onRatingSubmitted?: (score: number, note?: string) => void;
   };
   SubmitTicket: {
-    dealId: string;
-    mode: 'buyer' | 'seller';
+    dealId?: string;
+    mode?: 'buyer' | 'seller';
     dealCode?: string | null;
     commodityName?: string | null;
     dealSummary?: string | null;
     imageUrl?: string | null;
   };
+  ChangePassword: undefined;
 };
 
 export type RootStackNavProp = NativeStackNavigationProp<RootStackParamList>;

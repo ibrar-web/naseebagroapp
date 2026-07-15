@@ -166,7 +166,10 @@ const OTPScreen = ({ navigation, route }: Props) => {
           {verifying ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.ctaText}>Verify & Continue</Text>
+            <>
+              <Text style={styles.ctaText}>Verify & Continue</Text>
+              <AppIcon name="arrowRight" size={18} color="#fff" />
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -257,8 +260,10 @@ const styles = StyleSheet.create({
   resendDisabled: { color: '#9CA3AF' },
   spacer: { flex: 1 },
   ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     backgroundColor: GREEN,
     borderRadius: 12,
     paddingVertical: 16,

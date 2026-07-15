@@ -401,7 +401,10 @@ const PersonalInfoScreen = ({ navigation }: any) => {
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <AppIcon name="profileAvatar" size={44} color="#FFFFFF" />
+                <View style={styles.uploadHint}>
+                  <AppIcon name="verificationCamera" size={28} color="#FFFFFF" />
+                  <Text style={styles.uploadHintText}>Upload Photo</Text>
+                </View>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -454,6 +457,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 24,
+  },
+  uploadHint: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  uploadHintText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 });
 

@@ -19,13 +19,13 @@ export const authTranslations = {
     'auth.phoneSubtitle': "We'll send you a verification code",
     'auth.mobileNumber': 'Mobile Number',
     'auth.phoneHelp': 'Enter your 10-11 digit mobile number',
-    'auth.sendOtp': 'Send OTP →',
+    'auth.sendOtp': 'Send OTP',
     'auth.otpTitle': 'Verify Number',
     'auth.codeSentTo': 'Code sent to',
     'auth.enterCode': 'Enter 6-Digit Code',
     'auth.didntReceive': "Didn't receive? ",
     'auth.resendCode': 'Resend Code',
-    'auth.verifyContinue': 'Verify & Continue →',
+    'auth.verifyContinue': 'Verify & Continue',
 
     // Location
     'auth.locationStep': 'LOCATION',
@@ -35,7 +35,7 @@ export const authTranslations = {
     'auth.locationInfo':
       'Your location helps us connect you with the right buyers and show accurate commodity prices in your area.',
     'auth.locationSkip': 'Skip for Now',
-    'auth.locationContinue': 'Continue →',
+    'auth.locationContinue': 'Continue',
     'auth.selectedCity': 'Selected:',
 
     // Basic Info
@@ -52,7 +52,7 @@ export const authTranslations = {
     'auth.passwordPlaceholder': 'Min. 8 characters',
     'auth.confirmPassword': 'Confirm Password',
     'auth.confirmPasswordPlaceholder': 'Re-enter password',
-    'auth.continueNext': 'Continue →',
+    'auth.continueNext': 'Continue',
 
     // Biz Info
     'auth.bizInfoStep': 'STEP 2 OF 5',
@@ -91,7 +91,7 @@ export const authTranslations = {
     'auth.ibanNumber': 'IBAN / Account Number',
     'auth.ibanPlaceholder': 'PK36SCBL0000001123456702',
     'auth.walletLabel': 'Mobile Wallets (Optional)',
-    'auth.submitRegistration': 'Submit Registration →',
+    'auth.submitRegistration': 'Submit Registration',
 
     // Verify Pending
     'auth.verifyPendingTitle': 'Verification\nPending',
@@ -101,14 +101,14 @@ export const authTranslations = {
     'auth.verifyPendingBiz': 'Business Verification',
     'auth.verifyPendingPayment': 'Payment Account',
     'auth.verifyPendingStatus': 'Pending Review',
-    'auth.previewHome': 'Preview Home →',
+    'auth.previewHome': 'Preview Home',
     'auth.contactSupport': 'Contact Support',
 
     // Verify Approved
     'auth.verifyApprovedTitle': "You're Verified!",
     'auth.verifyApprovedSubtitle':
       'Your account has been approved. You can now trade on the platform.',
-    'auth.startTrading': 'Start Trading →',
+    'auth.startTrading': 'Start Trading',
   },
   ur: {
     'auth.splashTagline': 'پاکستان کی قابل اعتماد کموڈٹی مارکیٹ پلیس',
@@ -130,13 +130,13 @@ export const authTranslations = {
     'auth.phoneSubtitle': 'ہم آپ کو تصدیقی کوڈ بھیجیں گے',
     'auth.mobileNumber': 'موبائل نمبر',
     'auth.phoneHelp': 'اپنا 10-11 ہندسوں کا موبائل نمبر درج کریں',
-    'auth.sendOtp': 'OTP بھیجیں →',
+    'auth.sendOtp': 'OTP بھیجیں',
     'auth.otpTitle': 'نمبر تصدیق کریں',
     'auth.codeSentTo': 'کوڈ بھیجا گیا',
     'auth.enterCode': '6 ہندسوں کا کوڈ درج کریں',
     'auth.didntReceive': 'موصول نہیں ہوا؟ ',
     'auth.resendCode': 'کوڈ دوبارہ بھیجیں',
-    'auth.verifyContinue': 'تصدیق کریں اور جاری رکھیں →',
+    'auth.verifyContinue': 'تصدیق کریں اور جاری رکھیں',
 
     'auth.locationStep': 'مقام',
     'auth.locationTitle': 'آپ کا مقام',
@@ -145,7 +145,7 @@ export const authTranslations = {
     'auth.locationInfo':
       'آپ کا مقام ہمیں آپ کو صحیح خریداروں سے ملانے اور آپ کے علاقے میں درست اجناس کی قیمتیں دکھانے میں مدد کرتا ہے۔',
     'auth.locationSkip': 'ابھی چھوڑیں',
-    'auth.locationContinue': 'جاری رکھیں →',
+    'auth.locationContinue': 'جاری رکھیں',
     'auth.selectedCity': 'منتخب:',
 
     'auth.basicInfoStep': 'مرحلہ 1 از 5',
@@ -161,7 +161,7 @@ export const authTranslations = {
     'auth.passwordPlaceholder': 'کم از کم 8 حروف',
     'auth.confirmPassword': 'پاس ورڈ کی تصدیق کریں',
     'auth.confirmPasswordPlaceholder': 'پاس ورڈ دوبارہ درج کریں',
-    'auth.continueNext': 'جاری رکھیں →',
+    'auth.continueNext': 'جاری رکھیں',
 
     'auth.bizInfoStep': 'مرحلہ 2 از 5',
     'auth.bizInfoTitle': 'کاروباری معلومات',
@@ -199,7 +199,7 @@ export const authTranslations = {
     'auth.ibanNumber': 'IBAN / اکاؤنٹ نمبر',
     'auth.ibanPlaceholder': 'PK36SCBL0000001123456702',
     'auth.walletLabel': 'موبائل والٹس (اختیاری)',
-    'auth.submitRegistration': 'رجسٹریشن جمع کریں →',
+    'auth.submitRegistration': 'رجسٹریشن جمع کریں',
 
     'auth.verifyPendingTitle': 'تصدیق\nجاری ہے',
     'auth.verifyPendingSubtitle':
@@ -208,12 +208,12 @@ export const authTranslations = {
     'auth.verifyPendingBiz': 'کاروباری تصدیق',
     'auth.verifyPendingPayment': 'ادائیگی اکاؤنٹ',
     'auth.verifyPendingStatus': 'جائزہ زیرِ التوا',
-    'auth.previewHome': 'ہوم دیکھیں →',
+    'auth.previewHome': 'ہوم دیکھیں',
     'auth.contactSupport': 'سپورٹ سے رابطہ کریں',
 
     'auth.verifyApprovedTitle': 'آپ کی تصدیق ہو گئی!',
     'auth.verifyApprovedSubtitle':
       'آپ کا اکاؤنٹ منظور ہو گیا ہے۔ اب آپ پلیٹ فارم پر تجارت کر سکتے ہیں۔',
-    'auth.startTrading': 'تجارت شروع کریں →',
+    'auth.startTrading': 'تجارت شروع کریں',
   },
 } as const;

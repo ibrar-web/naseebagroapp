@@ -8,8 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import { AppLoader } from '../../components';
@@ -31,16 +33,21 @@ const toStatus = (value: any): ApprovalStatus => {
   return 'pending';
 };
 
+type PickedImage = { uri: string; name: string; type: string };
+
 const KycDetailsScreen = ({ navigation }: any) => {
   const token = useAppSelector(s => s.auth.token);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [cnic, setCnic] = useState<string | null>(null);
   const [frontUrl, setFrontUrl] = useState<string | null>(null);
   const [backUrl, setBackUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<ApprovalStatus>('pending');
   const [notes, setNotes] = useState<string | null>(null);
   const [reviewedAt, setReviewedAt] = useState<string | null>(null);
+  const [newFront, setNewFront] = useState<PickedImage | null>(null);
+  const [newBack, setNewBack] = useState<PickedImage | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -79,7 +86,44 @@ const KycDetailsScreen = ({ navigation }: any) => {
     try { await load(true); } finally { setRefreshing(false); }
   }, [load]);
 
+  const pickImage = (side: 'front' | 'back') => {
+    launchImageLibrary({ mediaType: 'photo', quality: 1 }, response => {
+      if (response.didCancel || response.errorCode) return;
+      const asset = response.assets?.[0];
+      if (!asset?.uri) return;
+      const picked: PickedImage = {
+        uri: asset.uri,
+        name: asset.fileName ?? `cnic_${side}.jpg`,
+        type: asset.type ?? 'image/jpeg',
+      };
+      if (side === 'front') setNewFront(picked);
+      else setNewBack(picked);
+    });
+  };
+
+  const handleResubmit = async () => {
+    if (!newFront && !newBack) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      if (newFront) {
+        formData.append('cnic_front_image', { uri: newFront.uri, name: newFront.name, type: newFront.type } as any);
+      }
+      if (newBack) {
+        formData.append('cnic_back_image', { uri: newBack.uri, name: newBack.name, type: newBack.type } as any);
+      }
+      await api.profile.personal.update(formData);
+      setNewFront(null);
+      setNewBack(null);
+      setStatus('pending');
+      Alert.alert('Submitted', 'Your documents have been resubmitted for review. We will notify you once verified.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const cfg = STATUS_CFG[status];
+  const isRejected = status === 'rejected';
 
   return (
     <View style={s.container}>
@@ -136,13 +180,41 @@ const KycDetailsScreen = ({ navigation }: any) => {
         {/* CNIC Images */}
         <Text style={s.sectionHeading}>CNIC Documents</Text>
 
-        <DocImageCard label="Front Side" url={frontUrl} />
-        <DocImageCard label="Back Side" url={backUrl} />
+        <DocImageCard label="Front Side" url={newFront?.uri ?? frontUrl} />
+        <DocImageCard label="Back Side" url={newBack?.uri ?? backUrl} />
+
+        {/* Re-upload section — shown when rejected */}
+        {isRejected ? (
+          <View style={s.reuploadCard}>
+            <Text style={s.reuploadTitle}>Re-upload Documents</Text>
+            <Text style={s.reuploadSub}>Your verification was rejected. Please upload clearer documents.</Text>
+            <View style={s.reuploadRow}>
+              <TouchableOpacity style={s.uploadBtn} onPress={() => pickImage('front')} activeOpacity={0.8}>
+                <AppIcon name="verificationCamera" size={18} color="#217A3C" />
+                <Text style={s.uploadBtnText}>{newFront ? 'Front ✓' : 'Upload Front'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.uploadBtn} onPress={() => pickImage('back')} activeOpacity={0.8}>
+                <AppIcon name="verificationCamera" size={18} color="#217A3C" />
+                <Text style={s.uploadBtnText}>{newBack ? 'Back ✓' : 'Upload Back'}</Text>
+              </TouchableOpacity>
+            </View>
+            {(newFront || newBack) ? (
+              <TouchableOpacity
+                style={[s.resubmitBtn, uploading && s.resubmitBtnDisabled]}
+                onPress={handleResubmit}
+                disabled={uploading}
+                activeOpacity={0.85}
+              >
+                <Text style={s.resubmitBtnText}>{uploading ? 'Submitting...' : 'Resubmit for Verification'}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <AppLoader visible={loading} overlay message="Loading..." />
+      <AppLoader visible={loading || uploading} overlay message={uploading ? 'Uploading...' : 'Loading...'} />
     </View>
   );
 };
@@ -265,6 +337,40 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   imgPlaceholderText: { fontSize: 13, color: '#9CA3AF' },
+
+  reuploadCard: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  reuploadTitle: { fontSize: 14, fontWeight: '800', color: '#9A3412', marginBottom: 4 },
+  reuploadSub: { fontSize: 12, color: '#C2410C', lineHeight: 18, marginBottom: 14 },
+  reuploadRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  uploadBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#217A3C',
+  },
+  uploadBtnText: { fontSize: 12, fontWeight: '700', color: '#217A3C' },
+  resubmitBtn: {
+    backgroundColor: '#145228',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  resubmitBtnDisabled: { opacity: 0.5 },
+  resubmitBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
 });
 
 export default KycDetailsScreen;

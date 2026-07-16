@@ -20,6 +20,21 @@ export type CategoryRouteParam = {
   commodity_count?: number;
 };
 
+export type PostPrefillData = {
+  commodity_id?: string | null;
+  quantity?: string | null;
+  price_per_unit?: string | null;
+  delivery_option?: string | null;
+  city_id?: string | null;
+  city_name?: string | null;
+  delivery_term_id?: string | null;
+  payment_type?: string | null;
+  payment_term_id?: string | null;
+  grades?: string[];
+  is_mill_based?: boolean;
+  mills?: Array<{ id?: string | null; name?: string | null; city?: string | null; price?: string }>;
+};
+
 export type TabParamList = {
   Home: undefined;
   Market: undefined;
@@ -42,8 +57,8 @@ export type RootStackParamList = {
   // Marketplace detail
   CreatePost: undefined;
   PrePost: undefined;
-  CreatePostSeller: { category: string; categoryData?: CategoryRouteParam };
-  CreateBuyerDemand: { category: string; categoryData?: CategoryRouteParam };
+  CreatePostSeller: { category: string; categoryData?: CategoryRouteParam; prefillData?: PostPrefillData; postId?: string };
+  CreateBuyerDemand: { category: string; categoryData?: CategoryRouteParam; prefillData?: PostPrefillData; postId?: string };
   CommodityDetail: { listingId: string; listingType?: 'SUPPLY' | 'DEMAND' };
   RequestToPurchase: { listingId: string };
   SendOffer: { listingId: string };

@@ -55,11 +55,29 @@ type MenuOption = {
   enabled: boolean;
 };
 
+type PostEditData = {
+  category_id: string | null;
+  category_name: string | null;
+  commodity_id: string | null;
+  quantity: string | null;
+  price_per_unit: string | null;
+  delivery_option: string | null;
+  city_id: string | null;
+  city_name: string | null;
+  delivery_term_id: string | null;
+  payment_type: string | null;
+  payment_term_id: string | null;
+  grades: string[];
+  is_mill_based: boolean;
+  mills: Array<{ id: string | null; name: string | null; city: string | null; price: string }>;
+};
+
 type PostDetail = {
   id: string;
   code: string;
   status: string;
   status_color: string;
+  is_active: boolean;
   hero: { image_url: string; code: string; title: string; subtitle: string };
   tabs: Array<{ key: string; label: string; is_active: boolean }>;
   post_details: { title: string; rows: DetailRow[] };
@@ -69,6 +87,7 @@ type PostDetail = {
   offers_received: { stats: { title_cards: StatCard[] }; items: OfferItem[] };
   actions: { menu_options: MenuOption[] };
   fallback: string;
+  edit_data: PostEditData | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,8 +118,9 @@ const normalizePostDetail = (
   return {
     id: stringify(firstValue(payload.id, payload.post_id, payload.demand_id), id),
     code: stringify(firstValue(payload.code, payload.post_code, payload.demand_code), id),
-    status: stringify(firstValue(payload.status_label, payload.status), 'OPEN'),
+    status: stringify(firstValue(payload.status, payload.status_label), 'PENDING'),
     status_color: stringify(payload.status_color, 'green'),
+    is_active: payload.is_active !== false,
     hero: {
       image_url:
         firstValue(payload.hero?.image_url, payload.commodity_image, payload.image_url) ?? '',
@@ -156,6 +176,7 @@ const normalizePostDetail = (
         : [],
     },
     fallback: FALLBACK_COLORS[0],
+    edit_data: payload.edit_data ?? null,
   };
 };
 
@@ -272,7 +293,41 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
         Alert.alert('Cannot Edit', 'This post has active offers and cannot be edited.');
         return;
       }
-      navigation.navigate('PrePost');
+      const ed = post.edit_data;
+      if (!ed?.category_id) {
+        Alert.alert('Error', 'Post data is still loading. Please go back and reopen this post.');
+        return;
+      }
+      const categoryData = { id: ed.category_id, name: ed.category_name ?? '' };
+      const prefillData = {
+        commodity_id: ed.commodity_id,
+        quantity: ed.quantity,
+        price_per_unit: ed.price_per_unit,
+        delivery_option: ed.delivery_option,
+        city_id: ed.city_id,
+        city_name: ed.city_name,
+        delivery_term_id: ed.delivery_term_id,
+        payment_type: ed.payment_type,
+        payment_term_id: ed.payment_term_id,
+        grades: ed.grades,
+        is_mill_based: ed.is_mill_based,
+        mills: ed.mills,
+      };
+      if (isBuyer) {
+        navigation.navigate('CreateBuyerDemand', {
+          category: ed.category_name ?? '',
+          categoryData,
+          prefillData,
+          postId: post.id,
+        });
+      } else {
+        navigation.navigate('CreatePostSeller', {
+          category: ed.category_name ?? '',
+          categoryData,
+          prefillData,
+          postId: post.id,
+        });
+      }
       return;
     }
 
@@ -333,6 +388,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   };
 
   const badge = statusBadgeConfig(post.status_color);
+  const activeBg = post.is_active ? 'rgba(33,122,60,0.85)' : 'rgba(75,85,99,0.85)';
   const editOption = post.actions.menu_options.find(o => o.key === 'edit');
   const deleteOption = post.actions.menu_options.find(o => o.key === 'delete');
   const closeOption = post.actions.menu_options.find(o => o.key === 'close');
@@ -490,12 +546,16 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>{post.status.toUpperCase()}</Text>
             </View>
+            <View style={[styles.statusBadge, { backgroundColor: activeBg }]}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>{post.is_active ? 'ACTIVE' : 'INACTIVE'}</Text>
+            </View>
             <TouchableOpacity
               style={styles.menuBtn}
               onPress={() => setMenuOpen(true)}
               activeOpacity={0.75}
             >
-              <Text style={styles.menuBtnDots}>{'⋮'}</Text>
+              <AppIcon name="menuMore" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -541,12 +601,22 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
       {(editOption?.enabled || closeOption?.enabled) && (
         <View style={styles.bottomBar}>
           {editOption?.enabled ? (
-            <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.editBtn}
+              activeOpacity={0.85}
+              disabled={actionLoading}
+              onPress={() => handleMenuAction(editOption)}
+            >
               <Text style={styles.editBtnText}>{editOption.label}</Text>
             </TouchableOpacity>
           ) : null}
           {closeOption?.enabled ? (
-            <TouchableOpacity style={styles.closeBtn} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              activeOpacity={0.85}
+              disabled={actionLoading}
+              onPress={() => handleMenuAction(closeOption)}
+            >
               <Text style={styles.closeBtnText}>{closeOption.label}</Text>
             </TouchableOpacity>
           ) : null}
@@ -656,7 +726,6 @@ const styles = StyleSheet.create({
     width: 32, height: 32, backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: 9, alignItems: 'center', justifyContent: 'center',
   },
-  menuBtnDots: { fontSize: 11, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
   heroBottom: { position: 'absolute', bottom: 14, left: 16, right: 16, zIndex: 3 },
   heroCode: { fontSize: 9, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', marginBottom: 3 },
   heroTitle: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },

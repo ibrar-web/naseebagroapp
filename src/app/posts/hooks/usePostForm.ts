@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, CategoryRouteParam } from '../../../navigation/types';
@@ -7,6 +7,7 @@ import type {
   CategoryForm, FieldValue, FieldOption, MillEntry,
   FormSnapshot, QueuedPost, PostFormMode, PaymentMode,
 } from '../types/postForm.types';
+import type { PostPrefillData } from '../../../navigation/types';
 
 export const labelKey = (label: string) =>
   label.toLowerCase().replace(/\s+/g, '_');
@@ -37,9 +38,11 @@ type Options = {
   categoryName: string;
   mode: PostFormMode;
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  prefillData?: PostPrefillData;
+  postId?: string;
 };
 
-export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Options) => {
+export const usePostForm = ({ categoryData, categoryName, mode, navigation, prefillData, postId }: Options) => {
   const isBuyer = mode === 'buyer';
 
   const [form, setForm] = useState<CategoryForm | null>(null);
@@ -57,6 +60,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
   const [isCustomDelivery, setIsCustomDelivery] = useState(false);
   const [customDeliveryInput, setCustomDeliveryInput] = useState('');
   const [queuedPosts, setQueuedPosts] = useState<QueuedPost[]>([]);
+  const prefillRef = useRef(prefillData);
 
   const sortedFields = useMemo(
     () => [...(form?.fields ?? [])].sort((a, b) => {
@@ -93,7 +97,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!categoryData?.id) { setLoading(false); setLoadError('Select a category first.'); return; }
+      if (!categoryData?.id) { setLoading(false); setLoadError(postId ? 'Unable to load form. Please go back and try again.' : 'Select a category first.'); return; }
       setLoading(true); setLoadError('');
       try {
         const res = isBuyer
@@ -103,6 +107,45 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
         if (!mounted) return;
         if (!next) { setLoadError('No form configured for this category.'); return; }
         setForm(next);
+
+        const fill = prefillRef.current;
+        if (fill) {
+          const initialValues: Record<string, FieldValue> = {};
+          for (const field of next.fields) {
+            const lk = labelKey(field.label);
+            if (lk === 'commodity' && fill.commodity_id) {
+              initialValues[field.id] = fill.commodity_id;
+            } else if (lk === 'quantity' && fill.quantity != null) {
+              initialValues[field.id] = fill.quantity;
+            } else if (lk === 'target_price' && fill.price_per_unit != null) {
+              initialValues[field.id] = fill.price_per_unit;
+            } else if (lk === 'delivery_options' && fill.delivery_option) {
+              initialValues[field.id] = fill.delivery_option;
+            } else if (lk === 'location' && fill.city_id && fill.city_name) {
+              initialValues[field.id] = { id: fill.city_id, name: fill.city_name };
+            } else if (lk === 'grades' && fill.grades?.length) {
+              initialValues[field.id] = fill.grades;
+            }
+          }
+          setValues(initialValues);
+
+          if (fill.payment_type) {
+            setPaymentMode(fill.payment_type as PaymentMode);
+            setPaymentValue(fill.payment_term_id ?? '');
+          }
+          if (fill.delivery_term_id) {
+            setDeliveryDays(fill.delivery_term_id);
+          }
+          if (fill.mills?.length) {
+            setSelectedMills(fill.mills.map(m => ({
+              id: m.id ?? '',
+              name: m.name ?? '',
+              city: m.city ?? '',
+              price: m.price ?? '',
+              isCustom: !m.id,
+            })));
+          }
+        }
       } catch {
         if (mounted) setLoadError('Unable to load form. Please try again.');
       } finally {
@@ -110,7 +153,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
       }
     })();
     return () => { mounted = false; };
-  }, [categoryData?.id, isBuyer]);
+  }, [categoryData?.id, isBuyer, postId]);
 
   const goBack = () => {
     if (navigation.canGoBack()) { navigation.goBack(); return; }
@@ -234,6 +277,24 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation }: Op
   const handleSubmit = async () => {
     if (!canSubmitAny) return;
     setSubmitting(true); setSubmitError('');
+
+    if (postId) {
+      try {
+        const payload = buildPayload();
+        if (isBuyer) {
+          await api.buyer.updateDemandPost(postId, payload);
+        } else {
+          await api.seller.updateSupplyPost(postId, payload);
+        }
+        if (navigation.canGoBack()) navigation.goBack();
+      } catch (err: any) {
+        if (err?.code !== 'AUTH_REQUIRED') setSubmitError(isBuyer ? 'Unable to update demand.' : 'Unable to update supply.');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const payloads = [...queuedPosts.map(p => p.payload), ...(canSubmit ? [buildPayload()] : [])];
     try {
       const res = isBuyer

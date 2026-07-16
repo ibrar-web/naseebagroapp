@@ -161,6 +161,8 @@ export const api = {
       Get(byId('public/buyer/form', id), undefined),
     createBuyDemandPost: (data?: any) =>
       Post('buyer/demands/create', data, protectedRequest),
+    updateDemandPost: (id: string, data: Record<string, unknown>) =>
+      Patch(`buyer/demands/${id}`, data, protectedRequest),
     // ── Deals ──────────────────────────────────────────────────────────────
     listDeals: (params?: { status?: string; search?: string; skip?: number; limit?: number }) =>
       Get('buyer/buydeals', params, protectedRequest),
@@ -219,6 +221,8 @@ export const api = {
       Get(byId('public/seller/form', id), undefined),
     createSupplyPost: (data?: any) =>
       Post('seller/supplies/create', data, protectedRequest),
+    updateSupplyPost: (id: string, data: Record<string, unknown>) =>
+      Patch(`seller/supplies/${id}`, data, protectedRequest),
     // ── Deals ──────────────────────────────────────────────────────────────
     listDeals: (params?: { status?: string; search?: string; skip?: number; limit?: number }) =>
       Get('seller/selldeals', params, protectedRequest),

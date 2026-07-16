@@ -6,7 +6,7 @@ import CategoryPostForm from '../components/CategoryPostForm';
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateBuyerDemand'>;
 
 const CreateBuyerDemandScreen = ({ navigation, route }: Props) => {
-  const { category, categoryData } = route.params;
+  const { category, categoryData, prefillData, postId } = route.params;
 
   return (
     <CategoryPostForm
@@ -14,6 +14,8 @@ const CreateBuyerDemandScreen = ({ navigation, route }: Props) => {
       categoryData={categoryData}
       mode="buyer"
       navigation={navigation}
+      prefillData={prefillData}
+      postId={postId}
     />
   );
 };

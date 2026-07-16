@@ -329,6 +329,10 @@ const vectorIconRegistry = {
     Icon: Feather,
     name: 'alert-circle' as FeatherIconName,
   },
+  menuMore: {
+    Icon: Feather,
+    name: 'more-vertical' as FeatherIconName,
+  },
   starOutline: {
     Icon: Feather,
     name: 'star' as FeatherIconName,

@@ -12,6 +12,7 @@ import MockStatusBar from '../../components/MockStatusBar';
 import { AppIcon } from '../../../assets/icons';
 import type {
   CategoryRouteParam,
+  PostPrefillData,
   RootStackParamList,
 } from '../../../navigation/types';
 import { usePostForm, labelKey } from '../hooks/usePostForm';
@@ -28,6 +29,8 @@ type Props = {
   categoryData?: CategoryRouteParam;
   mode: 'buyer' | 'seller';
   navigation: NativeStackNavigationProp<RootStackParamList>;
+  prefillData?: PostPrefillData;
+  postId?: string;
 };
 
 export const CategoryPostForm = ({
@@ -35,8 +38,10 @@ export const CategoryPostForm = ({
   categoryData,
   mode,
   navigation,
+  prefillData,
+  postId,
 }: Props) => {
-  const f = usePostForm({ categoryData, categoryName, mode, navigation });
+  const f = usePostForm({ categoryData, categoryName, mode, navigation, prefillData, postId });
 
   if (f.loading) {
     return (

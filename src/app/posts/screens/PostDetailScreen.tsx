@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ImageBackground,
   Modal,
   ScrollView,
@@ -199,6 +200,8 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const goBack = () => {
     if (navigation.canGoBack()) { navigation.goBack(); return; }
@@ -237,7 +240,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
     };
     load();
     return () => { active = false; };
-  }, [isBuyer, mode, postId]);
+  }, [isBuyer, mode, postId, refreshKey]);
 
   if (loading && !post) {
     return (
@@ -262,8 +265,72 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
     );
   }
 
+  const handleMenuAction = async (option: MenuOption) => {
+    setMenuOpen(false);
+
+    if (option.key === 'edit') {
+      if (!option.enabled) {
+        Alert.alert('Cannot Edit', 'This post has active offers and cannot be edited.');
+        return;
+      }
+      navigation.navigate('PrePost');
+      return;
+    }
+
+    if (option.key === 'toggle_active') {
+      setActionLoading(true);
+      try {
+        if (isBuyer) {
+          await api.buyer.toggleDemandActive(post.id);
+        } else {
+          await api.seller.toggleSupplyActive(post.id);
+        }
+        setRefreshKey(k => k + 1);
+      } catch {
+        Alert.alert('Error', 'Unable to update post status. Please try again.');
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    if (option.key === 'delete') {
+      if (!option.enabled) {
+        Alert.alert('Cannot Delete', 'This post has active offers and cannot be deleted.');
+        return;
+      }
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              setActionLoading(true);
+              try {
+                if (isBuyer) {
+                  await api.buyer.deleteDemand(post.id);
+                } else {
+                  await api.seller.deleteSupply(post.id);
+                }
+                goBack();
+              } catch {
+                Alert.alert('Error', 'Unable to delete post. Please try again.');
+              } finally {
+                setActionLoading(false);
+              }
+            },
+          },
+        ],
+      );
+    }
+  };
+
   const badge = statusBadgeConfig(post.status_color);
   const editOption = post.actions.menu_options.find(o => o.key === 'edit');
+  const deleteOption = post.actions.menu_options.find(o => o.key === 'delete');
   const closeOption = post.actions.menu_options.find(o => o.key === 'close');
 
   // ── Post Details tab ────────────────────────────────────────────────────────
@@ -495,21 +562,46 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           activeOpacity={1}
         >
           <View style={styles.menuSheet}>
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              activeOpacity={0.75}
+              disabled={actionLoading}
+              onPress={() => handleMenuAction(editOption ?? { key: 'edit', label: isBuyer ? 'Edit Demand' : 'Edit Supply', enabled: false })}
+            >
               <AppIcon name="edit" size={15} color="#374151" />
-              <Text style={styles.menuItemText}>Edit Demand</Text>
+              <Text style={[styles.menuItemText, !editOption?.enabled && styles.menuItemTextDisabled]}>
+                {isBuyer ? 'Edit Demand' : 'Edit Supply'}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              activeOpacity={0.75}
+              disabled={actionLoading}
+              onPress={() => handleMenuAction({ key: 'toggle_active', label: '', enabled: true })}
+            >
               <AppIcon name="filter" size={15} color="#374151" />
-              <Text style={styles.menuItemText}>Mark as Inactive</Text>
+              <Text style={styles.menuItemText}>
+                {post.actions.menu_options.find(o => o.key === 'toggle_active')?.label ?? 'Mark as Inactive'}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              activeOpacity={0.75}
+              onPress={() => setMenuOpen(false)}
+            >
               <AppIcon name="currency" size={15} color="#374151" />
               <Text style={styles.menuItemText}>Refresh Price</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.menuItem, styles.menuItemBorder]} activeOpacity={0.75} onPress={() => setMenuOpen(false)}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              activeOpacity={0.75}
+              disabled={actionLoading}
+              onPress={() => handleMenuAction(deleteOption ?? { key: 'delete', label: isBuyer ? 'Delete Demand' : 'Delete Supply', enabled: false })}
+            >
               <AppIcon name="notificationWarning" size={15} color="#EF4444" />
-              <Text style={[styles.menuItemText, styles.menuItemTextDestructive]}>Delete Demand</Text>
+              <Text style={[styles.menuItemText, styles.menuItemTextDestructive]}>
+                {isBuyer ? 'Delete Demand' : 'Delete Supply'}
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

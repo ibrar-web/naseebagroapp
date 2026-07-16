@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { secureStorage } from '../../../utils/secureStorage';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
@@ -125,6 +126,18 @@ const ProfileScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const [loginSheetVisible, setLoginSheetVisible] = useState(false);
   const [userStats, setUserStats] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setRefreshing(true);
+    try {
+      const res = await api.auth.getCurrentUser();
+      const fresh = (res as any)?.data ?? res ?? {};
+      if (fresh.id) dispatch(updateUser(fresh));
+    } catch {}
+    setRefreshing(false);
+  }, [isAuthenticated, dispatch]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -255,6 +268,7 @@ const ProfileScreen = ({ navigation }: any) => {
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#217A3C" colors={['#217A3C']} />}
       >
         {MENU.map(group => (
           <View key={group.groupKey} style={styles.section}>

@@ -5,8 +5,6 @@ import { AppIcon } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
-import { useAppSelector } from '../../../store';
-import { requireCompleteProfile } from '../../auth/utils/profileGate';
 import { useOfferTerms } from '../hooks/useOfferTerms';
 import { OfferPreviewCard } from '../components/OfferPreviewCard';
 import { OfferMillSelector } from '../components/OfferMillSelector';
@@ -37,7 +35,6 @@ const stripNonDigit = (v?: string | null) => Number(String(v ?? '').replace(/[^\
 
 export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
-  const user = useAppSelector(st => st.auth.user);
   const { paymentOpts, deliveryOpts } = useOfferTerms();
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +94,6 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    if (!requireCompleteProfile(user, navigation)) return;
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -124,8 +120,10 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           { label: 'Delivery Terms', value: `${deliveryDays} days` },
         ],
       });
-    } catch (err) {
-      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') setSubmitError('Unable to submit request. Please try again.');
+    } catch (err: any) {
+      if (err?.code !== 'AUTH_REQUIRED') {
+        setSubmitError(err?.response?.data?.message ?? err?.message ?? 'Unable to submit request. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

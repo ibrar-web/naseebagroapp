@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   ImageBackground,
   StyleSheet,
@@ -57,17 +58,17 @@ const PrePostScreen = ({ navigation }: Props) => {
   const loadCategories = useCallback(async () => {
     setLoading(true);
     setError('');
-
     try {
-      const response = await api.marketplace.public.listCategories();
-      setCategories(normalizeCategories(response));
-    } catch {
+      const catRes = await api.post.categories();
+      setCategories(normalizeCategories(catRes));
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.status;
       setError('Unable to load categories. Please try again.');
       setCategories([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigation]);
 
   useEffect(() => {
     loadCategories();

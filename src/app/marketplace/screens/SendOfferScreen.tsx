@@ -5,8 +5,6 @@ import { AppIcon } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
-import { useAppSelector } from '../../../store';
-import { requireCompleteProfile } from '../../auth/utils/profileGate';
 import { useOfferTerms } from '../hooks/useOfferTerms';
 import { OfferPreviewCard } from '../components/OfferPreviewCard';
 import { OfferMillSelector } from '../components/OfferMillSelector';
@@ -39,7 +37,6 @@ const stripNonDigit = (v?: string | null) => Number(String(v ?? '').replace(/[^\
 
 export const SendOfferScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
-  const user = useAppSelector(st => st.auth.user);
   const { paymentOpts, deliveryOpts } = useOfferTerms();
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +88,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
 
   const hasMills = (detail.mills?.is_mill_based ?? detail.mills_specified_section?.has_mills ?? false) &&
     ((detail.mills?.available_mills?.length ?? 0) > 0 || (detail.mills_specified_section?.mills?.length ?? 0) > 0);
+  const hasQuantity = detail.quantity_label != null || detail.quantity != null;
   const mills = detail.mills?.available_mills ?? detail.mills_specified_section?.mills ?? [];
   const heroImage = detail.category?.image ?? detail.commodity?.image ?? detail.hero_image_url ?? `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Demand')}`;
   const stats = (detail.header_stats ?? [
@@ -99,18 +97,17 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
   ]).filter((st: any) => st.value);
   const selectedMillData = mills.find((m: any) => m.id === selectedMill);
   const submittedPrice = priceMode === 'MAKE_COUNTER' ? stripNonDigit(counterPrice) : stripNonDigit(selectedMillData?.price_per_unit);
-  const canSubmit = Boolean((!hasMills || selectedMill) && quantity && paymentDays && deliveryDays && (priceMode === 'USE_BUYER_BUDGET' || counterPrice));
+  const canSubmit = Boolean((!hasMills || selectedMill) && paymentDays && deliveryDays && (priceMode === 'USE_BUYER_BUDGET' || counterPrice));
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    if (!requireCompleteProfile(user, navigation)) return;
     setSubmitting(true);
     setSubmitError('');
     try {
       await api.seller.sendDemandOffer(listingId, {
         demand_id: listingId,
         ...(hasMills && selectedMill ? { mill_id: selectedMill } : {}),
-        supply_quantity: stripNonDigit(quantity),
+        ...(hasQuantity && quantity ? { supply_quantity: stripNonDigit(quantity) } : {}),
         price_option: priceMode,
         counter_price_per_unit: submittedPrice,
         counter_payment_terms: { type: 'FIXED', fixed_days: paymentDays, weekly_percent: null },
@@ -124,14 +121,16 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
         summary: [
           { label: 'Demand ID', value: detail.code ?? listingId },
           ...(hasMills ? [{ label: 'Mill', value: selectedMillData?.name ?? 'Mill' }] : []),
-          { label: 'Supply Quantity', value: `${stripNonDigit(quantity)}` },
+          ...(hasQuantity && quantity ? [{ label: 'Supply Quantity', value: `${stripNonDigit(quantity)}` }] : []),
           { label: 'Price Option', value: priceMode === 'MAKE_COUNTER' ? `Offer PKR ${submittedPrice}` : 'Original price' },
           { label: 'Payment Terms', value: `${paymentDays} days` },
           { label: 'Delivery Terms', value: `${deliveryDays} days` },
         ],
       });
-    } catch (err) {
-      if ((err as { code?: string })?.code !== 'AUTH_REQUIRED') setSubmitError('Unable to send offer. Please try again.');
+    } catch (err: any) {
+      if (err?.code !== 'AUTH_REQUIRED') {
+        setSubmitError(err?.response?.data?.message ?? err?.message ?? 'Unable to send offer. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

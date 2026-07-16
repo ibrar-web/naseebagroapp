@@ -96,7 +96,7 @@ const PhoneScreen = ({ navigation }: Props) => {
               <Text style={styles.prefixText}>🇵🇰 +92</Text>
             </View>
             <TextInput
-              style={styles.phoneInput}
+              style={[styles.phoneInput, phone.length > 0 && !canContinue && styles.phoneInputError]}
               placeholder="3XX XXXXXXX"
               placeholderTextColor="#9CA3AF"
               value={phone}
@@ -105,6 +105,15 @@ const PhoneScreen = ({ navigation }: Props) => {
               maxLength={11}
             />
           </View>
+          {phone.length > 0 && !canContinue ? (
+            <Text style={styles.fieldError}>
+              Enter 10 digits starting with 3, or 11 digits starting with 03 — e.g. 03001234567
+            </Text>
+          ) : (
+            <Text style={styles.fieldHint}>
+              Format: 03XX XXXXXXX  or  3XX XXXXXXX (Pakistani number)
+            </Text>
+          )}
         </View>
 
         <View style={styles.mb16}>
@@ -243,6 +252,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
     backgroundColor: '#fff',
+  },
+  phoneInputError: {
+    borderColor: '#EF4444',
+  },
+  fieldHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 6,
+    marginLeft: 2,
+  },
+  fieldError: {
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 6,
+    marginLeft: 2,
   },
   channelRow: { flexDirection: 'row', gap: 10 },
   channelBtn: {

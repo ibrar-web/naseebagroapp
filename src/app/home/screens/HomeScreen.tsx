@@ -78,7 +78,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { isConnected } = useNetInfo();
-
+  console.log('user: ', user);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setRefreshKey(k => k + 1);
@@ -156,7 +156,9 @@ const HomeScreen = ({ navigation }: any) => {
         },
         {
           label: t('home.earnings'),
-          val: userStats?.seller ? fmtAmount(userStats.seller.total_received) : '—',
+          val: userStats?.seller
+            ? fmtAmount(userStats.seller.total_received)
+            : '—',
           color: '#D4AE02',
           bg: '#FFFDE6',
         },

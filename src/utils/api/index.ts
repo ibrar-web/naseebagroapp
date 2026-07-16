@@ -91,6 +91,10 @@ export const api = {
       Post('profile/device-token/remove', data, protectedRequest),
   },
 
+  post: {
+    categories: () => Get('post/categories', undefined, protectedRequest),
+  },
+
   marketplace: {
     public: {
       listCommodities: (params?: Record<string, any>) =>
@@ -127,6 +131,10 @@ export const api = {
     },
   },
   buyer: {
+    toggleDemandActive: (id: string) =>
+      Patch(`buyer/demands/${id}/toggle-active`, undefined, protectedRequest),
+    deleteDemand: (id: string) =>
+      Delete(`buyer/demands/${id}`, undefined, protectedRequest),
     sendBuyrequest: (_id: string | number, data?: any) =>
       Post('buyer/supplies/make-request', data, protectedRequest),
     listMyDemands: (params?: MyPostsListParams) =>
@@ -181,6 +189,10 @@ export const api = {
   },
 
   seller: {
+    toggleSupplyActive: (id: string) =>
+      Patch(`seller/supplies/${id}/toggle-active`, undefined, protectedRequest),
+    deleteSupply: (id: string) =>
+      Delete(`seller/supplies/${id}`, undefined, protectedRequest),
     sendDemandOffer: (_id: string | number, data?: any) =>
       Post('seller/demands/send-offer', data, protectedRequest),
     ListMyPosts: (params?: MyPostsListParams) =>

@@ -66,11 +66,25 @@ def enableProguardInReleaseBuilds = false
 
 ---
 
-### 1.3 Build Command
+### 1.3 Build Commands
+
+Node and adb are not on the default system PATH (managed via nvm). Always prefix commands:
 
 ```bash
+# Set PATH once (or add to ~/.zshrc)
+export PATH="/Users/ibrarhussain/.nvm/versions/node/v22.9.0/bin:/Users/ibrarhussain/Library/Android/sdk/platform-tools:$PATH"
+
+# Clean
+cd android && ./gradlew clean
+
+# Build release AAB
 cd android && ./gradlew bundleRelease
+
+# Run debug on device/emulator
+npx react-native run-android
 ```
+
+`NODE_BINARY` is set in `android/gradle.properties` so Gradle subprocesses can find node without PATH tricks.
 
 Output AAB location: `android/app/build/outputs/bundle/release/app-release.aab`
 
@@ -102,7 +116,7 @@ versionName "1.1.7"   // minor bump: last digit +1
 versionName "1.2.0"   // major bump: middle digit +1, last reset to 0
 ```
 
-Current version: `versionName "1.1.11"` / `versionCode 11`
+Current version: `versionName "1.2.0"` / `versionCode 12`
 
 `versionCode` must always increase with every Play Store submission — even for the same `versionName`. Never reuse a `versionCode`.
 

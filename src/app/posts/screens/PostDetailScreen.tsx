@@ -18,6 +18,7 @@ import { AppIcon } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import { useAppSelector } from '../../../store';
 import api from '../../../utils/api';
+import { AppLoader } from '../../components';
 import { OfferCard, OfferItem, normalizeOfferItem } from '../components/postsShared';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostDetail'>;
@@ -160,12 +161,11 @@ const normalizePostDetail = (
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
 
-const statusBadgeConfig = (color: string) => {
-  if (color === 'orange' || color === 'amber')
-    return { bg: '#D97706', label: 'AGING' };
-  if (color === 'red')
-    return { bg: '#EF4444', label: 'CLOSED' };
-  return { bg: '#217A3C', label: 'ACTIVE' };
+const statusBadgeConfig = (color: string): { bg: string } => {
+  if (color === 'amber' || color === 'orange' || color === 'yellow') return { bg: '#D97706' };
+  if (color === 'red')   return { bg: '#EF4444' };
+  if (color === 'gray')  return { bg: '#6B7280' };
+  return { bg: '#217A3C' };
 };
 
 const statCardColors = (color: string) => {
@@ -200,7 +200,6 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
 
   const goBack = () => {
@@ -240,7 +239,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
     };
     load();
     return () => { active = false; };
-  }, [isBuyer, mode, postId, refreshKey]);
+  }, [isBuyer, mode, postId]);
 
   if (loading && !post) {
     return (
@@ -285,7 +284,12 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
         } else {
           await api.seller.toggleSupplyActive(post.id);
         }
-        setRefreshKey(k => k + 1);
+        // reload while loader is still visible so badge updates atomically
+        const response = isBuyer
+          ? await api.buyer.myDemandDetails(post.id)
+          : await api.seller.myPostDetails(post.id);
+        const normalized = normalizePostDetail(response, post.id, mode);
+        if (normalized) setPost(normalized);
       } catch {
         Alert.alert('Error', 'Unable to update post status. Please try again.');
       } finally {
@@ -484,7 +488,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           <View style={styles.heroActions}>
             <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>{badge.label}</Text>
+              <Text style={styles.statusText}>{post.status.toUpperCase()}</Text>
             </View>
             <TouchableOpacity
               style={styles.menuBtn}
@@ -606,6 +610,8 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <AppLoader visible={actionLoading} overlay message="Updating..." />
     </View>
   );
 };

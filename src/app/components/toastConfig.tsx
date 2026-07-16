@@ -143,6 +143,17 @@ export const showDealToast = (title: string, body: string, dealId: string) => {
   showAppToast({ title, body, dealId, icon: 'currency', accentColor: '#60A5FA' });
 };
 
+export const showProfileToast = (
+  title: string,
+  body: string,
+  status: 'approved' | 'rejected',
+  onPress?: () => void,
+) => {
+  const accent = status === 'approved' ? '#4ADE80' : '#F87171';
+  const icon: AppIconName = status === 'approved' ? 'approved' : 'notificationWarning';
+  showAppToast({ title, body, icon, accentColor: accent, onPress });
+};
+
 export const showOfferToast = (offerId: string, title: string, body?: string) => {
   if (!navigationRef.isReady()) return;
   const route = navigationRef.getCurrentRoute();

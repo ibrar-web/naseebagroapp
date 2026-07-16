@@ -85,7 +85,6 @@ class HttpService {
         case 401: {
           const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
           if (currentRoute === 'Login') {
-            // Let the login screen's catch block handle the error with its own Alert
             break;
           }
           store.dispatch(resetAllReduxStates());

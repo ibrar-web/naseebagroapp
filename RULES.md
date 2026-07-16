@@ -81,7 +81,50 @@ export const API_TIMEOUT_MS = 10_000;
 
 ---
 
-## 7. Backend (NestJS) Rules
+## 7. HTTP Response Status Codes
+
+All backend endpoints **must** follow RFC 9110. Using the wrong status code causes the frontend interceptor to mishandle responses (e.g. triggering logout on a wrong password).
+
+### Success
+| Code | When to use |
+|---|---|
+| `200 OK` | GET, PATCH, PUT, DELETE — request succeeded |
+| `201 Created` | POST that creates a new resource |
+
+### Client Errors
+| Code | NestJS exception | When to use |
+|---|---|---|
+| `400 Bad Request` | `BadRequestException` | Invalid/missing input, validation failure, wrong password, bad token format |
+| `401 Unauthorized` | `UnauthorizedException` | **No identity** — missing, invalid, or expired JWT token. Login failures (wrong email/password at the login endpoint). **Nothing else.** |
+| `403 Forbidden` | `ForbiddenException` | Identity is known (user is logged in) but they lack permission — e.g. "not your offer", KYC not complete, account restricted |
+| `404 Not Found` | `NotFoundException` | Resource does not exist — user not found, listing not found, etc. |
+| `405 Method Not Allowed` | `MethodNotAllowedException` | HTTP method not supported on the endpoint |
+| `409 Conflict` | `ConflictException` | Duplicate — already exists, unique constraint violation |
+
+### Hard Rules
+- **401 is ONLY for authentication failures** (bad/missing token, login with wrong credentials). Never for "you can't do this action".
+- **403 is for authorization failures** — user is authenticated but not allowed. KYC check, restricted account, ownership check.
+- **400 is for bad input** — wrong current password, invalid field value, malformed request.
+- **404 is for missing resources** — never use `ForbiddenException('User not found')` when the resource simply doesn't exist.
+- **Never** throw `UnauthorizedException` inside a service method that is already behind `AuthTokenGuard` — the user is authenticated by the time the service runs; use `ForbiddenException` or `BadRequestException` instead.
+
+### Examples
+```typescript
+// ✅ Correct
+if (!user) throw new NotFoundException('User not found');             // 404
+if (!this.verifyPassword(dto.current, hash)) throw new BadRequestException('Current password is incorrect'); // 400
+if (deal.buyer_id !== userId) throw new ForbiddenException('Not your deal');  // 403
+// In AuthTokenGuard:
+throw new UnauthorizedException('Invalid or expired token');          // 401 ✅
+
+// ❌ Wrong
+if (!user) throw new ForbiddenException('User not found');            // should be 404
+if (!this.verifyPassword(...)) throw new UnauthorizedException(...);  // should be 400 (user is already authed)
+```
+
+---
+
+## 8. Backend (NestJS) Rules
 
 - **No raw SQL in controllers.** All queries belong in services.
 - **No importing service classes across module boundaries** without registering in the module's providers/imports.

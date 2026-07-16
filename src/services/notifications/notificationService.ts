@@ -144,9 +144,7 @@ function handleNotificationNavigation(data: Record<string, string>): void {
       break;
 
     case 'profile':
-      if (type === 'kyc_updated' || type === 'profile.kyc_updated') {
-        navigationRef.navigate('MainTabs', { screen: 'Profile' });
-      }
+      navigationRef.navigate('MainTabs', { screen: 'Profile' });
       break;
 
     case 'truck':
@@ -177,16 +175,20 @@ export function setupNotificationListeners(): () => void {
     const entityId = data.entity_id;
     const postType = data.post_type as 'supply' | 'demand' | undefined;
 
+    const status = data.status;
+    const isProfileModule = module === 'profile';
+    const resolvedStatus = isProfileModule ? status : type;
+
     const accentColor =
-      type === 'approved' ? '#4ADE80'
-      : type === 'rejected' ? '#F87171'
+      resolvedStatus === 'approved' ? '#4ADE80'
+      : resolvedStatus === 'rejected' ? '#F87171'
       : type === 'needs_revision' ? '#FBBF24'
       : module === 'deal' || module === 'truck' ? '#60A5FA'
       : '#4ADE80';
 
     const icon =
-      type === 'approved' ? 'approved'
-      : type === 'rejected' || type === 'needs_revision' ? 'notificationWarning'
+      resolvedStatus === 'approved' ? 'approved'
+      : resolvedStatus === 'rejected' || type === 'needs_revision' ? 'notificationWarning'
       : 'currency';
 
     showAppToast({

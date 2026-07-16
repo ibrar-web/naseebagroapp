@@ -43,6 +43,8 @@ const ChangePasswordScreen = ({ navigation }: any) => {
       Alert.alert('Success', 'Your password has been updated successfully.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
+    } catch {
+      // interceptor already shows the alert for 401 (wrong password) and 400 errors
     } finally {
       setSaving(false);
     }

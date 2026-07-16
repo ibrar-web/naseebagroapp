@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/rootReducer';
-import { showPostToast, showDealToast } from '../../app/components/toastConfig';
+import { showPostToast, showDealToast, showProfileToast } from '../../app/components/toastConfig';
 import { onPostApproved, onPostRejected, onPostNeedsRevision } from './posts';
 import {
   onDealCreated,
@@ -11,6 +11,8 @@ import {
   onBuyerDocRejected,
   onPaymentApproved,
 } from './deals';
+import { onKycUpdated, onBusinessUpdated, onBankUpdated } from './profile';
+import { navigationRef } from '../../navigation/AppNavigator';
 
 export const useGlobalSocketListeners = () => {
   const isAuthenticated = useSelector(
@@ -93,6 +95,59 @@ export const useGlobalSocketListeners = () => {
       unsubBuyerApproved();
       unsubBuyerRejected();
       unsubPayment();
+    };
+  }, [isAuthenticated]);
+
+  // ── Profile approval events ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const goToProfile = () => {
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('MainTabs', { screen: 'Profile' });
+      }
+    };
+
+    const unsubKyc = onKycUpdated((data) => {
+      const approved = data.kyc_status === 'approved';
+      showProfileToast(
+        approved ? 'KYC Approved' : 'KYC Rejected',
+        approved
+          ? 'Your identity verification has been approved.'
+          : `KYC rejected${data.reason ? ': ' + data.reason : '.'}`,
+        approved ? 'approved' : 'rejected',
+        goToProfile,
+      );
+    });
+
+    const unsubBusiness = onBusinessUpdated((data) => {
+      const approved = data.status === 'approved';
+      showProfileToast(
+        approved ? 'Business Profile Approved' : 'Business Profile Rejected',
+        approved
+          ? 'Your business profile has been verified and approved.'
+          : `Business profile rejected${data.reason ? ': ' + data.reason : '.'}`,
+        approved ? 'approved' : 'rejected',
+        goToProfile,
+      );
+    });
+
+    const unsubBank = onBankUpdated((data) => {
+      const approved = data.status === 'approved';
+      showProfileToast(
+        approved ? 'Bank Account Approved' : 'Bank Account Rejected',
+        approved
+          ? 'Your bank account has been verified and approved.'
+          : `Bank account rejected${data.reason ? ': ' + data.reason : '.'}`,
+        approved ? 'approved' : 'rejected',
+        goToProfile,
+      );
+    });
+
+    return () => {
+      unsubKyc();
+      unsubBusiness();
+      unsubBank();
     };
   }, [isAuthenticated]);
 };

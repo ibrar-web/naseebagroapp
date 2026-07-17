@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Modal,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -292,12 +292,12 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
 
     if (option.key === 'edit') {
       if (!option.enabled) {
-        Alert.alert('Cannot Edit', 'This post has active offers and cannot be edited.');
+        showAlert('info', 'Cannot Edit', 'This post has active offers and cannot be edited.');
         return;
       }
       const ed = post.edit_data;
       if (!ed?.category_id) {
-        Alert.alert('Error', 'Post data is still loading. Please go back and reopen this post.');
+        showAlert('error', 'Error', 'Post data is still loading. Please go back and reopen this post.');
         return;
       }
       const categoryData = { id: ed.category_id, name: ed.category_name ?? '' };
@@ -348,7 +348,7 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
         const normalized = normalizePostDetail(response, post.id, mode);
         if (normalized) setPost(normalized);
       } catch {
-        Alert.alert('Error', 'Unable to update post status. Please try again.');
+        showAlert('error', 'Error', 'Unable to update post status. Please try again.');
       } finally {
         setActionLoading(false);
       }
@@ -357,35 +357,24 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
 
     if (option.key === 'delete') {
       if (!option.enabled) {
-        Alert.alert('Cannot Delete', 'This post has active offers and cannot be deleted.');
+        showAlert('info', 'Cannot Delete', 'This post has active offers and cannot be deleted.');
         return;
       }
-      Alert.alert(
-        'Delete Post',
-        'Are you sure you want to delete this post? This cannot be undone.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              setActionLoading(true);
-              try {
-                if (isBuyer) {
-                  await api.buyer.deleteDemand(post.id);
-                } else {
-                  await api.seller.deleteSupply(post.id);
-                }
-                goBack();
-              } catch {
-                Alert.alert('Error', 'Unable to delete post. Please try again.');
-              } finally {
-                setActionLoading(false);
-              }
-            },
-          },
-        ],
-      );
+      showConfirm('warning', 'Delete Post', 'Are you sure you want to delete this post? This cannot be undone.', async () => {
+        setActionLoading(true);
+        try {
+          if (isBuyer) {
+            await api.buyer.deleteDemand(post.id);
+          } else {
+            await api.seller.deleteSupply(post.id);
+          }
+          goBack();
+        } catch {
+          showAlert('error', 'Error', 'Unable to delete post. Please try again.');
+        } finally {
+          setActionLoading(false);
+        }
+      });
     }
   };
 

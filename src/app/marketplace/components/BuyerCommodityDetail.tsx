@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -13,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
+import { showAlert } from '../../components/toastConfig';
 import api from '../../../utils/api';
 import MockStatusBar from '../../components/MockStatusBar';
 
@@ -465,7 +465,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
                 }
               } catch {
                 setSaved(!next);
-                Alert.alert('Error', next ? 'Could not save listing.' : 'Could not remove from saved.');
+                showAlert('error', 'Error', next ? 'Could not save listing.' : 'Could not remove from saved.');
               } finally {
                 setSavingFav(false);
               }

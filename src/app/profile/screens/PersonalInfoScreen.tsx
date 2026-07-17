@@ -14,6 +14,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
@@ -310,7 +311,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       setSaved(true);
     } catch (error) {
       console.error('PersonalInfoScreen: Save failed:', error);
-      Alert.alert('Update Failed', 'Please check your details and try again.');
+      showAlert('error', 'Update Failed', 'Please check your details and try again.');
     } finally {
       setSaving(false);
     }

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { Feather } from '../../../assets/icons/feather';
@@ -173,7 +174,7 @@ const TrucksTab: React.FC<Props> = ({
       setShowForm(false);
       await loadTrucks();
     } catch {
-      Alert.alert('Error', 'Failed to add truck.');
+      showAlert('error', 'Error', 'Failed to add truck.');
     } finally {
       setSubmitting(false);
     }
@@ -189,7 +190,7 @@ const TrucksTab: React.FC<Props> = ({
       });
       await loadTrucks();
     } catch {
-      Alert.alert('Error', 'Failed to save changes.');
+      showAlert('error', 'Error', 'Failed to save changes.');
     } finally {
       setSavingFields(false);
     }
@@ -217,7 +218,7 @@ const TrucksTab: React.FC<Props> = ({
       }
       await loadTrucks();
     } catch {
-      Alert.alert('Error', 'Failed to upload document.');
+      showAlert('error', 'Error', 'Failed to upload document.');
     } finally {
       setUploadingDoc(null);
     }
@@ -266,7 +267,7 @@ const TrucksTab: React.FC<Props> = ({
         });
       } catch (e) {
         if (DocumentPicker.isCancel(e)) return;
-        Alert.alert('Error', 'Failed to pick document.');
+        showAlert('error', 'Error', 'Failed to pick document.');
       }
     };
 

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +15,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
+import { showAlert } from '../../components/toastConfig';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RateDeal'>;
 
@@ -39,13 +39,11 @@ const RateDealScreen = ({ navigation, route }: Props) => {
         note: note.trim() || undefined,
       });
       onRatingSubmitted?.(starRating, note.trim() || undefined);
-      Alert.alert('Thank you!', 'Your rating has been submitted.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showAlert('success', 'Thank you!', 'Your rating has been submitted.', { confirmText: 'OK', onConfirm: () => navigation.goBack() });
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ?? 'Something went wrong. Please try again.';
-      Alert.alert('Error', msg);
+      showAlert('error', 'Error', msg);
     } finally {
       setSubmitting(false);
     }

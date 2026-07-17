@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Alert,
   View,
   Text,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   KeyboardTypeOptions,
   RefreshControl,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -267,7 +267,7 @@ const BusinessProfileScreen = ({ navigation }: any) => {
       setSaved(true);
     } catch (error) {
       console.error('BusinessProfileScreen: Save failed:', error);
-      Alert.alert('Update Failed', 'Please check your details and try again.');
+      showAlert('error', 'Update Failed', 'Please check your details and try again.');
     } finally {
       setSaving(false);
     }

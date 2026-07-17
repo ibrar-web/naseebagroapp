@@ -8,9 +8,9 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch } from '../../../store';
@@ -49,10 +49,7 @@ const PhoneScreen = ({ navigation }: Props) => {
       dispatch(setRegisterPhone(normalized));
       navigation.navigate('OTP', { phone: normalized, channel });
     } catch (err: any) {
-      Alert.alert(
-        'Could not send OTP',
-        err?.response?.data?.message ?? 'Please try again.',
-      );
+      showAlert('error', 'Could not send OTP', err?.response?.data?.message ?? 'Please try again.');
     } finally {
       setLoading(false);
     }

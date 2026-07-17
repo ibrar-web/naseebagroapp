@@ -11,8 +11,8 @@ import {
   StatusBar,
   Dimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { secureStorage } from '../../../utils/secureStorage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -61,7 +61,7 @@ const LoginScreen = ({ navigation }: Props) => {
       const msg = status === 401
         ? 'Incorrect email or password. Please try again.'
         : (error?.response?.data?.message ?? 'Something went wrong. Please try again.');
-      Alert.alert('Login Failed', msg);
+      showAlert('error', 'Login Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -143,11 +143,13 @@ const LoginScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
           </View>
 
-          {/* ── Forgot PIN ── */}
-          <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
-            <Text className="text-green-700 text-sm font-bold">
-              Forgot PIN?
-            </Text>
+          {/* ── Forgot Password ── */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={{ alignSelf: 'flex-end', marginTop: 6, marginBottom: 24 }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: '#1A6B34', fontSize: 12, fontWeight: '600' }}>Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* ── Sign In button ── */}

@@ -10,7 +10,6 @@ import {
   ImageBackground,
   Image,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { RootStackParamList } from '../../../navigation/types';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
+import { showAlert } from '../../components/toastConfig';
 import {
   launchImageLibrary,
   type Asset,
@@ -84,14 +84,10 @@ const SubmitTicketScreen = ({ navigation, route }: Props) => {
         await api.seller.submitDispute(dealId, body);
       }
 
-      Alert.alert(
-        'Ticket Submitted',
-        'Your dispute ticket has been submitted. Our team will review it within 24 hours.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
+      showAlert('success', 'Ticket Submitted', 'Your dispute ticket has been submitted. Our team will review it within 24 hours.', { confirmText: 'OK', onConfirm: () => navigation.goBack() });
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Something went wrong. Please try again.';
-      Alert.alert('Error', msg);
+      showAlert('error', 'Error', msg);
     } finally {
       setSubmitting(false);
     }

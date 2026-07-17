@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { showConfirm } from '../../components/toastConfig';
 
 type MinUser =
   | { is_verified?: boolean; profile_completion?: number }
@@ -13,16 +13,11 @@ export const requireCompleteProfile = (
   console.log('user?.profile_completion: ', user?.profile_completion);
   const completion = user?.profile_completion ?? 0;
   if (completion < 100) {
-    Alert.alert(
+    showConfirm(
+      'warning',
       'Profile Incomplete',
       'Please complete your profile verification before creating posts or sending offers.',
-      [
-        {
-          text: 'Complete Profile',
-          onPress: () => navigation.navigate('VerificationStatus'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
+      () => navigation.navigate('VerificationStatus'),
     );
     return false;
   }

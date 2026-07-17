@@ -7,9 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import AuthStatusBar from '../components/AuthStatusBar';
@@ -59,10 +59,7 @@ const OTPScreen = ({ navigation, route }: Props) => {
       setCountdown(RESEND_SECONDS);
       inputs.current[0]?.focus();
     } catch (err: any) {
-      Alert.alert(
-        'Could not resend OTP',
-        err?.response?.data?.message ?? 'Please try again.',
-      );
+      showAlert('error', 'Could not resend OTP', err?.response?.data?.message ?? 'Please try again.');
     } finally {
       setResending(false);
     }
@@ -77,12 +74,12 @@ const OTPScreen = ({ navigation, route }: Props) => {
       if (res?.valid) {
         navigation.replace('Location');
       } else {
-        Alert.alert('Invalid OTP', 'The code you entered is incorrect or expired.');
+        showAlert('error', 'Invalid OTP', 'The code you entered is incorrect or expired.');
         setOtp(['', '', '', '', '', '']);
         inputs.current[0]?.focus();
       }
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message ?? 'Verification failed.');
+      showAlert('error', 'Error', err?.response?.data?.message ?? 'Verification failed.');
     } finally {
       setVerifying(false);
     }

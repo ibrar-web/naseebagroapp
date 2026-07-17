@@ -10,10 +10,10 @@ import {
   Platform,
   Image,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
+import { showAlert } from '../../components/toastConfig';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
 import iconRegistry from '../../../assets/icons/iconRegistry';
@@ -145,7 +145,7 @@ const QueryChatScreen = ({ navigation, route }: Props) => {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Failed to send message.';
-      Alert.alert('Error', msg);
+      showAlert('error', 'Error', msg);
     } finally {
       setSending(false);
     }

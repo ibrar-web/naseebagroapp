@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Alert,
   ActivityIndicator,
   View,
   Text,
@@ -15,6 +14,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import { AppIcon } from '../../../assets/icons';
 import { useTranslation } from '../../../localization';
 import { AppLoader } from '../../components';
@@ -215,7 +215,7 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
       closeForm();
       await loadBankingDetails();
     } catch {
-      Alert.alert('Update Failed', 'Please check your banking details.');
+      showAlert('error', 'Update Failed', 'Please check your banking details.');
     } finally {
       setSaving(false);
     }
@@ -223,24 +223,17 @@ const PaymentMethodsScreen = ({ navigation }: any) => {
 
   const handleDelete = (account: BankingDetail) => {
     if (!account.id || !token) return;
-    Alert.alert('Delete Account', 'Remove this banking detail?', [
-      { text: t('payments.cancel'), style: 'cancel' },
-      {
-        text: t('payments.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          setSaving(true);
-          try {
-            await api.profile.banking.remove(account.id);
-            await loadBankingDetails();
-          } catch {
-            Alert.alert('Delete Failed', 'Please try again.');
-          } finally {
-            setSaving(false);
-          }
-        },
-      },
-    ]);
+    showConfirm('warning', 'Delete Account', 'Remove this banking detail?', async () => {
+      setSaving(true);
+      try {
+        await api.profile.banking.remove(account.id);
+        await loadBankingDetails();
+      } catch {
+        showAlert('error', 'Delete Failed', 'Please try again.');
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   const FORM_FIELDS: { label: string; key: keyof BankingForm; keyboard?: any; placeholder?: string }[] = isMFBank

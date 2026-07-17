@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import { showAlert } from '../app/components/toastConfig';
 
 interface NetInfoResult {
   isConnected: boolean;
@@ -28,11 +28,7 @@ export function useNetInfo(): NetInfoResult {
 
       // Show alert only when transitioning from connected → disconnected
       if (prevConnected.current === true && !connected) {
-        Alert.alert(
-          'No Internet Connection',
-          'You are offline. Some features may not be available.',
-          [{ text: 'OK' }],
-        );
+        showAlert('warning', 'No Internet Connection', 'You are offline. Some features may not be available.');
       }
 
       prevConnected.current = connected;
@@ -52,11 +48,7 @@ export function useNetInfo(): NetInfoResult {
 export async function checkInternet(): Promise<boolean> {
   const state = await NetInfo.fetch();
   if (!state.isConnected) {
-    Alert.alert(
-      'No Internet Connection',
-      'Please check your internet connection and try again.',
-      [{ text: 'OK' }],
-    );
+    showAlert('warning', 'No Internet Connection', 'Please check your internet connection and try again.');
     return false;
   }
   return true;

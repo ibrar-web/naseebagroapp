@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Alert } from 'react-native';
+import { showAlert, showConfirm } from '../app/components/toastConfig';
 import { secureStorage } from './secureStorage';
 import { store } from '../store';
 import { ENV } from '../environment';
@@ -65,7 +65,7 @@ class HttpService {
       }
 
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        Alert.alert('Timeout', 'Request timed out. Please try again later.');
+        showAlert('error', 'Timeout', 'Request timed out. Please try again later.');
         return Promise.reject(error);
       }
 
@@ -75,11 +75,11 @@ class HttpService {
 
       switch (status) {
         case 'Network Error':
-          Alert.alert('Network Error', 'Cannot reach server. Please check your connection.');
+          showAlert('error', 'Network Error', 'Cannot reach server. Please check your connection.');
           break;
 
         case 400:
-          Alert.alert('Error', errorMessage);
+          showAlert('error', 'Error', errorMessage);
           break;
 
         case 401: {
@@ -95,32 +95,24 @@ class HttpService {
 
         case 403: {
           const isProfileIncomplete = errorMessage.toLowerCase().includes('profile');
-          Alert.alert(
-            isProfileIncomplete ? 'Profile Incomplete' : 'Access Denied',
-            errorMessage,
-            isProfileIncomplete
-              ? [
-                  {
-                    text: 'Complete Profile',
-                    onPress: () => {
-                      if (navigationRef.isReady()) {
-                        navigationRef.navigate('VerificationStatus' as any);
-                      }
-                    },
-                  },
-                  { text: 'Cancel', style: 'cancel' },
-                ]
-              : [{ text: 'OK' }],
-          );
+          if (isProfileIncomplete) {
+            showConfirm('warning', 'Profile Incomplete', errorMessage, () => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('VerificationStatus' as any);
+              }
+            });
+          } else {
+            showAlert('error', 'Access Denied', errorMessage);
+          }
           break;
         }
 
         case 409:
-          Alert.alert('Alert', errorMessage);
+          showAlert('info', 'Alert', errorMessage);
           break;
 
         case 422:
-          Alert.alert('Validation Error', errorMessage || 'Please check your inputs.');
+          showAlert('error', 'Validation Error', errorMessage || 'Please check your inputs.');
           break;
 
         case 404:
@@ -128,11 +120,11 @@ class HttpService {
           break;
 
         case 500:
-          Alert.alert('Server Error', 'A server error occurred. Please try again later.');
+          showAlert('error', 'Server Error', 'A server error occurred. Please try again later.');
           break;
 
         default:
-          Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+          showAlert('error', 'Error', 'An unexpected error occurred. Please try again.');
           break;
       }
 

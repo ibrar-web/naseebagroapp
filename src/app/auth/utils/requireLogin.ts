@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { showConfirm } from '../../components/toastConfig';
 import { showAuthRequiredSheet } from './authRequiredSheet';
 
 const getRootNavigation = (navigation: any) =>
@@ -15,8 +15,5 @@ export const promptLogin = (navigation: any) => {
     return;
   }
 
-  Alert.alert('Login Required', 'Please log in to continue.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Log In', onPress: () => navigateToLogin(navigation) },
-  ]);
+  showConfirm('info', 'Login Required', 'Please log in to continue.', () => navigateToLogin(navigation));
 };

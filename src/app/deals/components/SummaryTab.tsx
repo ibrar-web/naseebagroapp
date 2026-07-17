@@ -11,8 +11,8 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../../utils/api';
 import { AppIcon } from '../../../assets/icons';
@@ -124,7 +124,7 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
       setShowModal(false);
       await loadDeal();
     } catch {
-      Alert.alert('Error', 'Failed to update company name.');
+      showAlert('error', 'Error', 'Failed to update company name.');
     } finally {
       setSaving(false);
     }

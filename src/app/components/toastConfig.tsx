@@ -85,6 +85,10 @@ const NotificationToast = ({ text1, text2, props }: NotificationToastProps) => {
   );
 };
 
+// ─── showAlert re-export (implemented in AppAlert.tsx as a centered modal) ────
+
+export { showAlert, showConfirm } from './AppAlert';
+
 // ─── Toast config ─────────────────────────────────────────────────────────────
 
 export const toastConfig: ToastConfig = {
@@ -161,8 +165,6 @@ export const showOfferToast = (offerId: string, title: string, body?: string) =>
   if (alreadyOnScreen) return;
   showAppToast({ title, body, offerId, icon: 'currency', accentColor: '#4ADE80' });
 };
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {

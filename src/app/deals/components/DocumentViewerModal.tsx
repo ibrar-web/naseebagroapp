@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Modal,
   SafeAreaView,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { WebView } from 'react-native-webview';
 
 interface Props {
@@ -34,7 +34,7 @@ const DocumentViewerModal: React.FC<Props> = ({ visible, url, fileName, onClose 
 
   const handleDownload = () => {
     Linking.openURL(url).catch(() =>
-      Alert.alert('Error', 'Could not open document.'),
+      showAlert('error', 'Error', 'Could not open document.'),
     );
   };
 

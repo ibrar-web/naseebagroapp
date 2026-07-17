@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
-  Alert,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import { useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { AppIcon } from '../../../assets/icons';
@@ -121,7 +121,7 @@ const KycDetailsScreen = ({ navigation }: any) => {
       setNewFront(null);
       setNewBack(null);
       setStatus('pending');
-      Alert.alert('Submitted', 'Your documents have been resubmitted for review. We will notify you once verified.');
+      showAlert('success', 'Submitted', 'Your documents have been resubmitted for review. We will notify you once verified.');
     } finally {
       setUploading(false);
     }

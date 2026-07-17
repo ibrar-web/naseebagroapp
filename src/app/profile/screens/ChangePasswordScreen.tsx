@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import MockStatusBar from '../../components/MockStatusBar';
 import { AppLoader } from '../../components';
 import api from '../../../utils/api';
+import { showAlert } from '../../components/toastConfig';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -31,7 +31,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   const handleSubmit = async () => {
     if (!canSubmit || saving) return;
     if (newPassword !== confirmPassword) {
-      Alert.alert('Mismatch', 'New password and confirm password do not match.');
+      showAlert('error', 'Mismatch', 'New password and confirm password do not match.');
       return;
     }
     setSaving(true);
@@ -40,9 +40,8 @@ const ChangePasswordScreen = ({ navigation }: any) => {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      Alert.alert('Success', 'Your password has been updated successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showAlert('success', 'Success', 'Your password has been updated successfully.');
+      navigation.goBack();
     } catch {
       // interceptor already shows the alert for 401 (wrong password) and 400 errors
     } finally {

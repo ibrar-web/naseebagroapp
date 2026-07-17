@@ -8,8 +8,8 @@ import {
   RefreshControl,
   Modal,
   StyleSheet,
-  Alert,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
@@ -154,23 +154,16 @@ const AppSettingsScreen = ({ navigation }: any) => {
   };
 
   const handleClearCache = () => {
-    Alert.alert('Clear Cache', 'Remove all cached app data? You will stay logged in.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const keys = await AsyncStorage.getAllKeys();
-            const toRemove = keys.filter(k => k !== 'session');
-            if (toRemove.length > 0) await AsyncStorage.multiRemove(toRemove);
-            Alert.alert('Cache Cleared', 'App cache has been cleared successfully.');
-          } catch {
-            Alert.alert('Error', 'Failed to clear cache. Please try again.');
-          }
-        },
-      },
-    ]);
+    showConfirm('warning', 'Clear Cache', 'Remove all cached app data? You will stay logged in.', async () => {
+      try {
+        const keys = await AsyncStorage.getAllKeys();
+        const toRemove = keys.filter(k => k !== 'session');
+        if (toRemove.length > 0) await AsyncStorage.multiRemove(toRemove);
+        showAlert('success', 'Cache Cleared', 'App cache has been cleared successfully.');
+      } catch {
+        showAlert('error', 'Error', 'Failed to clear cache. Please try again.');
+      }
+    });
   };
 
   const handleSelectCurrency = (currency: string) => {

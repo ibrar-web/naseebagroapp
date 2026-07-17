@@ -23,6 +23,7 @@ import { PostFormMills } from './PostFormMills';
 import { PostFormPaymentTerms } from './PostFormPaymentTerms';
 import { PostFormDeliveryTerms } from './PostFormDeliveryTerms';
 import type { CityValue } from '../types/postForm.types';
+import { AppLoader } from '../../components';
 
 type Props = {
   categoryName: string;
@@ -257,6 +258,8 @@ export const CategoryPostForm = ({
           )}
         </TouchableOpacity>
       </View>
+
+      <AppLoader overlay visible={f.submitting} message="Submitting..." />
     </View>
   );
 };

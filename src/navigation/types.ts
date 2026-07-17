@@ -128,6 +128,7 @@ export type RootStackParamList = {
     imageUrl?: string | null;
   };
   ChangePassword: undefined;
+  ForgotPassword: undefined;
 };
 
 export type RootStackNavProp = NativeStackNavigationProp<RootStackParamList>;

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -311,25 +311,19 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
   };
 
   const handleAccept = () => {
-    Alert.alert('Accept Offer', 'This will create a Deal instantly. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: async () => {
-          setActionLoading(true);
-          try {
-            isBuyer
-              ? await api.buyer.acceptOffer(offerId)
-              : await api.seller.acceptOffer(offerId);
-            await reloadDetail();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
-          } finally {
-            setActionLoading(false);
-          }
-        },
-      },
-    ]);
+    showConfirm('info', 'Accept Offer', 'This will create a Deal instantly. Continue?', async () => {
+      setActionLoading(true);
+      try {
+        isBuyer
+          ? await api.buyer.acceptOffer(offerId)
+          : await api.seller.acceptOffer(offerId);
+        await reloadDetail();
+      } catch (e: any) {
+        showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
+      } finally {
+        setActionLoading(false);
+      }
+    });
   };
 
   const handleReject = (isSender: boolean) => {
@@ -337,26 +331,19 @@ const OfferDetailScreen = ({ navigation, route }: Props) => {
     const msg = isSender
       ? 'Withdraw your offer? This cannot be undone.'
       : 'Reject this offer? This cannot be undone.';
-    Alert.alert(label, msg, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: label,
-        style: 'destructive',
-        onPress: async () => {
-          setActionLoading(true);
-          try {
-            isBuyer
-              ? await api.buyer.rejectOffer(offerId)
-              : await api.seller.rejectOffer(offerId);
-            await reloadDetail();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Action failed');
-          } finally {
-            setActionLoading(false);
-          }
-        },
-      },
-    ]);
+    showConfirm('warning', label, msg, async () => {
+      setActionLoading(true);
+      try {
+        isBuyer
+          ? await api.buyer.rejectOffer(offerId)
+          : await api.seller.rejectOffer(offerId);
+        await reloadDetail();
+      } catch (e: any) {
+        showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Action failed');
+      } finally {
+        setActionLoading(false);
+      }
+    });
   };
 
   useEffect(() => {

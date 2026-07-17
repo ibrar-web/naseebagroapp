@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -314,15 +314,15 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
 
   const handleCounter = async () => {
     if (!counterPrice || counterPrice <= 0) {
-      Alert.alert('Enter a valid price');
+      showAlert('error', 'Enter a valid price');
       return;
     }
     if (counterPrice < minCounterPrice) {
-      Alert.alert('Price too low', `Minimum counter price is PKR ${minCounterPrice.toLocaleString('en-PK')}`);
+      showAlert('error', 'Price too low', `Minimum counter price is PKR ${minCounterPrice.toLocaleString('en-PK')}`);
       return;
     }
     if (counterPrice > maxCounterPrice) {
-      Alert.alert('Price too high', `Maximum counter price is PKR ${maxCounterPrice.toLocaleString('en-PK')}`);
+      showAlert('error', 'Price too high', `Maximum counter price is PKR ${maxCounterPrice.toLocaleString('en-PK')}`);
       return;
     }
     setActionLoading(true);
@@ -336,44 +336,34 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
       setCounterVisible(false);
       fetchOffer();
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Counter offer failed');
+      showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Counter offer failed');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleAccept = () => {
-    Alert.alert('Accept Offer', 'This will create a Deal instantly. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Accept', onPress: async () => {
-          setActionLoading(true);
-          try {
-            mode === 'buyer' ? await api.buyer.acceptOffer(offerId) : await api.seller.acceptOffer(offerId);
-            fetchOffer();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
-          } finally { setActionLoading(false); }
-        },
-      },
-    ]);
+    showConfirm('info', 'Accept Offer', 'This will create a Deal instantly. Continue?', async () => {
+      setActionLoading(true);
+      try {
+        mode === 'buyer' ? await api.buyer.acceptOffer(offerId) : await api.seller.acceptOffer(offerId);
+        fetchOffer();
+      } catch (e: any) {
+        showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Accept failed');
+      } finally { setActionLoading(false); }
+    });
   };
 
   const handleReject = () => {
-    Alert.alert('Reject Offer', 'Are you sure you want to reject?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject', style: 'destructive', onPress: async () => {
-          setActionLoading(true);
-          try {
-            mode === 'buyer' ? await api.buyer.rejectOffer(offerId) : await api.seller.rejectOffer(offerId);
-            fetchOffer();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message ?? e?.message ?? 'Reject failed');
-          } finally { setActionLoading(false); }
-        },
-      },
-    ]);
+    showConfirm('warning', 'Reject Offer', 'Are you sure you want to reject?', async () => {
+      setActionLoading(true);
+      try {
+        mode === 'buyer' ? await api.buyer.rejectOffer(offerId) : await api.seller.rejectOffer(offerId);
+        fetchOffer();
+      } catch (e: any) {
+        showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Reject failed');
+      } finally { setActionLoading(false); }
+    });
   };
 
   const goBack = () => {

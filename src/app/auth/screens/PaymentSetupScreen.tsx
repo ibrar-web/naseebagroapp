@@ -8,9 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
+import { showAlert, showConfirm } from '../../components/toastConfig';
 import { secureStorage } from '../../../utils/secureStorage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
@@ -93,10 +93,10 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
 
   const handleSubmit = async () => {
     if (loading) return;
-    if (!form.bankId) { Alert.alert('Missing Field', 'Please select a bank.'); return; }
-    if (form.accountTitle.trim().length < 2) { Alert.alert('Missing Field', 'Please enter your account title.'); return; }
-    if (form.accountNumber.trim().length < 5) { Alert.alert('Missing Field', isMFBank ? 'Please enter your mobile / account number.' : 'Please enter your account number.'); return; }
-    if (!isMFBank && form.iban.trim().length < 10) { Alert.alert('Missing Field', 'Please enter your IBAN.'); return; }
+    if (!form.bankId) { showAlert('error', 'Missing Field', 'Please select a bank.'); return; }
+    if (form.accountTitle.trim().length < 2) { showAlert('error', 'Missing Field', 'Please enter your account title.'); return; }
+    if (form.accountNumber.trim().length < 5) { showAlert('error', 'Missing Field', isMFBank ? 'Please enter your mobile / account number.' : 'Please enter your account number.'); return; }
+    if (!isMFBank && form.iban.trim().length < 10) { showAlert('error', 'Missing Field', 'Please enter your IBAN.'); return; }
     setLoading(true);
     try {
       const formData = new FormData();
@@ -164,16 +164,9 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       const status = err?.response?.status ?? err?.status;
       const serverMsg: string = err?.response?.data?.message ?? err?.message ?? '';
       if (status === 409 || serverMsg.toLowerCase().includes('already registered')) {
-        Alert.alert(
-          'Email Already Registered',
-          'This email is already registered. Please login and complete your profile.',
-          [
-            { text: 'Login', onPress: () => navigation.navigate('Login' as any) },
-            { text: 'Cancel', style: 'cancel' },
-          ],
-        );
+        showConfirm('info', 'Email Already Registered', 'This email is already registered. Please login and complete your profile.', () => navigation.navigate('Login' as any));
       } else {
-        Alert.alert('Registration Failed', 'Please check your details and try again.');
+        showAlert('error', 'Registration Failed', 'Please check your details and try again.');
       }
     } finally {
       setLoading(false);

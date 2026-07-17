@@ -11,8 +11,8 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import { showAlert } from '../../components/toastConfig';
 import {
   launchImageLibrary,
   type ImagePickerResponse,
@@ -176,7 +176,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
       setShowModal(false);
       await loadPayments();
     } catch {
-      Alert.alert('Error', 'Failed to submit payment.');
+      showAlert('error', 'Error', 'Failed to submit payment.');
     } finally {
       setSubmitting(false);
     }

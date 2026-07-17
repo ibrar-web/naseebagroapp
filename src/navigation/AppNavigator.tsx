@@ -15,6 +15,7 @@ import WelcomeScreen from '../app/auth/screens/WelcomeScreen';
 import LoginScreen from '../app/auth/screens/LoginScreen';
 import PhoneScreen from '../app/auth/screens/PhoneScreen';
 import OTPScreen from '../app/auth/screens/OTPScreen';
+import ForgotPasswordScreen from '../app/auth/screens/ForgotPasswordScreen';
 
 // Main tabs
 import HomeScreen from '../app/home/screens/HomeScreen';
@@ -77,6 +78,7 @@ import { subscribeAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet'
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '../app/components/toastConfig';
 import OfferAlertToast from '../app/components/OfferAlertToast';
+import { AppAlertProvider } from '../app/components/AppAlert';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -303,6 +305,7 @@ export const AppNavigator = () => {
           />
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Phone" component={PhoneScreen} />
           <Stack.Screen name="OTP" component={OTPScreen} />
 
@@ -327,6 +330,7 @@ export const AppNavigator = () => {
       />
       <OfferAlertToast />
       <Toast config={toastConfig} />
+      <AppAlertProvider />
     </>
   );
 };

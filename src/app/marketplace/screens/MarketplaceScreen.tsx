@@ -27,6 +27,9 @@ import type { AppIconName } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import iconRegistry from '../../../assets/icons/iconRegistry';
 import api from '../../../utils/api';
+import { useCities } from '../../../hooks/useCities';
+import type { CachedCity } from '../../../store/slices/publicDataSlice';
+import { AppLoader } from '../../components';
 
 type SheetType = 'filter' | 'sort' | 'signup' | null;
 type PostType = 'SUPPLY' | 'DEMAND';
@@ -117,16 +120,15 @@ type MarketplacePayload = {
   listings: MarketListing[];
   filterOptions: {
     commodities: FilterOption[];
-    locations: string[];
-    badges: string[];
+    grades: string[];
   };
   meta: MarketplaceMeta;
 };
 
 type MarketplaceFilters = {
   selectedCommodityId: string;
-  selectedLocation: string;
-  selectedBadge: string;
+  selectedLocations: string[];
+  selectedGrades: string[];
   verifiedOnly: boolean;
   minPrice: string;
   maxPrice: string;
@@ -137,8 +139,8 @@ const PAGE_SIZE = 20;
 const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
 const EMPTY_FILTERS: MarketplaceFilters = {
   selectedCommodityId: '',
-  selectedLocation: '',
-  selectedBadge: '',
+  selectedLocations: [],
+  selectedGrades: [],
   verifiedOnly: false,
   minPrice: '',
   maxPrice: '',
@@ -190,10 +192,7 @@ const normalizeMarketplacePayload = (response: any): MarketplacePayload => {
       commodities: Array.isArray(filterOptions.commodities)
         ? filterOptions.commodities
         : [],
-      locations: Array.isArray(filterOptions.locations)
-        ? filterOptions.locations
-        : [],
-      badges: Array.isArray(filterOptions.badges) ? filterOptions.badges : [],
+      grades: Array.isArray(filterOptions.grades) ? filterOptions.grades : [],
     },
     meta: root?.meta ?? {},
   };
@@ -260,19 +259,31 @@ const HeaderAction = ({
   icon,
   label,
   onPress,
+  active = false,
 }: {
   icon: 'filter' | 'sort';
   label: string;
   onPress: () => void;
+  active?: boolean;
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    className="flex-row items-center rounded-[10px] px-3 py-2 border border-white/20 bg-white/15"
-    style={{ gap: 5 }}
+    className="flex-row items-center rounded-[10px] px-3 py-2"
+    style={[
+      { gap: 5 },
+      active
+        ? { backgroundColor: '#F3CD03', borderWidth: 0 }
+        : { borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(255,255,255,0.15)' },
+    ]}
     activeOpacity={0.82}
   >
-    <AppIcon name={icon} size={14} color="#FFFFFF" />
-    <Text className="text-white text-[11px] font-semibold">{label}</Text>
+    <AppIcon name={icon} size={14} color={active ? '#0D3B1F' : '#FFFFFF'} />
+    <Text
+      className="text-[11px] font-semibold"
+      style={{ color: active ? '#0D3B1F' : '#FFFFFF' }}
+    >
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -449,16 +460,117 @@ const SelectDropdown = ({
   );
 };
 
+const MultiSelectDropdown = ({
+  label,
+  allLabel,
+  items,
+  selectedIds,
+  onChangeIds,
+  searchable = false,
+}: {
+  label: string;
+  allLabel: string;
+  items: { id: string; name: string }[];
+  selectedIds: string[];
+  onChangeIds: (ids: string[]) => void;
+  searchable?: boolean;
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+
+  const filtered = React.useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter(item => item.name.toLowerCase().includes(q));
+  }, [items, search]);
+
+  const triggerLabel =
+    selectedIds.length === 0
+      ? allLabel
+      : selectedIds.length === 1
+      ? (items.find(i => i.id === selectedIds[0])?.name ?? allLabel)
+      : `${selectedIds.length} selected`;
+
+  const toggle = (id: string) =>
+    onChangeIds(
+      selectedIds.includes(id)
+        ? selectedIds.filter(i => i !== id)
+        : [...selectedIds, id],
+    );
+
+  return (
+    <SheetSection title={label}>
+      <TouchableOpacity
+        onPress={() => {
+          setOpen(v => !v);
+          if (!open) setSearch('');
+        }}
+        className="rounded-[10px] flex-row items-center justify-between px-3 py-3"
+        style={styles.sheetInput}
+        activeOpacity={0.84}
+      >
+        <Text
+          className="text-[13px] font-semibold flex-1"
+          style={selectedIds.length ? styles.selectTextActive : styles.selectText}
+          numberOfLines={1}
+        >
+          {triggerLabel}
+        </Text>
+        <AppIcon name="chevronDown" size={15} color="#9CA3AF" />
+      </TouchableOpacity>
+      {open ? (
+        <View style={styles.commodityDropdown}>
+          {searchable ? (
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search..."
+              placeholderTextColor="#9CA3AF"
+              style={styles.multiSelectSearch}
+            />
+          ) : null}
+          <FlatList
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            data={[{ id: '__all__', name: 'All' }, ...filtered]}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => {
+              const isAll = item.id === '__all__';
+              const active = isAll ? selectedIds.length === 0 : selectedIds.includes(item.id);
+              return (
+                <TouchableOpacity
+                  className="flex-row items-center justify-between px-3 py-2.5"
+                  onPress={() => (isAll ? onChangeIds([]) : toggle(item.id))}
+                  activeOpacity={0.82}
+                >
+                  <Text
+                    className="text-[13px] font-semibold flex-1"
+                    style={active ? styles.dropdownOptionTextActive : styles.dropdownOptionText}
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  {active ? <AppIcon name="approved" size={15} color="#217A3C" /> : null}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      ) : null}
+    </SheetSection>
+  );
+};
+
 const FilterSheet = ({
   commodities,
-  locations,
-  badges,
+  cities,
+  grades,
   selectedCommodityId,
   setSelectedCommodityId,
-  selectedLocation,
-  setSelectedLocation,
-  selectedBadge,
-  setSelectedBadge,
+  selectedLocations,
+  setSelectedLocations,
+  selectedGrades,
+  setSelectedGrades,
   verifiedOnly,
   setVerifiedOnly,
   minPrice,
@@ -471,14 +583,14 @@ const FilterSheet = ({
   onDone,
 }: {
   commodities: FilterOption[];
-  locations: string[];
-  badges: string[];
+  cities: CachedCity[];
+  grades: string[];
   selectedCommodityId: string;
   setSelectedCommodityId: (value: string) => void;
-  selectedLocation: string;
-  setSelectedLocation: (value: string) => void;
-  selectedBadge: string;
-  setSelectedBadge: (value: string) => void;
+  selectedLocations: string[];
+  setSelectedLocations: (value: string[]) => void;
+  selectedGrades: string[];
+  setSelectedGrades: (value: string[]) => void;
   verifiedOnly: boolean;
   setVerifiedOnly: (value: boolean) => void;
   minPrice: string;
@@ -533,39 +645,24 @@ const FilterSheet = ({
             onSelect={setSelectedCommodityId}
           />
 
-          <SheetSection title="LOCATION">
-            <View className="flex-row flex-wrap">
-              {['All', ...locations].map(location => (
-                <ChoiceChip
-                  key={location}
-                  label={location}
-                  active={
-                    selectedLocation === (location === 'All' ? '' : location)
-                  }
-                  onPress={() =>
-                    setSelectedLocation(location === 'All' ? '' : location)
-                  }
-                />
-              ))}
-            </View>
-          </SheetSection>
+          <MultiSelectDropdown
+            label="LOCATION"
+            allLabel="All Cities"
+            items={cities.map(c => ({ id: c.id, name: c.name }))}
+            selectedIds={selectedLocations}
+            onChangeIds={setSelectedLocations}
+            searchable
+          />
 
-          {badges.length ? (
-            <SheetSection title="BADGE">
-              <View className="flex-row flex-wrap">
-                {['All', ...badges].map(badge => (
-                  <ChoiceChip
-                    key={badge}
-                    label={badge === 'All' ? 'All' : formatBadge(badge)}
-                    active={selectedBadge === (badge === 'All' ? '' : badge)}
-                    onPress={() =>
-                      setSelectedBadge(badge === 'All' ? '' : badge)
-                    }
-                  />
-                ))}
-              </View>
-            </SheetSection>
-          ) : null}
+          {grades.length > 0 && (
+            <MultiSelectDropdown
+              label="GRADE"
+              allLabel="All Grades"
+              items={grades.map(g => ({ id: g, name: g }))}
+              selectedIds={selectedGrades}
+              onChangeIds={setSelectedGrades}
+            />
+          )}
 
           <SheetSection title="PRICE RANGE">
             <View className="flex-row" style={styles.priceRangeRow}>
@@ -997,6 +1094,7 @@ const MarketplaceListingCard = ({
 const MarketplaceScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const { t } = useTranslation();
+  const cachedCities = useCities();
   const isBuyer = mode === 'buyer';
   const postType: PostType = isBuyer ? 'SUPPLY' : 'DEMAND';
   const [search, setSearch] = useState('');
@@ -1004,8 +1102,8 @@ const MarketplaceScreen = ({ navigation }: any) => {
   const [activeCategoryId, setActiveCategoryId] = useState('');
   const [activeSheet, setActiveSheet] = useState<SheetType>(null);
   const [selectedCommodityId, setSelectedCommodityId] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [selectedBadge, setSelectedBadge] = useState('');
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -1019,8 +1117,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
     MarketplacePayload['filterOptions']
   >({
     commodities: [],
-    locations: [],
-    badges: [],
+    grades: [],
   });
   const [meta, setMeta] = useState<MarketplaceMeta>({});
   const [loading, setLoading] = useState(false);
@@ -1043,11 +1140,11 @@ const MarketplaceScreen = ({ navigation }: any) => {
       post_type: postType,
       category_id: activeCategoryId,
       commodity_id: appliedFilters.selectedCommodityId,
-      location: appliedFilters.selectedLocation,
+      location: appliedFilters.selectedLocations.length ? appliedFilters.selectedLocations.join(',') : undefined,
       min_price: appliedFilters.minPrice,
       max_price: appliedFilters.maxPrice,
       min_quantity: appliedFilters.minQuantity,
-      badge: appliedFilters.selectedBadge,
+      grade: appliedFilters.selectedGrades.length ? appliedFilters.selectedGrades.join(',') : undefined,
       verified_only: appliedFilters.verifiedOnly ? true : undefined,
       sort: distanceSortNeedsCoordinates ? undefined : sortBy,
     });
@@ -1152,8 +1249,8 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
   const syncDraftFilters = (filters: MarketplaceFilters) => {
     setSelectedCommodityId(filters.selectedCommodityId);
-    setSelectedLocation(filters.selectedLocation);
-    setSelectedBadge(filters.selectedBadge);
+    setSelectedLocations(filters.selectedLocations);
+    setSelectedGrades(filters.selectedGrades);
     setVerifiedOnly(filters.verifiedOnly);
     setMinPrice(filters.minPrice);
     setMaxPrice(filters.maxPrice);
@@ -1161,13 +1258,22 @@ const MarketplaceScreen = ({ navigation }: any) => {
   };
   const getDraftFilters = (): MarketplaceFilters => ({
     selectedCommodityId,
-    selectedLocation,
-    selectedBadge,
+    selectedLocations,
+    selectedGrades,
     verifiedOnly,
     minPrice,
     maxPrice,
     minQuantity,
   });
+  const hasActiveFilters =
+    appliedFilters.selectedCommodityId !== '' ||
+    appliedFilters.selectedLocations.length > 0 ||
+    appliedFilters.selectedGrades.length > 0 ||
+    appliedFilters.verifiedOnly ||
+    appliedFilters.minPrice !== '' ||
+    appliedFilters.maxPrice !== '' ||
+    appliedFilters.minQuantity !== '';
+
   const openFilterSheet = () => {
     syncDraftFilters(appliedFilters);
     setActiveSheet('filter');
@@ -1196,6 +1302,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
   return (
     <View className="flex-1 bg-gray-50">
+      <AppLoader overlay visible={loading && hasLoadedOnce} />
       <MockStatusBar backgroundColor="#145228" textColor="#FFFFFF" />
       <View
         style={{
@@ -1217,6 +1324,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
               icon="filter"
               label={t('market.filter')}
               onPress={openFilterSheet}
+              active={hasActiveFilters}
             />
             <HeaderAction
               icon="sort"
@@ -1361,14 +1469,14 @@ const MarketplaceScreen = ({ navigation }: any) => {
       >
         <FilterSheet
           commodities={filterOptions.commodities}
-          locations={filterOptions.locations}
-          badges={filterOptions.badges}
+          cities={cachedCities}
+          grades={filterOptions.grades}
           selectedCommodityId={selectedCommodityId}
           setSelectedCommodityId={setSelectedCommodityId}
-          selectedLocation={selectedLocation}
-          setSelectedLocation={setSelectedLocation}
-          selectedBadge={selectedBadge}
-          setSelectedBadge={setSelectedBadge}
+          selectedLocations={selectedLocations}
+          setSelectedLocations={setSelectedLocations}
+          selectedGrades={selectedGrades}
+          setSelectedGrades={setSelectedGrades}
           verifiedOnly={verifiedOnly}
           setVerifiedOnly={setVerifiedOnly}
           minPrice={minPrice}
@@ -1591,13 +1699,22 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   commodityDropdown: {
-    maxHeight: 178,
+    maxHeight: 220,
     marginTop: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+  },
+  multiSelectSearch: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: '#111827',
+    backgroundColor: '#FAFAFA',
   },
   signupLogo: {
     width: 70,

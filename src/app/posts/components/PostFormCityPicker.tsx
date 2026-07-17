@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,10 +10,8 @@ import {
   View,
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
-import api from '../../../utils/api';
+import { useCities } from '../../../hooks/useCities';
 import type { CityValue } from '../types/postForm.types';
-
-type City = { id: string; name: string; province?: string };
 
 type Props = {
   value: CityValue | null;
@@ -23,18 +21,9 @@ type Props = {
 
 export const PostFormCityPicker = ({ value, onChange, placeholder = 'Select city...' }: Props) => {
   const [open, setOpen] = useState(false);
-  const [cities, setCities] = useState<City[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    if (!open || cities.length > 0) return;
-    setLoading(true);
-    (api.marketplace.public.listCities() as Promise<any>)
-      .then((res: any) => setCities(res?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [open, cities.length]);
+  const cities = useCities();
+  const loading = cities.length === 0;
 
   const filtered = useMemo(() => {
     if (!search.trim()) return cities;

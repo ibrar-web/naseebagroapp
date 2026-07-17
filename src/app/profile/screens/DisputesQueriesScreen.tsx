@@ -140,9 +140,7 @@ const DisputesQueriesScreen = ({ navigation }: Props) => {
   const fetchDisputes = useCallback(async () => {
     try {
       const data: any =
-        mode === 'buyer'
-          ? await api.buyer.getDisputes()
-          : await api.seller.getDisputes();
+        await api.profile.getDisputes();
       setDisputes(Array.isArray(data) ? data : []);
     } catch {
       setDisputes([]);

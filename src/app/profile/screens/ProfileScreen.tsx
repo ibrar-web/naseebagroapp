@@ -108,6 +108,12 @@ const MENU: MenuGroup[] = [
         screen: 'DisputesQueries',
       },
       {
+        icon: 'starOutline',
+        labelKey: 'Reviews & Ratings' as any,
+        subKey: 'Your deal reviews and ratings' as any,
+        screen: 'MyRatings',
+      },
+      {
         icon: 'menuTerms',
         labelKey: 'profile.termsPrivacy',
         subKey: 'profile.termsPrivacySub',

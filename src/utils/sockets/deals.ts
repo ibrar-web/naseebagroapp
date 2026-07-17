@@ -68,3 +68,15 @@ export const onPaymentApproved = (callback: (data: PaymentApprovedPayload) => vo
   getSocket()?.on('deal.payment_approved', callback);
   return () => getSocket()?.off('deal.payment_approved', callback);
 };
+
+// ── Deal completed ────────────────────────────────────────────────────────────
+
+export type DealCompletedPayload = {
+  deal_id: string;
+  code: string;
+};
+
+export const onDealCompleted = (callback: (data: DealCompletedPayload) => void): (() => void) => {
+  getSocket()?.on('deal.completed', callback);
+  return () => getSocket()?.off('deal.completed', callback);
+};

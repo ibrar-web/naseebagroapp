@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppIcon } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
 import MockStatusBar from '../../components/MockStatusBar';
+import AppLoader from '../../components/AppLoader';
 import api from '../../../utils/api';
 import { useOfferTerms } from '../hooks/useOfferTerms';
 import { OfferPreviewCard } from '../components/OfferPreviewCard';
@@ -132,6 +133,7 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
   return (
     <View style={s.container}>
       <MockStatusBar backgroundColor="#FFFFFF" textColor="#111827" />
+      <AppLoader visible={submitting} overlay message="Sending request..." />
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.8}>
           <AppIcon name="back" size={19} color="#111827" />
@@ -208,7 +210,7 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       </ScrollView>
       <View style={s.bottomBar}>
         <TouchableOpacity style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]} activeOpacity={0.88} onPress={handleSubmit} disabled={!canSubmit || submitting}>
-          {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitBtnText}>{canSubmit ? 'Submit Request' : 'Fill all required fields'}</Text>}
+          <Text style={styles.submitBtnText}>{canSubmit ? 'Submit Request' : 'Fill all required fields'}</Text>
         </TouchableOpacity>
       </View>
     </View>

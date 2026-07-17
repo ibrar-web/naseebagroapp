@@ -111,11 +111,13 @@ export type RootStackParamList = {
   QueryChat: { queryId?: string } | undefined;
 
   // Deal rating & ticket
+  MyRatings: undefined;
   RateDeal: {
     dealId: string;
     dealCode?: string | null;
     commodityName?: string | null;
     dealSummary?: string | null;
+    raterRole?: 'buyer' | 'seller';
     existingRating?: { score: number; note?: string | null; created_at?: string } | null;
     onRatingSubmitted?: (score: number, note?: string) => void;
   };

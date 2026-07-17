@@ -44,9 +44,23 @@ const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640'];
 
 export const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Closed', value: 'closed' },
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Inactive', value: 'INACTIVE' },
+  { label: 'Closed', value: 'CLOSED' },
+];
+
+export const OFFER_STATUS_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Accepted', value: 'ACCEPTED' },
+  { label: 'Rejected', value: 'REJECTED' },
+];
+
+export const DEMAND_STATUS_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Inactive', value: 'INACTIVE' },
+  { label: 'Rejected', value: 'CLOSED' },
 ];
 
 export const firstValue = (...values: any[]) =>

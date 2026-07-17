@@ -2,7 +2,9 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../utils/api';
 import { navigationRef } from '../../navigation/AppNavigator';
-import { showAppToast } from '../../app/components/toastConfig';
+import { showToast } from '../../app/components/AppToast';
+
+const naseebLogo = require('../../assets/logos/naseeb.png');
 
 const TOKEN_KEY = 'fcm_token';
 const TOKEN_TS_KEY = 'fcm_token_ts';
@@ -186,20 +188,12 @@ export function setupNotificationListeners(): () => void {
       : module === 'deal' || module === 'truck' ? '#60A5FA'
       : '#4ADE80';
 
-    const icon =
-      resolvedStatus === 'approved' ? 'approved'
-      : resolvedStatus === 'rejected' || type === 'needs_revision' ? 'notificationWarning'
-      : 'currency';
-
-    showAppToast({
+    showToast({
       title,
       body,
       accentColor,
-      icon,
-      postId: (module === 'listing' && entityId) ? entityId : undefined,
-      post_type: postType,
-      dealId: (module === 'deal' || module === 'truck') && entityId ? entityId : undefined,
-      offerId: module === 'negotiation' && entityId ? entityId : undefined,
+      imageSource: naseebLogo,
+      onPress: () => handleNotificationNavigation(data),
     });
   });
 

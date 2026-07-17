@@ -4,6 +4,7 @@ import { RootState } from '../../store/rootReducer';
 import { showPostToast, showDealToast, showProfileToast } from '../../app/components/toastConfig';
 import { onPostApproved, onPostRejected, onPostNeedsRevision } from './posts';
 import {
+  onDealCompleted,
   onDealCreated,
   onTruckDocApproved,
   onTruckDocRejected,
@@ -88,6 +89,10 @@ export const useGlobalSocketListeners = () => {
       showDealToast('Payment Approved', `PKR ${data.amount} payment has been approved.`, data.deal_id);
     });
 
+    const unsubCompleted = onDealCompleted((data) => {
+      showDealToast('Deal Completed', `Deal ${data.code} has been completed successfully.`, data.deal_id);
+    });
+
     return () => {
       unsubDealCreated();
       unsubTruckApproved();
@@ -95,6 +100,7 @@ export const useGlobalSocketListeners = () => {
       unsubBuyerApproved();
       unsubBuyerRejected();
       unsubPayment();
+      unsubCompleted();
     };
   }, [isAuthenticated]);
 

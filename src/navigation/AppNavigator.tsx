@@ -67,6 +67,7 @@ import TermsScreen from '../app/profile/screens/TermsScreen';
 import DisputesQueriesScreen from '../app/profile/screens/DisputesQueriesScreen';
 import DisputeDetailScreen from '../app/profile/screens/DisputeDetailScreen';
 import QueryChatScreen from '../app/profile/screens/QueryChatScreen';
+import MyRatingsScreen from '../app/profile/screens/MyRatingsScreen';
 import RateDealScreen from '../app/deals/screens/RateDealScreen';
 import SubmitTicketScreen from '../app/deals/screens/SubmitTicketScreen';
 import { useTranslation } from '../localization';
@@ -75,10 +76,9 @@ import { AppIcon } from '../assets/icons';
 import type { AppIconName } from '../assets/icons';
 import LoginRequiredSheet from '../app/auth/components/LoginRequiredSheet';
 import { subscribeAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
-import Toast from 'react-native-toast-message';
-import { toastConfig } from '../app/components/toastConfig';
 import OfferAlertToast from '../app/components/OfferAlertToast';
 import { AppAlertProvider } from '../app/components/AppAlert';
+import { AppToastProvider } from '../app/components/AppToast';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -294,6 +294,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="DisputesQueries" component={DisputesQueriesScreen} />
           <Stack.Screen name="DisputeDetail" component={DisputeDetailScreen} />
           <Stack.Screen name="QueryChat" component={QueryChatScreen} />
+          <Stack.Screen name="MyRatings" component={MyRatingsScreen} />
           <Stack.Screen name="RateDeal" component={RateDealScreen} />
           <Stack.Screen name="SubmitTicket" component={SubmitTicketScreen} />
 
@@ -329,7 +330,7 @@ export const AppNavigator = () => {
         onLogin={openLogin}
       />
       <OfferAlertToast />
-      <Toast config={toastConfig} />
+      <AppToastProvider />
       <AppAlertProvider />
     </>
   );

@@ -12,11 +12,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { AppIcon } from '../../../assets/icons';
 import api from '../../../utils/api';
 import {
+  DEMAND_STATUS_FILTERS,
   OfferCard,
   OfferItem,
+  OFFER_STATUS_FILTERS,
   PostCard,
   PostItem,
-  STATUS_FILTERS,
   TabKey,
   normalizeOfferItem,
   normalizePostItem,
@@ -119,6 +120,7 @@ const BuyerPostsTab = ({ navigation, initialTab }: Props) => {
           status={demandsPanel.status}
           onStatusChange={demandsPanel.setStatus}
           placeholder="Search demands"
+          statusFilters={DEMAND_STATUS_FILTERS}
         />
         <FlatList
           data={demandsPanel.items}
@@ -168,6 +170,7 @@ const BuyerPostsTab = ({ navigation, initialTab }: Props) => {
           status={offersPanel.status}
           onStatusChange={offersPanel.setStatus}
           placeholder="Search offers"
+          statusFilters={OFFER_STATUS_FILTERS}
         />
         <FlatList
           data={offersPanel.items}
@@ -215,12 +218,14 @@ const PanelControls = ({
   status,
   onStatusChange,
   placeholder,
+  statusFilters,
 }: {
   search: string;
   onSearchChange: (v: string) => void;
   status: string;
   onStatusChange: (v: string) => void;
   placeholder: string;
+  statusFilters: { label: string; value: string }[];
 }) => (
   <View style={sharedStyles.controls}>
     <View style={sharedStyles.searchBox}>
@@ -235,7 +240,7 @@ const PanelControls = ({
     </View>
     <FlatList
       horizontal
-      data={STATUS_FILTERS}
+      data={statusFilters}
       keyExtractor={i => i.value}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={sharedStyles.statusFilterList}

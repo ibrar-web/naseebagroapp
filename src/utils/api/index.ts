@@ -89,6 +89,12 @@ export const api = {
       Post('profile/device-token', data, protectedRequest),
     removeDeviceToken: (data: { token: string }) =>
       Post('profile/device-token/remove', data, protectedRequest),
+    getMyRatings: (params?: { role?: 'buyer' | 'seller'; skip?: number; limit?: number }) =>
+      Get('profile/ratings/my', params, protectedRequest),
+    getDisputes: () =>
+      Get('profile/disputes/my', undefined, protectedRequest),
+    getDisputeById: (id: string) =>
+      Get(`profile/disputes/${id}`, undefined, protectedRequest),
   },
 
   post: {
@@ -181,13 +187,9 @@ export const api = {
     addTruckDocument: (dealId: string, truckId: string, data: FormData) =>
       Post(`buyer/buydeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
     submitRating: (dealId: string, data: { score: number; note?: string }) =>
-      Post(`buyer/ratings/deal/${dealId}`, data, protectedRequest),
+      Post(`buyer/buydeals/${dealId}/rating`, data, protectedRequest),
     submitDispute: (dealId: string, data: FormData) =>
       Post(`buyer/buydeals/${dealId}/dispute`, data, protectedRequest),
-    getDisputes: () =>
-      Get('buyer/disputes/my', undefined, protectedRequest),
-    getDisputeById: (id: string) =>
-      Get(`buyer/disputes/${id}`, undefined, protectedRequest),
   },
 
   seller: {
@@ -236,12 +238,10 @@ export const api = {
       Get(`seller/selldeals/${id}/payments`, undefined, protectedRequest),
     addTruckDoc: (dealId: string, truckId: string, data: FormData) =>
       Post(`seller/selldeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
+    submitRating: (dealId: string, data: { score: number; note?: string }) =>
+      Post(`seller/selldeals/${dealId}/rating`, data, protectedRequest),
     submitDispute: (dealId: string, data: FormData) =>
       Post(`seller/selldeals/${dealId}/dispute`, data, protectedRequest),
-    getDisputes: () =>
-      Get('seller/disputes/my', undefined, protectedRequest),
-    getDisputeById: (id: string) =>
-      Get(`seller/disputes/${id}`, undefined, protectedRequest),
   },
 
   queries: {

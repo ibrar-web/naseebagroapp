@@ -28,14 +28,14 @@ interface DisputeData {
   type: string;
   description: string;
   status: string;
-  admin_feedback: string | null;
+  feedback: string | null;
   deal: {
     code?: string | null;
     commodity?: { name: string } | null;
     offer?: { quantity?: number } | null;
     total_amount?: number | null;
   } | null;
-  resolved_by_admin: { first_name?: string; last_name?: string } | null;
+  reviewed_by: { first_name?: string; last_name?: string } | null;
   created_at: string;
   reviewed_at: string | null;
   resolved_at: string | null;
@@ -79,9 +79,7 @@ const DisputeDetailScreen = ({ navigation, route }: Props) => {
     (async () => {
       try {
         const data: any =
-          mode === 'buyer'
-            ? await api.buyer.getDisputeById(disputeId)
-            : await api.seller.getDisputeById(disputeId);
+          await api.profile.getDisputeById(disputeId);
         setDispute(data);
       } catch {
         // keep null
@@ -205,12 +203,12 @@ const DisputeDetailScreen = ({ navigation, route }: Props) => {
         )}
 
         {/* Admin feedback */}
-        {dispute.admin_feedback && (
+        {dispute.feedback && (
           <View style={d.section}>
             <Text style={d.sectionTitle}>NOTES FROM SUPPORT</Text>
             <View style={d.notesCard}>
               <AppIcon name="document" size={16} color="#3B82F6" />
-              <Text style={d.notesText}>{dispute.admin_feedback}</Text>
+              <Text style={d.notesText}>{dispute.feedback}</Text>
             </View>
           </View>
         )}

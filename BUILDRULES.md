@@ -66,7 +66,23 @@ def enableProguardInReleaseBuilds = false
 
 ---
 
-### 1.3 Build Commands
+### 1.3 Environment — MUST Be `development` Before Every Build
+
+**Before running `bundleRelease`, always verify `src/environment/index.ts`:**
+
+```typescript
+// CORRECT — always use this for release builds
+const currentEnv: EnvType = 'development';
+
+// NEVER ship a release build with this
+const currentEnv: EnvType = 'local';  // ← local IP, useless on real devices
+```
+
+`'local'` points to `192.168.x.x` (your machine) — the app will fail to connect on any device not on your LAN. Always set to `'development'` before building.
+
+---
+
+### 1.4 Build Commands
 
 Node and adb are not on the default system PATH (managed via nvm). Always prefix commands:
 
@@ -116,7 +132,7 @@ versionName "1.1.7"   // minor bump: last digit +1
 versionName "1.2.0"   // major bump: middle digit +1, last reset to 0
 ```
 
-Current version: `versionName "1.3.0"` / `versionCode 13`
+Current version: `versionName "1.3.0"` / `versionCode 14`
 
 `versionCode` must always increase with every Play Store submission — even for the same `versionName`. Never reuse a `versionCode`.
 

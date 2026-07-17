@@ -259,7 +259,7 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
         <Text style={s.contactBtnText}>📞  Contact Admin</Text>
       </TouchableOpacity>
 
-      {mode === 'buyer' && deal.status === 'closed' && (
+      {deal.status === 'closed' && mode === 'buyer' && (
         <TouchableOpacity
           style={[s.ratingBtn, deal.has_rated && s.ratingBtnViewed]}
           onPress={() =>
@@ -270,7 +270,38 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
               dealSummary: deal.offer
                 ? `${deal.offer.quantity ?? '?'} bags · PKR ${Number(deal.offer.price_per_unit ?? 0).toLocaleString()}`
                 : null,
-              existingRating: deal.buyer_rating ?? null,
+              raterRole: 'buyer',
+              existingRating: deal.has_rated ? (deal.buyer_rating ?? null) : null,
+              onRatingSubmitted: (score: number, note?: string) => {
+                setDeal((prev: any) => prev ? {
+                  ...prev,
+                  has_rated: true,
+                  buyer_rating: { score, note: note ?? null },
+                } : prev);
+              },
+            })
+          }
+          activeOpacity={0.85}
+        >
+          <Text style={s.ratingBtnText}>
+            {deal.has_rated ? '★  View My Rating' : '★  Submit Rating'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {deal.status === 'closed' && mode === 'seller' && (
+        <TouchableOpacity
+          style={[s.ratingBtn, deal.has_rated && s.ratingBtnViewed]}
+          onPress={() =>
+            (navigation as any).navigate('RateDeal', {
+              dealId: deal.deal_id,
+              dealCode: deal.code,
+              commodityName: deal.commodity?.name ?? null,
+              dealSummary: deal.offer
+                ? `${deal.offer.quantity ?? '?'} bags · PKR ${Number(deal.offer.price_per_unit ?? 0).toLocaleString()}`
+                : null,
+              raterRole: 'seller',
+              existingRating: deal.has_rated ? (deal.buyer_rating ?? null) : null,
               onRatingSubmitted: (score: number, note?: string) => {
                 setDeal((prev: any) => prev ? {
                   ...prev,

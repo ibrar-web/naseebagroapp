@@ -22,7 +22,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RateDeal'>;
 const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
 
 const RateDealScreen = ({ navigation, route }: Props) => {
-  const { dealId, dealCode, commodityName, dealSummary, existingRating, onRatingSubmitted } = route.params;
+  const { dealId, dealCode, commodityName, dealSummary, raterRole, existingRating, onRatingSubmitted } = route.params;
   const isReadOnly = !!existingRating;
   const [starRating, setStarRating] = useState(existingRating?.score ?? 0);
   const [note, setNote] = useState(existingRating?.note ?? '');
@@ -34,7 +34,8 @@ const RateDealScreen = ({ navigation, route }: Props) => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      await api.buyer.submitRating(dealId, {
+      const submitFn = raterRole === 'seller' ? api.seller.submitRating : api.buyer.submitRating;
+      await submitFn(dealId, {
         score: starRating,
         note: note.trim() || undefined,
       });

@@ -101,9 +101,8 @@ class HttpService {
                 navigationRef.navigate('VerificationStatus' as any);
               }
             });
-          } else {
-            showAlert('error', 'Access Denied', errorMessage);
           }
+          // non-profile 403: let the screen handle it — no global alert
           break;
         }
 

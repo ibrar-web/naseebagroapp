@@ -313,28 +313,6 @@ const HomeScreen = ({ navigation }: any) => {
           </>
         ) : (
           <>
-            {/* Seller earnings card */}
-            <View style={styles.earningsCard}>
-              <Text style={styles.earningsLabel}>
-                {t('home.totalEarningsMonth')}
-              </Text>
-              <Text style={styles.earningsVal}>PKR 890,000</Text>
-              <View style={styles.earningsRow}>
-                {[
-                  { l: t('home.released'), v: '₨640K', c: '#FFFFFF' },
-                  { l: t('home.pending'), v: '₨250K', c: '#F3CD03' },
-                  { l: t('home.thisWeek'), v: '₨120K', c: '#FFFFFF' },
-                ].map(s => (
-                  <View key={s.l}>
-                    <Text style={styles.earningsSubLabel}>{s.l}</Text>
-                    <Text style={[styles.earningsSubVal, { color: s.c }]}>
-                      {s.v}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
             <Text style={styles.qaSectionTitle}>{t('home.quickActions')}</Text>
             <View style={styles.qaGrid}>
               {QUICK_ACTIONS.map(a => (
@@ -557,29 +535,6 @@ const styles = StyleSheet.create({
   },
   featuredSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
 
-  // Seller earnings card
-  earningsCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: '#145228',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 4,
-  },
-  earningsLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
-  earningsVal: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 4,
-  },
-  earningsRow: { flexDirection: 'row', gap: 18, marginTop: 12 },
-  earningsSubLabel: { fontSize: 11, color: 'rgba(255,255,255,0.55)' },
-  earningsSubVal: { fontSize: 13, fontWeight: '700', marginTop: 1 },
   qaSectionTitle: {
     fontSize: 15,
     fontWeight: '700',

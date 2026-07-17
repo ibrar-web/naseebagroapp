@@ -88,6 +88,7 @@ type PostDetail = {
   actions: { menu_options: MenuOption[] };
   fallback: string;
   edit_data: PostEditData | null;
+  rejection_reason: string | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -177,6 +178,7 @@ const normalizePostDetail = (
     },
     fallback: FALLBACK_COLORS[0],
     edit_data: payload.edit_data ?? null,
+    rejection_reason: payload.rejection_reason ?? null,
   };
 };
 
@@ -396,6 +398,17 @@ const PostDetailScreen = ({ navigation, route }: Props) => {
   // ── Post Details tab ────────────────────────────────────────────────────────
   const renderPostDetails = () => (
     <View>
+      {/* Rejection reason banner */}
+      {post.status.toUpperCase() === 'REJECTED' && post.rejection_reason ? (
+        <View style={styles.rejectionCard}>
+          <AppIcon name="notificationWarning" size={16} color="#991B1B" />
+          <View style={styles.rejectionContent}>
+            <Text style={styles.rejectionTitle}>Post Rejected</Text>
+            <Text style={styles.rejectionBody}>{post.rejection_reason}</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Detail rows card */}
       {post.post_details.rows.length > 0 && (
         <View style={styles.card}>
@@ -769,6 +782,14 @@ const styles = StyleSheet.create({
   monoText: { fontFamily: 'monospace' },
   notesText: { fontSize: 13, color: '#374151', lineHeight: 20 },
   // Price freshness warning
+  rejectionCard: {
+    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
+    borderRadius: 14, padding: 13, flexDirection: 'row', gap: 11, alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  rejectionContent: { flex: 1 },
+  rejectionTitle: { fontSize: 13, fontWeight: '800', color: '#991B1B', marginBottom: 3 },
+  rejectionBody: { fontSize: 12, color: '#B91C1C', lineHeight: 18 },
   warningCard: {
     backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D',
     borderRadius: 14, padding: 13, flexDirection: 'row', gap: 11, alignItems: 'flex-start',

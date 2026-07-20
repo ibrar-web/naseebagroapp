@@ -55,6 +55,36 @@ export const CategoryPostForm = ({
     );
   }
 
+  if (f.noForm) {
+    return (
+      <View style={s.root}>
+        <MockStatusBar />
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={f.goBack} activeOpacity={0.7}>
+            <AppIcon name="back" size={22} color="#111827" />
+          </TouchableOpacity>
+          <Text style={s.title}>{f.isBuyer ? 'Create Demand' : 'Create Supply'}</Text>
+          <View style={s.badge}>
+            <Text style={s.badgeText}>{categoryName}</Text>
+          </View>
+        </View>
+        <View style={s.center}>
+          <View style={s.noFormIconBox}>
+            <AppIcon name="menuBusiness" size={36} color="#9CA3AF" />
+          </View>
+          <Text style={s.noFormTitle}>No Form Available</Text>
+          <Text style={s.noFormSub}>
+            This category doesn't have a form set up yet.{'\n'}Please check back later or contact support.
+          </Text>
+          <TouchableOpacity style={s.goBackBtn} onPress={f.goBack} activeOpacity={0.7}>
+            <AppIcon name="back" size={14} color="#217A3C" />
+            <Text style={s.goBackText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   if (f.loadError) {
     return (
       <View style={s.root}>
@@ -287,6 +317,40 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
   retryText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  noFormIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  noFormTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  noFormSub: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  goBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: '#217A3C',
+  },
+  goBackText: { fontSize: 13, fontWeight: '700', color: '#217A3C' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

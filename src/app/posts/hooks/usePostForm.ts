@@ -52,6 +52,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   const [paymentValue, setPaymentValue] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [noForm, setNoForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [selectedMills, setSelectedMills] = useState<MillEntry[]>([]);
@@ -98,14 +99,14 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     let mounted = true;
     (async () => {
       if (!categoryData?.id) { setLoading(false); setLoadError(postId ? 'Unable to load form. Please go back and try again.' : 'Select a category first.'); return; }
-      setLoading(true); setLoadError('');
+      setLoading(true); setLoadError(''); setNoForm(false);
       try {
         const res = isBuyer
           ? await api.buyer.getBuyerCategoryform(categoryData.id)
           : await api.seller.getSellerCategoryform(categoryData.id);
         const next = normalizeForm(res);
         if (!mounted) return;
-        if (!next) { setLoadError('No form configured for this category.'); return; }
+        if (!next) { setNoForm(true); return; }
         setForm(next);
 
         const fill = prefillRef.current;
@@ -146,8 +147,14 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
             })));
           }
         }
-      } catch {
-        if (mounted) setLoadError('Unable to load form. Please try again.');
+      } catch (err: any) {
+        if (!mounted) return;
+        const status = err?.response?.status ?? err?.status;
+        if (status === 404 || String(err?.response?.data?.message ?? '').toLowerCase().includes('not found')) {
+          setNoForm(true);
+        } else {
+          setLoadError('Unable to load form. Please try again.');
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -311,7 +318,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   return {
     form, sortedFields, values, openDropdown,
     paymentMode, paymentValue, setNextPaymentMode, setPaymentValue,
-    loading, loadError, submitting, submitError,
+    loading, loadError, noForm, submitting, submitError,
     selectedMills, pendingMill, setPendingMill,
     deliveryDays, setDeliveryDays,
     isCustomDelivery, setIsCustomDelivery,

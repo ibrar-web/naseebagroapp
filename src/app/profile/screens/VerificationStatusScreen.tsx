@@ -121,8 +121,13 @@ const VerificationStatusScreen = ({ navigation }: any) => {
           api.profile.business.get(),
         ]);
 
-        const ver = verRes.status === 'fulfilled' ? unwrapApiData(verRes.value) : null;
-        const biz = bizRes.status === 'fulfilled' ? unwrapApiData(bizRes.value) : null;
+        // getVerificationStatus returns { message, verification_status: { kyc_status, phone_verified, ... } }
+        const verRaw = verRes.status === 'fulfilled' ? unwrapApiData(verRes.value) : null;
+        const ver = verRaw?.verification_status ?? verRaw;
+
+        // business.get() returns { message, profile: { business_status, ... } }
+        const bizRaw = bizRes.status === 'fulfilled' ? unwrapApiData(bizRes.value) : null;
+        const biz = bizRaw?.profile ?? bizRaw;
 
         setData({
           kycStatus: toApprovalStatus(ver?.kyc_status),

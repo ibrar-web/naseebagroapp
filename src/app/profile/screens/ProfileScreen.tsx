@@ -138,9 +138,19 @@ const ProfileScreen = ({ navigation }: any) => {
     if (!isAuthenticated) return;
     setRefreshing(true);
     try {
-      const res = await api.auth.getCurrentUser();
-      const fresh = (res as any)?.data ?? res ?? {};
-      if (fresh.id) dispatch(updateUser(fresh));
+      const [userRes, statsRes] = await Promise.allSettled([
+        api.auth.getCurrentUser(),
+        api.profile.stats() as any,
+      ]);
+      if (userRes.status === 'fulfilled') {
+        const payload = (userRes.value as any)?.data ?? (userRes.value as any) ?? {};
+        const fresh = payload?.user ?? payload;
+        if (fresh?.id) dispatch(updateUser(fresh));
+      }
+      if (statsRes.status === 'fulfilled') {
+        const r = (statsRes.value as any);
+        setUserStats(r?.data?.data ?? r?.data ?? r);
+      }
     } catch {}
     setRefreshing(false);
   }, [isAuthenticated, dispatch]);
@@ -164,8 +174,9 @@ const ProfileScreen = ({ navigation }: any) => {
     if (!isAuthenticated) return;
     api.auth.getCurrentUser()
       .then((res: any) => {
-        const fresh = res?.data ?? res ?? {};
-        if (fresh.id) dispatch(updateUser(fresh));
+        const payload = res?.data ?? res ?? {};
+        const fresh = payload?.user ?? payload;
+        if (fresh?.id) dispatch(updateUser(fresh));
       })
       .catch(() => {});
   }, [isAuthenticated, dispatch]));

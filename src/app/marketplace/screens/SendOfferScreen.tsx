@@ -91,8 +91,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
 
   const hasMills = (detail.mills?.is_mill_based ?? detail.mills_specified_section?.has_mills ?? false) &&
     ((detail.mills?.available_mills?.length ?? 0) > 0 || (detail.mills_specified_section?.mills?.length ?? 0) > 0);
-  const hasQuantity = detail.quantity_label != null || detail.quantity != null;
-  const mills = detail.mills?.available_mills ?? detail.mills_specified_section?.mills ?? [];
+  const mills =detail.mills?.available_mills ?? detail.mills_specified_section?.mills ?? [];
   const heroImage = detail.category?.image ?? detail.commodity?.image ?? detail.hero_image_url ?? `https://placehold.co/600x400?text=${encodeURIComponent(detail.title ?? 'Demand')}`;
   const stats = (detail.header_stats ?? [
     { key: 'qty', label: 'QUANTITY', value: detail.quantity_label ?? '' },
@@ -100,7 +99,8 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
   ]).filter((st: any) => st.value);
   const selectedMillData = mills.find((m: any) => m.id === selectedMill);
   const submittedPrice = priceMode === 'MAKE_COUNTER' ? stripNonDigit(counterPrice) : stripNonDigit(selectedMillData?.price_per_unit);
-  const canSubmit = Boolean((!hasMills || selectedMill) && paymentDays && deliveryDays && (priceMode === 'USE_BUYER_BUDGET' || counterPrice));
+  const quantityNum = Number(quantity);
+  const canSubmit = Boolean((!hasMills || selectedMill) && quantityNum > 0 && paymentDays && deliveryDays && (priceMode === 'USE_BUYER_BUDGET' || counterPrice));
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -110,7 +110,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
       await api.seller.sendDemandOffer(listingId, {
         demand_id: listingId,
         ...(hasMills && selectedMill ? { mill_id: selectedMill } : {}),
-        ...(hasQuantity && quantity ? { supply_quantity: stripNonDigit(quantity) } : {}),
+        supply_quantity: quantityNum,
         price_option: priceMode,
         counter_price_per_unit: submittedPrice,
         counter_payment_terms: { type: 'FIXED', fixed_days: paymentDays, weekly_percent: null },
@@ -124,7 +124,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
         summary: [
           { label: 'Demand ID', value: detail.code ?? listingId },
           ...(hasMills ? [{ label: 'Mill', value: selectedMillData?.name ?? 'Mill' }] : []),
-          ...(hasQuantity && quantity ? [{ label: 'Supply Quantity', value: `${stripNonDigit(quantity)}` }] : []),
+          { label: 'Supply Quantity', value: `${quantityNum} bags` },
           { label: 'Price Option', value: priceMode === 'MAKE_COUNTER' ? `Offer PKR ${submittedPrice}` : 'Original price' },
           { label: 'Payment Terms', value: `${paymentDays} days` },
           { label: 'Delivery Terms', value: `${deliveryDays} days` },

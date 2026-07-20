@@ -42,9 +42,12 @@ const RateDealScreen = ({ navigation, route }: Props) => {
       onRatingSubmitted?.(starRating, note.trim() || undefined);
       showAlert('success', 'Thank you!', 'Your rating has been submitted.', { confirmText: 'OK', onConfirm: () => navigation.goBack() });
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ?? 'Something went wrong. Please try again.';
-      showAlert('error', 'Error', msg);
+      const status = err?.response?.status;
+      // httpService already shows global alerts for 400, 409, 422, 500
+      if (status === 404 || status === 403 || !status) {
+        const msg = err?.response?.data?.message ?? 'Something went wrong. Please try again.';
+        showAlert('error', 'Error', msg);
+      }
     } finally {
       setSubmitting(false);
     }

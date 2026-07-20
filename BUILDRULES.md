@@ -132,7 +132,7 @@ versionName "1.1.7"   // minor bump: last digit +1
 versionName "1.2.0"   // major bump: middle digit +1, last reset to 0
 ```
 
-Current version: `versionName "1.3.1"` / `versionCode 16`
+Current version: `versionName "1.3.2"` / `versionCode 17`
 
 `versionCode` must always increase with every Play Store submission — even for the same `versionName`. Never reuse a `versionCode`.
 

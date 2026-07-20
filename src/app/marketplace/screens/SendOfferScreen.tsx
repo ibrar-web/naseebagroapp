@@ -35,6 +35,8 @@ const normalizeDemand = (r: any) => {
   return p?.id ? p : null;
 };
 const stripNonDigit = (v?: string | null) => Number(String(v ?? '').replace(/[^\d.]/g, ''));
+const enforceInt = (v: string) => v.replace(/[^0-9]/g, '');
+const enforceDecimal = (v: string) => v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
 
 export const SendOfferScreen = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
@@ -161,7 +163,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
 
         <View style={s.card}>
           <Text style={s.sectionTitle}>2. Quantity You Can Supply (bags) <Text style={s.required}>*</Text></Text>
-          <TextInput style={s.input} placeholder="e.g. 150" keyboardType="numeric" value={quantity} onChangeText={setQuantity} placeholderTextColor="#9CA3AF" />
+          <TextInput style={s.input} placeholder="e.g. 150" keyboardType="numeric" value={quantity} onChangeText={v => setQuantity(enforceInt(v))} placeholderTextColor="#9CA3AF" />
         </View>
 
         <View style={s.card}>
@@ -177,7 +179,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
               );
             })}
           </View>
-          {priceMode === 'MAKE_COUNTER' ? <TextInput style={[s.input, styles.counterInput]} placeholder="e.g. 4000" value={counterPrice} onChangeText={setCounterPrice} placeholderTextColor="#9CA3AF" keyboardType="numeric" /> : null}
+          {priceMode === 'MAKE_COUNTER' ? <TextInput style={[s.input, styles.counterInput]} placeholder="e.g. 4000" value={counterPrice} onChangeText={v => setCounterPrice(enforceDecimal(v))} placeholderTextColor="#9CA3AF" keyboardType="numeric" /> : null}
         </View>
 
         <View style={s.card}>

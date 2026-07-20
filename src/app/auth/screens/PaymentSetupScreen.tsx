@@ -64,6 +64,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<string[]>([]);
 
   useEffect(() => {
     dispatch(setRegisterPayment({ bankId: form.bankId, bankName: form.bankName, accountTitle: form.accountTitle, accountNumber: form.accountNumber, iban: form.iban }));
@@ -97,6 +98,7 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
     if (form.accountTitle.trim().length < 2) { showAlert('error', 'Missing Field', 'Please enter your account title.'); return; }
     if (form.accountNumber.trim().length < 5) { showAlert('error', 'Missing Field', isMFBank ? 'Please enter your mobile / account number.' : 'Please enter your account number.'); return; }
     if (!isMFBank && form.iban.trim().length < 10) { showAlert('error', 'Missing Field', 'Please enter your IBAN.'); return; }
+    setFieldErrors([]);
     setLoading(true);
     try {
       const formData = new FormData();
@@ -162,11 +164,17 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
       navigation.navigate('VerifyPending');
     } catch (err: any) {
       const status = err?.response?.status ?? err?.status;
-      const serverMsg: string = err?.response?.data?.message ?? err?.message ?? '';
-      if (status === 409 || serverMsg.toLowerCase().includes('already registered')) {
+      const rawMsg = err?.response?.data?.message ?? err?.message ?? '';
+      const msgStr = Array.isArray(rawMsg) ? rawMsg.join(' ').toLowerCase() : String(rawMsg).toLowerCase();
+      if (status === 409 || msgStr.includes('already registered')) {
         showConfirm('info', 'Email Already Registered', 'This email is already registered. Please login and complete your profile.', () => navigation.navigate('Login' as any));
       } else {
-        showAlert('error', 'Registration Failed', 'Please check your details and try again.');
+        const errors: string[] = Array.isArray(rawMsg)
+          ? rawMsg.map(String)
+          : rawMsg
+          ? [String(rawMsg)]
+          : ['Something went wrong. Please try again.'];
+        setFieldErrors(errors);
       }
     } finally {
       setLoading(false);
@@ -357,6 +365,19 @@ const PaymentSetupScreen = ({ navigation }: Props) => {
 
         <View style={styles.spacer} />
 
+        {/* Field-level errors from server */}
+        {fieldErrors.length > 0 && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorCardTitle}>Please fix the following:</Text>
+            {fieldErrors.map((e, i) => (
+              <View key={i} style={styles.errorRow}>
+                <Text style={styles.errorBullet}>•</Text>
+                <Text style={styles.errorItem}>{e}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Submit */}
         <TouchableOpacity
           onPress={handleSubmit}
@@ -500,6 +521,18 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   spacer: { flex: 1, minHeight: 24 },
+  errorCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 14,
+    marginBottom: 16,
+  },
+  errorCardTitle: { fontSize: 13, fontWeight: '700', color: '#B91C1C', marginBottom: 8 },
+  errorRow: { flexDirection: 'row', gap: 6, marginBottom: 4 },
+  errorBullet: { fontSize: 13, color: '#EF4444', marginTop: 1 },
+  errorItem: { flex: 1, fontSize: 13, color: '#B91C1C', lineHeight: 18 },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',

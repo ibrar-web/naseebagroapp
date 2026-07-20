@@ -3,6 +3,7 @@ import { getSocket } from './index';
 export type NewOfferPayload = {
   offer_id: string;
   code: string;
+  sent_by?: string;
 };
 
 export type CounterOfferPayload = {
@@ -11,6 +12,7 @@ export type CounterOfferPayload = {
   offered_price: number;
   round: number;
   status: string;
+  sent_by?: string;
 };
 
 export type OfferStatusPayload = {

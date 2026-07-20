@@ -8,14 +8,16 @@ import {
   OfferStatusPayload,
 } from '../../utils/sockets/negotiations';
 
-const attachListeners = () => {
+const attachListeners = (currentUserId: string | undefined) => {
   const socket = getSocket();
   if (!socket) return () => {};
 
   const onNew = (data: NewOfferPayload) => {
+    if (data.sent_by && data.sent_by === currentUserId) return;
     showOfferToast(data.offer_id, 'New Offer Received', `Offer ${data.code ?? ''}`);
   };
   const onCounter = (data: CounterOfferPayload) => {
+    if (data.sent_by && data.sent_by === currentUserId) return;
     showOfferToast(
       data.offer_id,
       'Counter Offer',
@@ -44,6 +46,7 @@ const attachListeners = () => {
 
 const OfferAlertToast = () => {
   const token = useAppSelector(s => s.auth.token);
+  const currentUserId = useAppSelector(s => s.auth.user?.id);
   const cleanupRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -53,11 +56,11 @@ const OfferAlertToast = () => {
     if (!socket) return;
 
     cleanupRef.current();
-    cleanupRef.current = attachListeners();
+    cleanupRef.current = attachListeners(currentUserId);
 
     const handleReconnect = () => {
       cleanupRef.current();
-      cleanupRef.current = attachListeners();
+      cleanupRef.current = attachListeners(currentUserId);
     };
     socket.on('connect', handleReconnect);
 
@@ -66,7 +69,7 @@ const OfferAlertToast = () => {
       cleanupRef.current();
       cleanupRef.current = () => {};
     };
-  }, [token]);
+  }, [token, currentUserId]);
 
   return null;
 };

@@ -11,8 +11,8 @@ interface EnvironmentConfig {
 
 const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
   local: {
-    API_BASE_URL: 'http://192.168.100.26:3004/api/v1',
-    SOCKET_URL: 'http://192.168.100.26:3004',
+    API_BASE_URL: 'http://192.168.100.33:3004/api/v1',
+    SOCKET_URL: 'http://192.168.100.33:3004',
     TIMEOUT: 30000,
     VERSION: '1.0.0',
     APP_ENV: 'local',
@@ -37,7 +37,7 @@ const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
 };
 
 // Change this line to switch environments: 'local' | 'development' | 'production'
-const currentEnv: EnvType = 'development';
+const currentEnv: EnvType = 'local';
 
 export const ENV = ENVIRONMENT_CONFIG[currentEnv];
 console.log('ENV', currentEnv, ENV);

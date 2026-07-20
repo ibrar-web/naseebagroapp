@@ -134,6 +134,12 @@ function handleNotificationNavigation(data: Record<string, string>): void {
       }
       break;
 
+    case 'dispute':
+      if (entityId) {
+        navigationRef.navigate('DisputeDetail', { disputeId: entityId });
+      }
+      break;
+
     case 'listing':
       if (entityId) {
         if (type === 'approved' || type === 'rejected' || type === 'needs_revision') {

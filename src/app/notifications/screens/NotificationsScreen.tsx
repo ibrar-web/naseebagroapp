@@ -133,6 +133,12 @@ const NotificationsScreen = ({ navigation }: any) => {
       const postType: 'supply' | 'demand' = item.recipient_role === 'seller' ? 'supply' : 'demand';
       console.log('[Notifications] → navigate PostDetail postId:', item.entity_id, 'post_type:', postType);
       navigation.navigate('PostDetail', { postId: item.entity_id, post_type: postType });
+    } else if (item.entity_type === 'dispute' && item.entity_id) {
+      console.log('[Notifications] → navigate DisputeDetail disputeId:', item.entity_id);
+      navigation.navigate('DisputeDetail', { disputeId: item.entity_id });
+    } else if (item.entity_type === 'deal' && item.entity_id) {
+      console.log('[Notifications] → navigate DealDetail dealId:', item.entity_id);
+      navigation.navigate('DealDetail', { dealId: item.entity_id });
     } else {
       console.log('[Notifications] handleTap: no navigation — entity_type:', item.entity_type, 'entity_id:', item.entity_id);
     }
@@ -210,7 +216,7 @@ const NotificationsScreen = ({ navigation }: any) => {
                 {section.items.map((item, index) => {
                   const { icon, iconBg, color } = iconForType(item.type);
                   const isLast = index === section.items.length - 1;
-                  const tappable = !!item.entity_id && (item.entity_type === 'offer' || item.entity_type === 'listing');
+                  const tappable = !!item.entity_id && (item.entity_type === 'offer' || item.entity_type === 'listing' || item.entity_type === 'dispute' || item.entity_type === 'deal');
 
                   return (
                     <TouchableOpacity

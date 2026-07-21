@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -91,10 +91,7 @@ const CategorySection = ({ navigation }: any) => {
     };
   }, []);
 
-  const visibleCategories = useMemo(
-    () => categories.filter(category => (category.listings?.length ?? 0) > 0),
-    [categories],
-  );
+  const visibleCategories = categories;
 
   if (loading && categories.length === 0) {
     return (
@@ -148,6 +145,7 @@ const CategorySection = ({ navigation }: any) => {
                 onPress={() =>
                   navigation.navigate(getDetailRoute(item), {
                     listingId: item.id,
+                    listingType: 'SUPPLY',
                   })
                 }
               />
@@ -215,7 +213,7 @@ const CategoryCard = ({
         <Text style={styles.catStock} numberOfLines={1}>
           {item.quantity_label ?? 'Quantity available'}
         </Text>
-        <TouchableOpacity
+<TouchableOpacity
           style={styles.interestBtn}
           onPress={onPress}
           activeOpacity={0.86}

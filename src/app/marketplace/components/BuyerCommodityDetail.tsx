@@ -426,6 +426,8 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
       : null,
   ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
 
+  const statusLabel = detail.supply_condition?.status?.toUpperCase() ?? 'OPEN';
+
   const ctaLabel = 'Request to Purchase';
 
   return (
@@ -491,6 +493,9 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
               {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
             <View style={styles.heroBadgeRow}>
+              <View style={styles.statusChip}>
+                <Text style={styles.statusChipText}>{statusLabel}</Text>
+              </View>
               {badge ? (
                 <View style={styles.premiumBadge}>
                   <Text style={styles.premiumBadgeText}>{badge}</Text>
@@ -675,13 +680,20 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 5,
   },
-  premiumBadge: {
+  statusChip: {
     backgroundColor: '#F3CD03',
     borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  premiumBadgeText: { fontSize: 9, fontWeight: '800', color: '#0D3B1F' },
+  statusChipText: { fontSize: 9, fontWeight: '800', color: '#0D3B1F' },
+  premiumBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  premiumBadgeText: { fontSize: 9, fontWeight: '800', color: '#FFFFFF' },
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   verifiedText: { fontSize: 10, color: '#7FD4A0', fontWeight: '700' },
   warningBar: {

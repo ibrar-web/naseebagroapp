@@ -11,6 +11,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppIcon } from '../../../assets/icons';
 import { RootStackParamList } from '../../../navigation/types';
+import { showAlert } from '../../components/toastConfig';
 import api from '../../../utils/api';
 import MockStatusBar from '../../components/MockStatusBar';
 
@@ -166,6 +167,8 @@ const HOW_IT_WORKS = [
 const SellerCommodityDetail = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<DemandDetail | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [savingFav, setSavingFav] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -183,6 +186,7 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
         console.log('seller listing details screen:', response);
         if (active) {
           setDetail(normalized);
+          setSaved(Boolean(normalized?.favorite?.is_favorited));
         }
       } catch (err) {
         console.log('Demand detail error', err);
@@ -318,9 +322,34 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
             <AppIcon name="back" size={18} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>{statusLabel}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={async () => {
+              if (savingFav) return;
+              const next = !saved;
+              setSaved(next);
+              setSavingFav(true);
+              try {
+                if (next) {
+                  await api.profile.addSavedListing(listingId);
+                } else {
+                  await api.profile.removeSavedListing(listingId);
+                }
+              } catch {
+                setSaved(!next);
+                showAlert('error', 'Error', next ? 'Could not save listing.' : 'Could not remove from saved.');
+              } finally {
+                setSavingFav(false);
+              }
+            }}
+            style={styles.heartBtn}
+            activeOpacity={0.85}
+          >
+            {savingFav ? (
+              <ActivityIndicator size="small" color={saved ? '#EF4444' : '#FFFFFF'} />
+            ) : (
+              <AppIcon name="heart" size={17} color={saved ? '#EF4444' : '#FFFFFF'} />
+            )}
+          </TouchableOpacity>
 
           <View style={styles.heroBottom}>
             <Text style={styles.heroId}>
@@ -329,6 +358,11 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
             <Text style={styles.heroName} numberOfLines={1}>
               {toStr(detail.commodity?.name, 'Commodity')}
             </Text>
+            <View style={styles.heroBadgeRow}>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>{statusLabel}</Text>
+              </View>
+            </View>
           </View>
         </ImageBackground>
       </View>
@@ -484,17 +518,32 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  statusBadge: {
+  heartBtn: {
     position: 'absolute',
     top: 44,
     right: 16,
     zIndex: 10,
-    backgroundColor: '#F3CD03',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusBadgeText: { fontSize: 10, fontWeight: '800', color: '#0D3B1F' },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 5,
+  },
+  statusBadge: {
+    backgroundColor: '#F3CD03',
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: { fontSize: 9, fontWeight: '800', color: '#0D3B1F' },
   heroBottom: {
     position: 'absolute',
     bottom: 12,

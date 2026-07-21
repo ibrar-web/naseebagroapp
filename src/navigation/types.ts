@@ -76,7 +76,7 @@ export type RootStackParamList = {
   PostDetail: { postId: string; mode?: AppModeParam; post_type?: 'supply' | 'demand' };
   OfferDetail: { offerId: string; mode?: AppModeParam };
   Negotiation: { offerId: string; mode?: AppModeParam };
-  DealDetail: { dealId: string };
+  DealDetail: { dealId: string; mode?: 'buyer' | 'seller' };
   Notifications: undefined;
 
   // Onboarding

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/rootReducer';
-import { showPostToast, showDealToast, showProfileToast } from '../../app/components/toastConfig';
+import { showPostToast, showDealToast, showProfileToast, showDisputeToast, showQueryToast } from '../../app/components/toastConfig';
 import { onPostApproved, onPostRejected, onPostNeedsRevision } from './posts';
 import {
   onDealCompleted,
@@ -15,7 +15,9 @@ import {
   onPaymentRejected,
   onPaymentSent,
 } from './deals';
-import { onKycUpdated, onBusinessUpdated, onBankUpdated } from './profile';
+import { onKycUpdated, onBusinessUpdated, onBankUpdated, onBasicUpdated } from './profile';
+import { onDisputeUnderReview, onDisputeResolved } from './disputes';
+import { onQueryAdminReply, onQueryClosed } from './queries';
 import { navigationRef } from '../../navigation/AppNavigator';
 
 export const useGlobalSocketListeners = () => {
@@ -93,7 +95,7 @@ export const useGlobalSocketListeners = () => {
     });
 
     const unsubPaymentVerified = onPaymentVerified((data) => {
-      showDealToast('Payment Verified', 'Your payment has been verified by admin.', data.deal_id);
+      showDealToast('Payment Verified', 'Your payment has been verified by admin.', data.deal_id, 'buyer');
     });
 
     const unsubPaymentRejected = onPaymentRejected((data) => {
@@ -101,11 +103,12 @@ export const useGlobalSocketListeners = () => {
         'Payment Rejected',
         data.reason ? `Payment rejected: ${data.reason}` : 'Your payment has been rejected.',
         data.deal_id,
+        'buyer',
       );
     });
 
     const unsubPaymentSent = onPaymentSent((data) => {
-      showDealToast('Payout Received', 'A payout has been sent to you for this deal.', data.deal_id);
+      showDealToast('Payout Received', 'A payout has been sent to you for this deal.', data.deal_id, 'seller');
     });
 
     const unsubCompleted = onDealCompleted((data) => {
@@ -123,6 +126,54 @@ export const useGlobalSocketListeners = () => {
       unsubPaymentRejected();
       unsubPaymentSent();
       unsubCompleted();
+    };
+  }, [isAuthenticated]);
+
+  // ── Dispute status events ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubUnderReview = onDisputeUnderReview((data) => {
+      showDisputeToast(
+        'Dispute Under Review',
+        `${data.code || 'Your dispute'} is now being reviewed.`,
+        data.dispute_id,
+      );
+    });
+
+    const unsubResolved = onDisputeResolved((data) => {
+      showDisputeToast(
+        'Dispute Resolved',
+        `${data.code || 'Your dispute'} has been resolved.`,
+        data.dispute_id,
+      );
+    });
+
+    return () => {
+      unsubUnderReview();
+      unsubResolved();
+    };
+  }, [isAuthenticated]);
+
+  // ── User query events ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubReply = onQueryAdminReply((data) => {
+      showQueryToast(
+        'Admin Replied',
+        data.message?.content || `Reply on ${data.subject || 'your query'}`,
+        'info',
+      );
+    });
+
+    const unsubClosed = onQueryClosed(() => {
+      showQueryToast('Query Closed', 'Your support query has been closed.', 'success');
+    });
+
+    return () => {
+      unsubReply();
+      unsubClosed();
     };
   }, [isAuthenticated]);
 
@@ -172,10 +223,23 @@ export const useGlobalSocketListeners = () => {
       );
     });
 
+    const unsubBasic = onBasicUpdated((data) => {
+      const approved = data.status === 'approved';
+      showProfileToast(
+        approved ? 'Profile Approved' : 'Profile Rejected',
+        approved
+          ? 'Your basic profile has been approved.'
+          : `Profile rejected${data.reason ? ': ' + data.reason : '.'}`,
+        approved ? 'approved' : 'rejected',
+        goToProfile,
+      );
+    });
+
     return () => {
       unsubKyc();
       unsubBusiness();
       unsubBank();
+      unsubBasic();
     };
   }, [isAuthenticated]);
 };

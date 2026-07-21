@@ -45,14 +45,39 @@ export const showPostToast = (
   });
 };
 
-export const showDealToast = (title: string, body: string, dealId: string) => {
+export const showDealToast = (title: string, body: string, dealId: string, mode?: 'buyer' | 'seller') => {
   showToast({
     title,
     body,
     icon: 'currency',
     accentColor: '#60A5FA',
     onPress: () => {
-      if (navigationRef.isReady()) navigationRef.navigate('DealDetail', { dealId });
+      if (navigationRef.isReady()) navigationRef.navigate('DealDetail', { dealId, ...(mode ? { mode } : {}) });
+    },
+  });
+};
+
+export const showDisputeToast = (title: string, body: string, disputeId: string) => {
+  showToast({
+    title,
+    body,
+    icon: 'notificationWarning',
+    accentColor: '#F97316',
+    onPress: () => {
+      if (navigationRef.isReady()) navigationRef.navigate('DisputeDetail', { disputeId });
+    },
+  });
+};
+
+export const showQueryToast = (title: string, body: string, variant: 'info' | 'success' = 'info') => {
+  const accent = variant === 'success' ? '#4ADE80' : '#60A5FA';
+  showToast({
+    title,
+    body,
+    icon: 'notificationWarning',
+    accentColor: accent,
+    onPress: () => {
+      if (navigationRef.isReady()) navigationRef.navigate('MainTabs', { screen: 'Profile' });
     },
   });
 };

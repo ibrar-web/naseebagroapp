@@ -146,6 +146,10 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [basicStatus, setBasicStatus] = useState<{
+    phoneVerified: boolean;
+    rejectionReason: string | null;
+  } | null>(null);
 
   const setField =
     <K extends keyof PersonalForm>(key: K) =>
@@ -162,8 +166,10 @@ const PersonalInfoScreen = ({ navigation }: any) => {
 
       if (!isRefresh) setLoading(true);
       try {
-        const response = await api.profile.personal.get();
-        console.log('response user info :', response);
+        const [response, verRes] = await Promise.all([
+          api.profile.personal.get(),
+          api.profile.verificationStatus.get().catch(() => null),
+        ]);
         const data = unwrapApiData(response) ?? {};
         const personal = data.user ?? data.profile ?? data;
         const loaded: PersonalForm = {
@@ -182,6 +188,14 @@ const PersonalInfoScreen = ({ navigation }: any) => {
         setForm(loaded);
         setServerForm(loaded);
         setImageError(false);
+
+        if (verRes) {
+          const ver = (verRes as any)?.verification_status ?? verRes;
+          setBasicStatus({
+            phoneVerified: Boolean(ver?.phone_verified),
+            rejectionReason: ver?.basic_rejection_reason ?? null,
+          });
+        }
       } catch (error) {
         console.error(
           'PersonalInfoScreen: Failed to load personal info:',
@@ -247,6 +261,18 @@ const PersonalInfoScreen = ({ navigation }: any) => {
     if (changedFields.length === 0 && !hasPhotoChange) {
       return;
     }
+
+    const confirmed = await new Promise<boolean>(resolve =>
+      Alert.alert(
+        'Profile Update',
+        'Your profile will be sent for review and may take up to 24 hours to be approved.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Update', onPress: () => resolve(true) },
+        ],
+      ),
+    );
+    if (!confirmed) return;
 
     setSaving(true);
     try {
@@ -419,6 +445,38 @@ const PersonalInfoScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
+          {basicStatus !== null && (
+            basicStatus.phoneVerified ? (
+              <View style={[styles.statusBanner, styles.statusBannerApproved]}>
+                <AppIcon name="approved" size={16} color="#166534" />
+                <View style={styles.statusBannerText}>
+                  <Text style={[styles.statusBannerTitle, styles.statusTitleApproved]}>
+                    Basic Profile Approved
+                  </Text>
+                </View>
+              </View>
+            ) : basicStatus.rejectionReason ? (
+              <View style={[styles.statusBanner, styles.statusBannerRejected]}>
+                <AppIcon name="alertTriangle" size={16} color="#991B1B" />
+                <View style={styles.statusBannerText}>
+                  <Text style={[styles.statusBannerTitle, styles.statusTitleRejected]}>
+                    Profile Rejected
+                  </Text>
+                  <Text style={styles.statusBannerReason}>{basicStatus.rejectionReason}</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={[styles.statusBanner, styles.statusBannerPending]}>
+                <AppIcon name="notificationWarning" size={16} color="#92400E" />
+                <View style={styles.statusBannerText}>
+                  <Text style={[styles.statusBannerTitle, styles.statusTitlePending]}>
+                    Pending Review
+                  </Text>
+                </View>
+              </View>
+            )
+          )}
+
           <View className="overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-black/5">
             {fields.map((field, index) => (
               <InfoRow
@@ -469,6 +527,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  statusBannerApproved: { backgroundColor: '#DCFCE7' },
+  statusBannerRejected: { backgroundColor: '#FEE2E2' },
+  statusBannerPending:  { backgroundColor: '#FEF3C7' },
+  statusBannerText: { flex: 1 },
+  statusBannerTitle: { fontSize: 13, fontWeight: '700' },
+  statusTitleApproved: { color: '#166534' },
+  statusTitleRejected: { color: '#991B1B' },
+  statusTitlePending:  { color: '#92400E' },
+  statusBannerReason: {
+    fontSize: 12,
+    color: '#991B1B',
+    marginTop: 2,
+    fontWeight: '500',
   },
 });
 

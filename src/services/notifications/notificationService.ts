@@ -128,11 +128,16 @@ function handleNotificationNavigation(data: Record<string, string>): void {
       }
       break;
 
-    case 'deal':
+    case 'deal': {
       if (entityId) {
-        navigationRef.navigate('DealDetail', { dealId: entityId });
+        const dealMode =
+          type === 'payment_verified' || type === 'payment_rejected' ? 'buyer'
+          : type === 'payment_sent' ? 'seller'
+          : undefined;
+        navigationRef.navigate('DealDetail', { dealId: entityId, ...(dealMode ? { mode: dealMode } : {}) });
       }
       break;
+    }
 
     case 'dispute':
       if (entityId) {

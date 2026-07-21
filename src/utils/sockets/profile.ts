@@ -33,3 +33,14 @@ export const onBankUpdated = (callback: (data: BankUpdatedPayload) => void): (()
   getSocket()?.on('profile.bank_updated', callback);
   return () => getSocket()?.off('profile.bank_updated', callback);
 };
+
+export type BasicUpdatedPayload = {
+  user_id: string;
+  status: 'approved' | 'rejected';
+  reason?: string | null;
+};
+
+export const onBasicUpdated = (callback: (data: BasicUpdatedPayload) => void): (() => void) => {
+  getSocket()?.on('profile.basic_updated', callback);
+  return () => getSocket()?.off('profile.basic_updated', callback);
+};

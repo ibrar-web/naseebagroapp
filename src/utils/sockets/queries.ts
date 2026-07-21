@@ -22,8 +22,8 @@ export const onQueryAdminReply = (
 ): (() => void) => {
   const socket = getSocket();
   if (!socket) return () => {};
-  socket.on('query.admin_reply', cb);
-  return () => socket.off('query.admin_reply', cb);
+  socket.on('query.replied', cb);
+  return () => socket.off('query.replied', cb);
 };
 
 export const onQueryClosed = (

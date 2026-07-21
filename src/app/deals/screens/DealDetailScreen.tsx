@@ -50,8 +50,9 @@ const formatPKR = (n: number) =>
 const HEADER_HEIGHT = 140;
 
 const DealDetailScreen = ({ navigation, route }: Props) => {
-  const { dealId } = route.params;
-  const mode = useAppSelector(s => s.app.mode);
+  const { dealId, mode: routeMode } = route.params;
+  const storeMode = useAppSelector(s => s.app.mode);
+  const mode = routeMode ?? storeMode;
   const layout = useWindowDimensions();
 
   const [deal, setDeal] = useState<DealHeader | null>(null);

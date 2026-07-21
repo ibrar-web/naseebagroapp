@@ -41,6 +41,7 @@ export interface Payment {
 }
 
 export interface PaymentSummaryData {
+  deal_status?: string | null;
   total_amount?: number;
   total_payable?: number;
   total_paid?: number;
@@ -228,6 +229,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
   const pct =
     total > 0 ? Math.min(Math.round((received / total) * 100), 100) : 0;
   const payments = paymentSummary.payments ?? [];
+  const isCompleted = paymentSummary.deal_status === 'closed';
   const canSubmit = Number(amount) > 0;
 
   return (
@@ -335,7 +337,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
         </View>
       )}
 
-      {mode === 'buyer' && (
+      {mode === 'buyer' && !isCompleted && (
         <TouchableOpacity
           style={s.addPayBtn}
           onPress={() => setShowModal(true)}
@@ -346,6 +348,13 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
           </View>
           <Text style={s.addPayBtnText}>Add Payment</Text>
         </TouchableOpacity>
+      )}
+
+      {isCompleted && (
+        <View style={s.completedNotice}>
+          <Text style={s.completedNoticeIcon}>✓</Text>
+          <Text style={s.completedNoticeText}>Deal completed — no more payments accepted.</Text>
+        </View>
       )}
 
       <View style={s.bottomSpacer} />
@@ -364,7 +373,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
             activeOpacity={1}
           />
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
           >
             <View style={s.paySheet}>
               <View style={s.paySheetHeader}>
@@ -755,6 +764,21 @@ const s = StyleSheet.create({
   submitPayBtnDisabled: { backgroundColor: '#E5E7EB' },
   submitPayBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   submitPayBtnTextDisabled: { color: '#9CA3AF' },
+
+  completedNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F2FBF5',
+    borderWidth: 1.5,
+    borderColor: '#7FD4A0',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  completedNoticeIcon: { fontSize: 18, color: '#217A3C', fontWeight: '900' },
+  completedNoticeText: { fontSize: 13, fontWeight: '600', color: '#1A6B34' },
 });
 
 export default PaymentTab;

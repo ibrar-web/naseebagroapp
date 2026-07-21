@@ -62,11 +62,33 @@ export const onBuyerDocRejected = (callback: (data: BuyerDocPayload) => void): (
   return () => getSocket()?.off('deal.buyer_doc_rejected', callback);
 };
 
-// ── Payment (admin approved) ──────────────────────────────────────────────────
+// ── Payment ───────────────────────────────────────────────────────────────────
 
 export const onPaymentApproved = (callback: (data: PaymentApprovedPayload) => void): (() => void) => {
   getSocket()?.on('deal.payment_approved', callback);
   return () => getSocket()?.off('deal.payment_approved', callback);
+};
+
+export type PaymentEventPayload = {
+  deal_id: string;
+  payment_id: string;
+  direction?: string;
+  reason?: string;
+};
+
+export const onPaymentVerified = (callback: (data: PaymentEventPayload) => void): (() => void) => {
+  getSocket()?.on('deal.payment_verified', callback);
+  return () => getSocket()?.off('deal.payment_verified', callback);
+};
+
+export const onPaymentRejected = (callback: (data: PaymentEventPayload) => void): (() => void) => {
+  getSocket()?.on('deal.payment_rejected', callback);
+  return () => getSocket()?.off('deal.payment_rejected', callback);
+};
+
+export const onPaymentSent = (callback: (data: PaymentEventPayload) => void): (() => void) => {
+  getSocket()?.on('deal.payment_sent', callback);
+  return () => getSocket()?.off('deal.payment_sent', callback);
 };
 
 // ── Deal completed ────────────────────────────────────────────────────────────

@@ -11,6 +11,9 @@ import {
   onBuyerDocApproved,
   onBuyerDocRejected,
   onPaymentApproved,
+  onPaymentVerified,
+  onPaymentRejected,
+  onPaymentSent,
 } from './deals';
 import { onKycUpdated, onBusinessUpdated, onBankUpdated } from './profile';
 import { navigationRef } from '../../navigation/AppNavigator';
@@ -89,6 +92,22 @@ export const useGlobalSocketListeners = () => {
       showDealToast('Payment Approved', `PKR ${data.amount} payment has been approved.`, data.deal_id);
     });
 
+    const unsubPaymentVerified = onPaymentVerified((data) => {
+      showDealToast('Payment Verified', 'Your payment has been verified by admin.', data.deal_id);
+    });
+
+    const unsubPaymentRejected = onPaymentRejected((data) => {
+      showDealToast(
+        'Payment Rejected',
+        data.reason ? `Payment rejected: ${data.reason}` : 'Your payment has been rejected.',
+        data.deal_id,
+      );
+    });
+
+    const unsubPaymentSent = onPaymentSent((data) => {
+      showDealToast('Payout Received', 'A payout has been sent to you for this deal.', data.deal_id);
+    });
+
     const unsubCompleted = onDealCompleted((data) => {
       showDealToast('Deal Completed', `Deal ${data.code} has been completed successfully.`, data.deal_id);
     });
@@ -100,6 +119,9 @@ export const useGlobalSocketListeners = () => {
       unsubBuyerApproved();
       unsubBuyerRejected();
       unsubPayment();
+      unsubPaymentVerified();
+      unsubPaymentRejected();
+      unsubPaymentSent();
       unsubCompleted();
     };
   }, [isAuthenticated]);

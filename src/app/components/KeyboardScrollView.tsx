@@ -31,7 +31,7 @@ export const KeyboardScrollView = ({
 }: Props) => (
   <KeyboardAvoidingView
     style={[styles.flex, outerStyle]}
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
   >
     <ScrollView
       keyboardShouldPersistTaps="handled"

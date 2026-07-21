@@ -47,6 +47,7 @@ interface Props {
   mode: 'buyer' | 'seller';
   totalAmount?: number | null;
   paymentTermType?: string | null;
+  dealStatus?: string | null;
   onTrucksLoaded?: (count: number) => void;
 }
 
@@ -87,8 +88,10 @@ const TrucksTab: React.FC<Props> = ({
   mode,
   totalAmount,
   paymentTermType,
+  dealStatus,
   onTrucksLoaded,
 }) => {
+  const isCompleted = dealStatus === 'closed';
   const [trucks, setTrucks] = useState<FullTruck[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -437,42 +440,57 @@ const TrucksTab: React.FC<Props> = ({
             {renderDocChipRow(truck, 'pohnch', true, '#217A3C', '#FFFFFF')}
           </View>
 
-          {/* Freight + Weight inputs — side by side */}
-          <View style={s.inputsRow}>
-            <View style={s.inputHalf}>
-              <Text style={s.inputLabel}>Freight (PKR)</Text>
-              <NumberInput
-                style={s.inputField}
-                placeholder="e.g. 12500"
-                placeholderTextColor="#9CA3AF"
-                value={editFreight}
-                onChangeText={setEditFreight}
-              />
-            </View>
-            <View style={s.inputHalf}>
-              <Text style={s.inputLabel}>Weight Unloaded (tons)</Text>
-              <NumberInput
-                decimal
-                style={s.inputField}
-                placeholder="e.g. 10.2"
-                placeholderTextColor="#9CA3AF"
-                value={editUnloaded}
-                onChangeText={setEditUnloaded}
-              />
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[s.saveBtn, savingFields && s.saveBtnDisabled]}
-            onPress={() => handleSaveBuyerFields(truck.id)}
-            disabled={savingFields}
-            activeOpacity={0.85}
-          >
-            {savingFields ? (
-              <ActivityIndicator size="small" color="#111827" />
+          {/* Freight + Weight inputs — locked once pohnch is verified */}
+          {(() => {
+            const pohnchVerified = truck.documents.some(
+              d => d.doc_type === 'pohnch' && d.status === 'verified',
+            );
+            return pohnchVerified ? (
+              <View style={s.lockedNotice}>
+                <Text style={s.lockedNoticeText}>
+                  ✓ Pohnch verified — freight and weight are locked.
+                </Text>
+              </View>
             ) : (
-              <Text style={s.saveBtnText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
+              <>
+                <View style={s.inputsRow}>
+                  <View style={s.inputHalf}>
+                    <Text style={s.inputLabel}>Freight (PKR)</Text>
+                    <NumberInput
+                      style={s.inputField}
+                      placeholder="e.g. 12500"
+                      placeholderTextColor="#9CA3AF"
+                      value={editFreight}
+                      onChangeText={setEditFreight}
+                    />
+                  </View>
+                  <View style={s.inputHalf}>
+                    <Text style={s.inputLabel}>Weight Unloaded (tons)</Text>
+                    <NumberInput
+                      decimal
+                      style={s.inputField}
+                      placeholder="e.g. 10.2"
+                      placeholderTextColor="#9CA3AF"
+                      value={editUnloaded}
+                      onChangeText={setEditUnloaded}
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[s.saveBtn, savingFields && s.saveBtnDisabled]}
+                  onPress={() => handleSaveBuyerFields(truck.id)}
+                  disabled={savingFields}
+                  activeOpacity={0.85}
+                >
+                  {savingFields ? (
+                    <ActivityIndicator size="small" color="#111827" />
+                  ) : (
+                    <Text style={s.saveBtnText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            );
+          })()}
 
           {/* DISPATCH DOCUMENTS — seller's bilti/waybill; API only sends when verified */}
           <View style={s.docSectionTop}>
@@ -619,7 +637,7 @@ const TrucksTab: React.FC<Props> = ({
       )}
 
       {/* Seller: add truck form / button */}
-      {mode === 'seller' && (
+      {mode === 'seller' && !isCompleted && (
         <>
           {showForm ? (
             <View style={s.formCard}>
@@ -1035,6 +1053,17 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   addBtnText: { fontSize: 13, fontWeight: '700', color: '#1A6B34' },
+
+  lockedNotice: {
+    backgroundColor: '#F2FBF5',
+    borderWidth: 1.5,
+    borderColor: '#7FD4A0',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  lockedNoticeText: { fontSize: 12, fontWeight: '600', color: '#1A6B34' },
 });
 
 export default TrucksTab;

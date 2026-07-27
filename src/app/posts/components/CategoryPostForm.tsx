@@ -48,29 +48,22 @@ const CommodityPicker = ({
 }) => {
   const [open, setOpen] = React.useState(false);
 
-  if (loading) {
-    return (
-      <View style={cp.loadRow}>
-        <ActivityIndicator size="small" color="#2E9E52" />
-        <Text style={cp.loadText}>Loading commodities...</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={cp.wrap}>
       <TouchableOpacity
         style={[cp.btn, selected && cp.btnActive]}
-        onPress={() => setOpen(v => !v)}
+        onPress={() => { if (!loading) setOpen(v => !v); }}
         activeOpacity={0.8}
       >
         <Text style={[cp.btnText, !selected && cp.placeholder]} numberOfLines={1}>
           {selected ? selected.name : 'Select commodity...'}
         </Text>
-        <AppIcon name="chevronDown" size={13} color={selected ? '#2E9E52' : '#9CA3AF'} />
+        {loading
+          ? <ActivityIndicator size="small" color="#9CA3AF" />
+          : <AppIcon name="chevronDown" size={13} color={selected ? '#2E9E52' : '#9CA3AF'} />}
       </TouchableOpacity>
 
-      {open && (
+      {open && !loading && (
         <View style={cp.sheet}>
           <ScrollView style={cp.optScroll} nestedScrollEnabled>
             {commodities.map(c => {
@@ -106,6 +99,7 @@ export const CategoryPostForm = ({
   postId,
 }: Props) => {
   const f = usePostForm({ categoryData, categoryName, mode, navigation, prefillData, postId });
+  const [qtyBlurred, setQtyBlurred] = React.useState(false);
 
   const renderFormContent = () => {
     if (f.loading) {
@@ -148,7 +142,16 @@ export const CategoryPostForm = ({
       );
     }
 
-    if (!f.selectedCommodity || !f.form) return null;
+    if (!f.selectedCommodity) {
+      return (
+        <View style={s.selectPrompt}>
+          <AppIcon name="menuBusiness" size={28} color="#D1D5DB" />
+          <Text style={s.selectPromptText}>Select a commodity above to continue</Text>
+        </View>
+      );
+    }
+
+    if (!f.form) return null;
 
     return (
       <>
@@ -210,7 +213,7 @@ export const CategoryPostForm = ({
 
                 {lk === 'quantity' && f.selectedCommodity?.minimum_quantity ? (
                   <Text style={s.minQtyHint}>
-                    Min: {f.selectedCommodity.minimum_quantity} {f.commodityUnit}
+                    Minimum: {f.selectedCommodity.minimum_quantity} {f.commodityUnit}
                   </Text>
                 ) : null}
 
@@ -262,9 +265,26 @@ export const CategoryPostForm = ({
                     value={f.values[field.id] ?? null}
                     isOpen={f.openDropdown === field.id}
                     onToggle={() => f.toggleDropdown(field.id)}
-                    onChange={v => f.setFieldValue(field.id, v)}
+                    onChange={v => { f.setFieldValue(field.id, v); if (lk === 'quantity') setQtyBlurred(false); }}
+                    onBlur={lk === 'quantity' ? () => setQtyBlurred(true) : undefined}
                   />
                 )}
+
+                {lk === 'quantity' && qtyBlurred && (() => {
+                  const minQty = f.selectedCommodity?.minimum_quantity ?? 0;
+                  const entered = Number(String(f.values[field.id] ?? '').replace(/[^\d.]/g, ''));
+                  if (minQty > 0 && entered > 0 && entered < minQty) {
+                    return (
+                      <View style={s.validationAlert}>
+                        <AppIcon name="alertCircle" size={14} color="#B45309" />
+                        <Text style={s.validationAlertText}>
+                          Minimum quantity is {minQty} {f.commodityUnit}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
               </View>
             );
           })}
@@ -451,4 +471,17 @@ const s = StyleSheet.create({
   submitBtnActive: { backgroundColor: '#2E9E52', borderColor: '#2E9E52', opacity: 1 },
   submitText: { fontSize: 14, fontWeight: '600', color: '#4B5563' },
   submitTextActive: { color: '#FFFFFF' },
+  selectPrompt: {
+    alignItems: 'center', justifyContent: 'center', gap: 10,
+    paddingVertical: 28, paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 12,
+    borderWidth: 1.5, borderColor: '#F3F4F6', borderStyle: 'dashed',
+  },
+  selectPromptText: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
+  validationAlert: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFBEB', borderRadius: 10, padding: 12, marginBottom: 10,
+    borderWidth: 1, borderColor: '#FCD34D',
+  },
+  validationAlertText: { fontSize: 12, color: '#92400E', flex: 1, lineHeight: 18 },
 });

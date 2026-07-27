@@ -3,6 +3,7 @@ import {
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
+import { GooglePlacesInput } from '../../components/GooglePlacesInput';
 import type { FieldOption, FormField, MillEntry } from '../types/postForm.types';
 
 type Props = {
@@ -125,16 +126,12 @@ export const PostFormMills = ({
               placeholder="Mill name"
               placeholderTextColor="#9CA3AF"
             />
-            <View style={s.cityRow}>
-              <AppIcon name="profileCity" size={12} color="#9CA3AF" />
-              <TextInput
-                style={s.cityInput}
-                value={pendingMill.city}
-                onChangeText={t => onPendingMillChange({ ...pendingMill, city: t })}
-                placeholder="City / location"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
+            <GooglePlacesInput
+              value={pendingMill.city}
+              onChange={city => onPendingMillChange({ ...pendingMill, city })}
+              placeholder="City / location"
+              buttonStyle={s.millCityBtn}
+            />
           </>
         ) : (
           <View style={s.cityRow}>
@@ -199,6 +196,7 @@ const s = StyleSheet.create({
   optTextActive: { color: '#1A6B34', fontWeight: '600' },
   optSub: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
   input: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, fontSize: 12, color: '#374151', backgroundColor: '#FFFFFF', marginBottom: 6 },
+  millCityBtn: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, marginBottom: 6 },
   cityRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, gap: 6, backgroundColor: '#FFFFFF', marginBottom: 6 },
   cityInput: { flex: 1, fontSize: 12, color: '#374151', padding: 0 },
   priceRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, gap: 4, backgroundColor: '#FFFFFF', marginBottom: 6 },

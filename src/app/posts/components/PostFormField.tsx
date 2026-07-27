@@ -16,6 +16,7 @@ type Props = {
   isOpen: boolean;
   onToggle: () => void;
   onChange: (value: FieldValue) => void;
+  onBlur?: () => void;
 };
 
 const optId = (o: FieldOption) => String(o.id ?? o.value ?? '');
@@ -85,11 +86,31 @@ const MultiSelect = ({ field, value, onChange }: Props) => {
 };
 
 export const PostFormField = (props: Props) => {
-  const { field, value, onChange } = props;
+  const { field, value, onChange, onBlur } = props;
   const type = field.field_type?.toLowerCase();
 
   if (type === 'dropdown') return <Dropdown {...props} />;
   if (type === 'multi_select') return <MultiSelect {...props} />;
+
+  if (type === 'number') {
+    const raw = String(value ?? '');
+    const handleNumber = (t: string) => {
+      const cleaned = t.replace(/[^0-9.]/g, '').replace(/^(\d*\.?\d*).*$/, '$1');
+      onChange(cleaned);
+    };
+    return (
+      <TextInput
+        style={s.input}
+        value={raw}
+        onChangeText={handleNumber}
+        onBlur={onBlur}
+        placeholder={field.placeholder ?? `Enter ${field.label.toLowerCase()}...`}
+        placeholderTextColor="#9CA3AF"
+        keyboardType="decimal-pad"
+        returnKeyType="done"
+      />
+    );
+  }
 
   return (
     <TextInput
@@ -98,7 +119,7 @@ export const PostFormField = (props: Props) => {
       onChangeText={t => onChange(t)}
       placeholder={field.placeholder ?? `Enter ${field.label.toLowerCase()}...`}
       placeholderTextColor="#9CA3AF"
-      keyboardType={type === 'number' ? 'numeric' : 'default'}
+      keyboardType="default"
     />
   );
 };

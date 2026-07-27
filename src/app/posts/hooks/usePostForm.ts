@@ -35,7 +35,7 @@ const normalizeForm = (res: any): CategoryForm | null => {
 
 const normalizeCommodities = (res: any): CommodityRouteParam[] => {
   const items = res?.items ?? res?.data?.items ?? [];
-  return items
+  const result = items
     .filter((c: any) => c?.id && c?.name)
     .map((c: any) => ({
       id: String(c.id),
@@ -46,15 +46,17 @@ const normalizeCommodities = (res: any): CommodityRouteParam[] => {
       grades: Array.isArray(c.grades) ? c.grades : [],
       minimum_quantity: typeof c.minimum_quantity === 'number' ? c.minimum_quantity : null,
     }));
+  console.log('[PostForm] commodities normalized:', result.map((c: any) => ({ id: c.id, name: c.name, grades: c.grades })));
+  return result;
 };
 
 const normalizeMills = (res: any): FieldOption[] => {
-  const items = res?.items ?? res?.data?.items ?? [];
+  const items = res?.items ?? res?.data?.items ?? res?.data ?? [];
+  console.log('[PostForm] mills raw response:', JSON.stringify(res));
   return items.map((m: any) => ({
     id: String(m.id ?? ''),
     name: String(m.name ?? ''),
-    city: m.city ?? '',
-    province: m.province ?? '',
+    location: m.location ?? '',
   }));
 };
 
@@ -115,12 +117,15 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
       api.marketplace.public.getTradeConfigs() as Promise<any>,
     ])
       .then(([comRes, millsRes, configsRes]) => {
+        console.log('[PostForm] commodities raw:', JSON.stringify(comRes));
+        console.log('[PostForm] tradeConfigs raw:', JSON.stringify(configsRes));
         const loaded = normalizeCommodities(comRes);
         setCommodities(loaded);
         setMillsOptions(normalizeMills(millsRes));
-        setTradeConfigs(Array.isArray(configsRes?.items ?? configsRes?.data?.items)
-          ? (configsRes?.items ?? configsRes?.data?.items)
-          : []);
+        const rawConfigs = configsRes?.data ?? configsRes?.items ?? configsRes?.data?.items ?? [];
+        const configs = Array.isArray(rawConfigs) ? rawConfigs : [];
+        console.log('[PostForm] tradeConfigs parsed:', JSON.stringify(configs));
+        setTradeConfigs(configs);
 
         // Auto-select commodity when editing a post
         const fill = prefillRef.current;
@@ -151,8 +156,10 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     (api.marketplace.public.getFormByCommodity(selectedCommodity.id, formType) as Promise<any>)
       .then((res: any) => {
         if (!mounted) return;
+        console.log('[PostForm] form raw response for commodity', selectedCommodity.id, ':', JSON.stringify(res));
         const next = normalizeForm(res);
         if (!next) { setNoForm(true); return; }
+        console.log('[PostForm] form fields:', JSON.stringify(next.fields?.map((f: any) => ({ id: f.id, label: f.label, type: f.field_type, options: f.options?.length }))));
         setForm(next);
 
         const fill = prefillRef.current;
@@ -207,10 +214,12 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
 
   const commodityUnit = selectedCommodity?.default_unit?.name ?? 'Bag';
 
-  const deliveryTermOptions = useMemo(
-    () => tradeConfigs.filter((c: any) => c.type === 'fixed_days' || c.type === 'weekly_percent'),
-    [tradeConfigs],
-  );
+  const deliveryTermOptions = useMemo(() => {
+    console.log('[PostForm] tradeConfigs count:', tradeConfigs.length, 'sample:', JSON.stringify(tradeConfigs[0]));
+    const opts = tradeConfigs.filter((c: any) => c.type === 'fixed_days' || c.type === 'weekly_percent');
+    console.log('[PostForm] deliveryTermOptions:', JSON.stringify(opts));
+    return opts;
+  }, [tradeConfigs]);
 
   const sortedFields = useMemo(
     () => {
@@ -223,10 +232,14 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
         return ai - bi;
       });
 
+      console.log('[PostForm] selectedCommodity grades:', selectedCommodity?.name, JSON.stringify(selectedCommodity?.grades));
+
       return sorted.map(field => {
         const lk = labelKey(field.label);
         if (lk === 'grades') {
-          return { ...field, options: selectedCommodity?.grades.map(g => ({ id: g, name: g })) ?? [] };
+          const gradeOpts = selectedCommodity?.grades.map(g => ({ id: g, name: g })) ?? [];
+          console.log('[PostForm] grades options for', selectedCommodity?.name, ':', JSON.stringify(gradeOpts));
+          return { ...field, options: gradeOpts };
         }
         if (lk === 'mills') return { ...field, options: millsOptions };
         if (lk === 'delivery_options') return { ...field, options: DELIVERY_OPTIONS };
@@ -245,21 +258,42 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
 
   const effectiveDeliveryDays = isCustomDelivery ? customDeliveryInput : deliveryDays;
 
-  const formIsValid = sortedFields.every(field => {
-    if (!field.is_required) return true;
+  const fieldResults = sortedFields.map(field => {
     const lk = labelKey(field.label);
     const type = field.field_type?.toLowerCase();
-    if (lk === 'payment_terms') return paymentValue.trim().length > 0;
-    if (lk === 'delivery_terms') return effectiveDeliveryDays.trim().length > 0;
-    if (lk === 'mills') return selectedMills.length > 0;
-    if (lk === 'location') return Boolean((values[field.id] as { name?: string } | null)?.name?.trim());
-    if (lk === 'quantity' && selectedCommodity?.minimum_quantity) {
+
+    if (!field.is_required) return { lk, required: false, valid: true };
+
+    let valid = false;
+    if (lk === 'target_price' && selectedMills.length > 0) {
+      valid = true;
+    } else if (lk === 'payment_terms') {
+      valid = paymentValue.trim().length > 0;
+    } else if (lk === 'delivery_terms') {
+      valid = effectiveDeliveryDays.trim().length > 0;
+    } else if (lk === 'mills') {
+      valid = selectedMills.length > 0;
+    } else if (lk === 'location') {
+      valid = Boolean((values[field.id] as { name?: string } | null)?.name?.trim());
+    } else if (lk === 'quantity') {
       const qty = parseNumber(values[field.id]);
-      return qty !== null && qty >= (selectedCommodity.minimum_quantity ?? 0);
+      if (qty === null || qty <= 0) { valid = false; }
+      else {
+        const minQty = selectedCommodity?.minimum_quantity ?? 0;
+        valid = minQty > 0 ? qty >= minQty : true;
+      }
+    } else {
+      valid = isFilled(values[field.id], type ?? '');
     }
-    return isFilled(values[field.id], type ?? '');
+
+    return { lk, required: true, valid, value: values[field.id], type };
   });
 
+  console.log('[PostForm] field validation:', JSON.stringify(fieldResults));
+
+  const formIsValid = fieldResults.every(r => r.valid);
+
+  console.log('[PostForm] canSubmit check — categoryData:', !!categoryData?.id, '| commodity:', !!selectedCommodity, '| form:', !!form, '| formIsValid:', formIsValid);
   const canSubmit = Boolean(categoryData?.id && selectedCommodity && form && formIsValid && !submitting);
   const canSubmitAny = canSubmit || queuedPosts.length > 0;
 

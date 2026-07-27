@@ -11,8 +11,8 @@ interface EnvironmentConfig {
 
 const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
   local: {
-    API_BASE_URL: 'http://192.168.100.33:3004/api/v1',
-    SOCKET_URL: 'http://192.168.100.33:3004',
+    API_BASE_URL: 'http://192.168.18.65:3004/api/v1',
+    SOCKET_URL: 'http://192.168.18.65:3004',
     TIMEOUT: 30000,
     VERSION: '1.0.0',
     APP_ENV: 'local',

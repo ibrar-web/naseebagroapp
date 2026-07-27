@@ -1,23 +1,26 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../assets/icons';
 
 const PLACES_KEY = 'AIzaSyCks4PR0s3MnM-aXmNQ3_3oT9LQiB0-q0M';
+const AUTOCOMPLETE_URL = 'https://places.googleapis.com/v1/places:autocomplete';
 
-type Prediction = {
-  place_id: string;
-  main_text: string;
-  secondary_text: string;
-};
+type Suggestion = { placeId: string; mainText: string; secondaryText: string };
+
+const Separator = () => <View style={s.sep} />;
 
 type Props = {
   value: string;
@@ -25,28 +28,6 @@ type Props = {
   placeholder?: string;
   countryCode?: string;
   buttonStyle?: object;
-};
-
-const searchPlaces = async (input: string, countryCode: string): Promise<Prediction[]> => {
-  if (input.trim().length < 2) return [];
-  try {
-    const url =
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json` +
-      `?input=${encodeURIComponent(input)}` +
-      `&key=${PLACES_KEY}` +
-      `&components=country:${countryCode}` +
-      `&types=(cities)` +
-      `&language=en`;
-    const res = await fetch(url);
-    const data = await res.json();
-    return (data.predictions ?? []).map((p: any) => ({
-      place_id: p.place_id,
-      main_text: p.structured_formatting?.main_text ?? p.description,
-      secondary_text: p.structured_formatting?.secondary_text ?? '',
-    }));
-  } catch {
-    return [];
-  }
 };
 
 export const GooglePlacesInput = ({
@@ -58,25 +39,68 @@ export const GooglePlacesInput = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Prediction[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const runSearch = useCallback(async (q: string) => {
-    setLoading(true);
-    const preds = await searchPlaces(q, countryCode);
-    setResults(preds);
-    setLoading(false);
-  }, [countryCode]);
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+    setSuggestions([]);
+    Keyboard.dismiss();
+  };
 
-  useEffect(() => {
+  const fetchSuggestions = useCallback(
+    async (input: string) => {
+      if (!input.trim()) {
+        setSuggestions([]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch(AUTOCOMPLETE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': PLACES_KEY,
+          },
+          body: JSON.stringify({
+            input,
+            includedRegionCodes: [countryCode],
+            includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
+          }),
+        });
+        const json = await res.json();
+        console.log('[GooglePlaces] response:', JSON.stringify(json));
+        const items: Suggestion[] = (json.suggestions ?? []).map((s: any) => {
+          const p = s.placePrediction;
+          return {
+            placeId: p.placeId ?? '',
+            mainText: p.structuredFormat?.mainText?.text ?? p.text?.text ?? '',
+            secondaryText: p.structuredFormat?.secondaryText?.text ?? '',
+          };
+        });
+        setSuggestions(items);
+      } catch (err) {
+        console.error('[GooglePlaces] fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [countryCode],
+  );
+
+  const onQueryChange = (text: string) => {
+    setQuery(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 2) { setResults([]); return; }
-    debounceRef.current = setTimeout(() => runSearch(query), 350);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, runSearch]);
+    debounceRef.current = setTimeout(() => fetchSuggestions(text), 300);
+  };
 
-  const close = () => { setOpen(false); setQuery(''); setResults([]); };
+  const onSelect = (item: Suggestion) => {
+    console.log('[GooglePlaces] selected:', item.mainText);
+    onChange(item.mainText);
+    close();
+  };
 
   return (
     <View>
@@ -92,7 +116,10 @@ export const GooglePlacesInput = ({
       </TouchableOpacity>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-        <View style={s.backdrop}>
+        <KeyboardAvoidingView
+          style={s.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={s.sheet}>
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>Search Location</Text>
@@ -101,52 +128,44 @@ export const GooglePlacesInput = ({
               </TouchableOpacity>
             </View>
 
-            <View style={s.searchRow}>
+            <View style={s.inputContainer}>
               <TextInput
-                style={s.search}
+                style={s.textInput}
                 value={query}
-                onChangeText={setQuery}
+                onChangeText={onQueryChange}
                 placeholder="Type city name..."
                 placeholderTextColor="#9CA3AF"
                 autoFocus
+                autoCorrect={false}
               />
               {loading && (
-                <ActivityIndicator
-                  size="small"
-                  color="#2E9E52"
-                  style={s.searchLoader}
-                />
+                <ActivityIndicator style={s.spinner} size="small" color="#9CA3AF" />
               )}
             </View>
 
             <FlatList
-              data={results}
-              keyExtractor={item => item.place_id}
+              data={suggestions}
+              keyExtractor={(item) => item.placeId}
               keyboardShouldPersistTaps="handled"
-              ItemSeparatorComponent={() => <View style={s.sep} />}
-              ListEmptyComponent={
-                query.length >= 2 && !loading ? (
-                  <Text style={s.emptyText}>No places found</Text>
-                ) : null
-              }
+              style={s.list}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={s.row}
-                  onPress={() => { onChange(item.main_text); close(); }}
+                  onPress={() => onSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <AppIcon name="profileCity" size={14} color="#9CA3AF" />
-                  <View style={s.rowInfo}>
-                    <Text style={s.rowName}>{item.main_text}</Text>
-                    {item.secondary_text ? (
-                      <Text style={s.rowSub}>{item.secondary_text}</Text>
-                    ) : null}
-                  </View>
+                  <Text style={s.mainText}>{item.mainText}</Text>
+                  {!!item.secondaryText && (
+                    <Text style={s.secondaryText}>{item.secondaryText}</Text>
+                  )}
                 </TouchableOpacity>
               )}
+              ItemSeparatorComponent={Separator}
             />
+
+            <SafeAreaView />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -166,13 +185,17 @@ const s = StyleSheet.create({
   },
   btnText: { fontSize: 13, color: '#111827', flex: 1 },
   placeholder: { color: '#9CA3AF' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
   sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 24,
+    maxHeight: '85%',
+    minHeight: 350,
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -181,25 +204,31 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   sheetTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 8 },
-  search: {
-    flex: 1,
+  inputContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+    position: 'relative',
+  },
+  textInput: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
     borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
     fontSize: 13,
     color: '#111827',
     backgroundColor: '#FAFAFA',
+    height: 44,
+    paddingHorizontal: 12,
+    paddingRight: 36,
   },
-  searchLoader: { marginLeft: 8 },
-  sep: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
-  row: { paddingVertical: 11, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowInfo: { flex: 1 },
-  rowName: { fontSize: 13, color: '#111827' },
-  rowSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
-  emptyText: { textAlign: 'center', color: '#9CA3AF', fontSize: 13, paddingVertical: 24 },
+  spinner: { position: 'absolute', right: 22, top: 20 },
+  list: { marginHorizontal: 12, marginTop: 4 },
+  row: { paddingVertical: 12, paddingHorizontal: 14, backgroundColor: '#FFFFFF' },
+  mainText: { fontSize: 13, color: '#111827' },
+  secondaryText: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  sep: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 2 },
 });

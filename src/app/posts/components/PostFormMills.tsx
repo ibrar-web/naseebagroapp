@@ -10,6 +10,7 @@ type Props = {
   openDropdown: string | null;
   selectedMills: MillEntry[];
   pendingMill: MillEntry;
+  commodityUnit?: string;
   onToggleDropdown: (id: string) => void;
   onSelectMill: (id: string, opts: FieldOption[]) => void;
   onPendingMillChange: (mill: MillEntry) => void;
@@ -24,7 +25,7 @@ const optId = (o: FieldOption) => String(o.id ?? o.value ?? '');
 const optLabel = (o: FieldOption) => String(o.name ?? o.label ?? '');
 
 export const PostFormMills = ({
-  millsField, openDropdown, selectedMills, pendingMill,
+  millsField, openDropdown, selectedMills, pendingMill, commodityUnit = '40kg',
   onToggleDropdown, onSelectMill, onPendingMillChange, onAddMill, onRemoveMill,
 }: Props) => {
   const opts = millsField?.options ?? [];
@@ -55,7 +56,7 @@ export const PostFormMills = ({
                   <Text style={s.metaText}>{m.city}</Text>
                 </View>
               ) : null}
-              {m.price ? <Text style={s.millPrice}>₨{m.price}/40kg</Text> : null}
+              {m.price ? <Text style={s.millPrice}>₨{m.price}/{commodityUnit}</Text> : null}
               {m.isCustom ? <Text style={s.pendingBadge}>Pending approval</Text> : null}
             </View>
           </View>
@@ -154,7 +155,7 @@ export const PostFormMills = ({
             style={s.priceInput}
             value={pendingMill.price}
             onChangeText={t => onPendingMillChange({ ...pendingMill, price: t })}
-            placeholder="Price per 40kg"
+            placeholder={`Price per ${commodityUnit}`}
             placeholderTextColor="#9CA3AF"
             keyboardType="numeric"
           />

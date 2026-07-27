@@ -1,6 +1,6 @@
 export type PostFormMode = 'buyer' | 'seller';
 export type PaymentMode = 'FIXED' | 'WEEKLY';
-export type CityValue = { id: string; name: string };
+export type CityValue = { id: string | null; name: string };
 export type FieldValue = string | string[] | CityValue | null;
 
 export type FieldOption = {
@@ -22,12 +22,14 @@ export type FormField = {
   icon?: string;
   is_required?: boolean;
   sort_order?: number;
+  placeholder?: string | null;
   options?: FieldOption[];
 };
 
 export type CategoryForm = {
   id: string;
   category_id: string;
+  commodity_id?: string;
   form_type: string;
   fields: FormField[];
 };

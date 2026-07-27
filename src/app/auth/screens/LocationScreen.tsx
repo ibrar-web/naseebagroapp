@@ -1,12 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -14,13 +11,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { setRegisterCity } from '../../../store/slices/registerSlice';
-import api from '../../../utils/api';
 import { AppIcon } from '../../../assets/icons';
 import AuthStatusBar from '../components/AuthStatusBar';
+import { GooglePlacesInput } from '../../components/GooglePlacesInput';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Location'>;
-
-type CityOption = { id: string; name: string; province: string | null };
 
 const GREEN = '#217A3C';
 const DARK_GREEN = '#145228';
@@ -28,38 +23,18 @@ const DARK_GREEN = '#145228';
 const LocationScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const savedCity = useAppSelector(s => s.register.city);
-  const [cities, setCities] = useState<CityOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<CityOption | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
+  const [selected, setSelected] = useState<string>(savedCity ?? '');
 
-  useEffect(() => {
-    api.marketplace.public.listCities()
-      .then((res: any) => {
-        const list: CityOption[] = res?.data ?? [];
-        setCities(list);
-        if (savedCity) {
-          const match = list.find(c => c.name === savedCity);
-          if (match) setSelected(match);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtered = search.trim()
-    ? cities.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : cities;
+  const handleSelect = (name: string) => {
+    setSelected(name);
+    dispatch(setRegisterCity(name));
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Green gradient header */}
       <View style={styles.header}>
         <AuthStatusBar />
         <View style={styles.bgCircle} />
@@ -77,103 +52,28 @@ const LocationScreen = ({ navigation }: Props) => {
           <View style={styles.titleBlock}>
             <Text style={styles.headerTitle}>Your Location</Text>
             <Text style={styles.headerSubtitle}>
-              We use your city to show you the most relevant listings and market
-              rates nearby.
+              We use your city to show you the most relevant listings and market rates nearby.
             </Text>
           </View>
         </View>
       </View>
 
       <View style={styles.body}>
-        {/* Info card */}
         <View style={styles.infoCard}>
           <AppIcon name="alertCircle" size={16} color={GREEN} />
           <Text style={styles.infoText}>
-            Your location is only used to filter nearby listings and improve
-            search results. It is never shared with buyers or sellers.
+            Your location is only used to filter nearby listings and improve search results. It is never shared with buyers or sellers.
           </Text>
         </View>
 
-        {/* City select */}
         <View style={styles.mb16}>
           <Text style={styles.label}>Select Your City</Text>
-          <TouchableOpacity
-            onPress={() => setShowPicker(!showPicker)}
-            style={styles.selectBtn}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.selectText,
-                !selected && styles.placeholderText,
-              ]}
-            >
-              {selected ? selected.name : 'Choose your city...'}
-            </Text>
-            <AppIcon name="chevronDown" size={16} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          {showPicker && (
-            <View style={styles.pickerCard}>
-              <View style={styles.searchRow}>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search city..."
-                  placeholderTextColor="#9CA3AF"
-                  value={search}
-                  onChangeText={setSearch}
-                  autoFocus
-                />
-              </View>
-              {loading ? (
-                <ActivityIndicator
-                  color={GREEN}
-                  style={{ paddingVertical: 20 }}
-                />
-              ) : (
-                <ScrollView
-                  style={styles.pickerList}
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {filtered.map(city => (
-                    <TouchableOpacity
-                      key={city.id}
-                      onPress={() => {
-                        setSelected(city);
-                        dispatch(setRegisterCity(city.name));
-                        setShowPicker(false);
-                        setSearch('');
-                      }}
-                      style={[
-                        styles.pickerItem,
-                        selected?.id === city.id && styles.pickerItemActive,
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerItemText,
-                          selected?.id === city.id &&
-                            styles.pickerItemTextActive,
-                        ]}
-                      >
-                        {city.name}
-                      </Text>
-                      {city.province ? (
-                        <Text style={styles.provinceText}>
-                          {city.province}
-                        </Text>
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                  {filtered.length === 0 && (
-                    <Text style={styles.emptyText}>No cities found</Text>
-                  )}
-                </ScrollView>
-              )}
-            </View>
-          )}
+          <GooglePlacesInput
+            value={selected}
+            onChange={handleSelect}
+            placeholder="Search your city..."
+            buttonStyle={styles.placesBtn}
+          />
         </View>
 
         <View style={styles.spacer} />
@@ -227,12 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-    marginTop: 16,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginTop: 16 },
   iconBox: {
     width: 52,
     height: 52,
@@ -243,17 +138,8 @@ const styles = StyleSheet.create({
   },
   titleBlock: { flex: 1 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.533)',
-    marginTop: 6,
-    lineHeight: 20,
-  },
-  body: {
-    flex: 1,
-    padding: 24,
-    paddingTop: 24,
-  },
+  headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.533)', marginTop: 6, lineHeight: 20 },
+  body: { flex: 1, padding: 24, paddingTop: 24 },
   infoCard: {
     backgroundColor: '#F2FBF5',
     borderWidth: 1,
@@ -265,76 +151,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: DARK_GREEN,
-    lineHeight: 18,
-  },
+  infoText: { flex: 1, fontSize: 12, color: DARK_GREEN, lineHeight: 18 },
   mb16: { marginBottom: 16 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  selectBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  placesBtn: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
     borderRadius: 10,
-    backgroundColor: '#fff',
-  },
-  selectText: { fontSize: 14, color: '#111827' },
-  placeholderText: { color: '#9CA3AF' },
-  pickerCard: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  searchRow: {
-    padding: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  searchInput: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    fontSize: 14,
-    color: '#111827',
-  },
-  pickerList: { maxHeight: 200 },
-  pickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  pickerItemActive: { backgroundColor: '#F0FDF4' },
-  pickerItemText: { fontSize: 14, color: '#374151' },
-  pickerItemTextActive: { color: GREEN, fontWeight: '600' },
-  provinceText: { fontSize: 11, color: '#9CA3AF' },
-  emptyText: {
-    textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 13,
-    paddingVertical: 20,
+    paddingVertical: 13,
   },
   spacer: { flex: 1 },
   ctaBtn: {

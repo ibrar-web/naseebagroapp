@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList, CategoryRouteParam } from '../../../navigation/types';
+import type { RootStackParamList, CategoryRouteParam, CommodityRouteParam } from '../../../navigation/types';
 import api from '../../../utils/api';
 import type {
   CategoryForm, FieldValue, FieldOption, MillEntry,
@@ -13,8 +13,13 @@ export const labelKey = (label: string) =>
   label.toLowerCase().replace(/\s+/g, '_');
 
 const FIELD_ORDER = [
-  'commodity', 'delivery_options', 'mills', 'quantity', 'units',
-  'target_price', 'location', 'payment_terms', 'delivery_terms', 'grades',
+  'delivery_options', 'mills', 'quantity', 'target_price',
+  'location', 'payment_terms', 'delivery_terms', 'grades',
+];
+
+const DELIVERY_OPTIONS = [
+  { id: 'DELIVERED', name: 'Delivered' },
+  { id: 'EX_LOAD', name: 'Ex Load' },
 ];
 
 const parseNumber = (v: FieldValue) => {
@@ -26,6 +31,31 @@ const parseNumber = (v: FieldValue) => {
 const normalizeForm = (res: any): CategoryForm | null => {
   const item = res?.item ?? res?.data?.item ?? res?.data?.data?.item ?? res;
   return item && Array.isArray(item?.fields) ? item : null;
+};
+
+const normalizeCommodities = (res: any): CommodityRouteParam[] => {
+  const items = res?.items ?? res?.data?.items ?? [];
+  return items
+    .filter((c: any) => c?.id && c?.name)
+    .map((c: any) => ({
+      id: String(c.id),
+      name: String(c.name),
+      default_unit: c.default_unit
+        ? { id: String(c.default_unit.id), name: String(c.default_unit.name) }
+        : null,
+      grades: Array.isArray(c.grades) ? c.grades : [],
+      minimum_quantity: typeof c.minimum_quantity === 'number' ? c.minimum_quantity : null,
+    }));
+};
+
+const normalizeMills = (res: any): FieldOption[] => {
+  const items = res?.items ?? res?.data?.items ?? [];
+  return items.map((m: any) => ({
+    id: String(m.id ?? ''),
+    name: String(m.name ?? ''),
+    city: m.city ?? '',
+    province: m.province ?? '',
+  }));
 };
 
 const isFilled = (value: FieldValue, type: string) => {
@@ -45,12 +75,18 @@ type Options = {
 export const usePostForm = ({ categoryData, categoryName, mode, navigation, prefillData, postId }: Options) => {
   const isBuyer = mode === 'buyer';
 
+  const [commodities, setCommodities] = useState<CommodityRouteParam[]>([]);
+  const [commoditiesLoading, setCommoditiesLoading] = useState(false);
+  const [selectedCommodity, setSelectedCommodity] = useState<CommodityRouteParam | null>(null);
+  const [millsOptions, setMillsOptions] = useState<FieldOption[]>([]);
+  const [tradeConfigs, setTradeConfigs] = useState<any[]>([]);
+
   const [form, setForm] = useState<CategoryForm | null>(null);
   const [values, setValues] = useState<Record<string, FieldValue>>({});
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('FIXED');
   const [paymentValue, setPaymentValue] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [noForm, setNoForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -62,17 +98,145 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   const [customDeliveryInput, setCustomDeliveryInput] = useState('');
   const [queuedPosts, setQueuedPosts] = useState<QueuedPost[]>([]);
   const prefillRef = useRef(prefillData);
+  const prefillAppliedRef = useRef(false);
+
+  // Load commodities + mills + trade-configs when category changes
+  useEffect(() => {
+    if (!categoryData?.id) return;
+    setCommoditiesLoading(true);
+    setSelectedCommodity(null);
+    setForm(null);
+    setValues({});
+    prefillAppliedRef.current = false;
+
+    Promise.all([
+      api.marketplace.public.getCommoditiesByCategory(categoryData.id) as Promise<any>,
+      api.marketplace.public.getPublicMills() as Promise<any>,
+      api.marketplace.public.getTradeConfigs() as Promise<any>,
+    ])
+      .then(([comRes, millsRes, configsRes]) => {
+        const loaded = normalizeCommodities(comRes);
+        setCommodities(loaded);
+        setMillsOptions(normalizeMills(millsRes));
+        setTradeConfigs(Array.isArray(configsRes?.items ?? configsRes?.data?.items)
+          ? (configsRes?.items ?? configsRes?.data?.items)
+          : []);
+
+        // Auto-select commodity when editing a post
+        const fill = prefillRef.current;
+        if (fill?.commodity_id) {
+          const match = loaded.find(c => c.id === fill.commodity_id);
+          if (match) setSelectedCommodity(match);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCommoditiesLoading(false));
+  }, [categoryData?.id]);
+
+  // Load form when commodity selected
+  useEffect(() => {
+    if (!selectedCommodity) {
+      setForm(null);
+      setLoadError('');
+      setNoForm(false);
+      return;
+    }
+    let mounted = true;
+    setLoading(true);
+    setLoadError('');
+    setNoForm(false);
+
+    const formType = isBuyer ? 'demand' : 'supply';
+
+    (api.marketplace.public.getFormByCommodity(selectedCommodity.id, formType) as Promise<any>)
+      .then((res: any) => {
+        if (!mounted) return;
+        const next = normalizeForm(res);
+        if (!next) { setNoForm(true); return; }
+        setForm(next);
+
+        const fill = prefillRef.current;
+        if (fill && !prefillAppliedRef.current) {
+          prefillAppliedRef.current = true;
+          const initialValues: Record<string, FieldValue> = {};
+          for (const field of next.fields) {
+            const lk = labelKey(field.label);
+            if (lk === 'quantity' && fill.quantity != null) {
+              initialValues[field.id] = fill.quantity;
+            } else if (lk === 'target_price' && fill.price_per_unit != null) {
+              initialValues[field.id] = fill.price_per_unit;
+            } else if (lk === 'delivery_options' && fill.delivery_option) {
+              initialValues[field.id] = fill.delivery_option;
+            } else if (lk === 'location' && fill.city_name) {
+              initialValues[field.id] = { id: fill.city_id ?? null, name: fill.city_name };
+            } else if (lk === 'grades' && fill.grades?.length) {
+              initialValues[field.id] = fill.grades;
+            }
+          }
+          setValues(initialValues);
+
+          if (fill.payment_type) {
+            setPaymentMode(fill.payment_type as PaymentMode);
+            setPaymentValue(fill.payment_term_id ?? '');
+          }
+          if (fill.delivery_term_id) setDeliveryDays(fill.delivery_term_id);
+          if (fill.mills?.length) {
+            setSelectedMills(fill.mills.map(m => ({
+              id: m.id ?? '',
+              name: m.name ?? '',
+              city: m.city ?? '',
+              price: m.price ?? '',
+              isCustom: !m.id,
+            })));
+          }
+        }
+      })
+      .catch((err: any) => {
+        if (!mounted) return;
+        const status = err?.response?.status ?? err?.status;
+        if (status === 404 || String(err?.response?.data?.message ?? '').toLowerCase().includes('not found')) {
+          setNoForm(true);
+        } else {
+          setLoadError('Unable to load form. Please try again.');
+        }
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+
+    return () => { mounted = false; };
+  }, [selectedCommodity?.id, isBuyer]);
+
+  const commodityUnit = selectedCommodity?.default_unit?.name ?? 'Bag';
+
+  const deliveryTermOptions = useMemo(
+    () => tradeConfigs.filter((c: any) => c.type === 'fixed_days' || c.type === 'weekly_percent'),
+    [tradeConfigs],
+  );
 
   const sortedFields = useMemo(
-    () => [...(form?.fields ?? [])].sort((a, b) => {
-      const ai = FIELD_ORDER.indexOf(labelKey(a.label));
-      const bi = FIELD_ORDER.indexOf(labelKey(b.label));
-      if (ai === -1 && bi === -1) return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-      if (ai === -1) return 1;
-      if (bi === -1) return -1;
-      return ai - bi;
-    }),
-    [form],
+    () => {
+      const sorted = [...(form?.fields ?? [])].sort((a, b) => {
+        const ai = FIELD_ORDER.indexOf(labelKey(a.label));
+        const bi = FIELD_ORDER.indexOf(labelKey(b.label));
+        if (ai === -1 && bi === -1) return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
+
+      return sorted.map(field => {
+        const lk = labelKey(field.label);
+        if (lk === 'grades') {
+          return { ...field, options: selectedCommodity?.grades.map(g => ({ id: g, name: g })) ?? [] };
+        }
+        if (lk === 'mills') return { ...field, options: millsOptions };
+        if (lk === 'delivery_options') return { ...field, options: DELIVERY_OPTIONS };
+        if (lk === 'delivery_terms' || lk === 'payment_terms') {
+          return { ...field, options: deliveryTermOptions };
+        }
+        return field;
+      });
+    },
+    [form, selectedCommodity, millsOptions, deliveryTermOptions],
   );
 
   const findField = (lk: string) => sortedFields.find(f => labelKey(f.label) === lk);
@@ -88,79 +252,16 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     if (lk === 'payment_terms') return paymentValue.trim().length > 0;
     if (lk === 'delivery_terms') return effectiveDeliveryDays.trim().length > 0;
     if (lk === 'mills') return selectedMills.length > 0;
-    if (lk === 'location') return Boolean((values[field.id] as { id?: string } | null)?.id);
+    if (lk === 'location') return Boolean((values[field.id] as { name?: string } | null)?.name?.trim());
+    if (lk === 'quantity' && selectedCommodity?.minimum_quantity) {
+      const qty = parseNumber(values[field.id]);
+      return qty !== null && qty >= (selectedCommodity.minimum_quantity ?? 0);
+    }
     return isFilled(values[field.id], type ?? '');
   });
 
-  const canSubmit = Boolean(categoryData?.id && form && formIsValid && !submitting);
+  const canSubmit = Boolean(categoryData?.id && selectedCommodity && form && formIsValid && !submitting);
   const canSubmitAny = canSubmit || queuedPosts.length > 0;
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!categoryData?.id) { setLoading(false); setLoadError(postId ? 'Unable to load form. Please go back and try again.' : 'Select a category first.'); return; }
-      setLoading(true); setLoadError(''); setNoForm(false);
-      try {
-        const res = isBuyer
-          ? await api.buyer.getBuyerCategoryform(categoryData.id)
-          : await api.seller.getSellerCategoryform(categoryData.id);
-        const next = normalizeForm(res);
-        if (!mounted) return;
-        if (!next) { setNoForm(true); return; }
-        setForm(next);
-
-        const fill = prefillRef.current;
-        if (fill) {
-          const initialValues: Record<string, FieldValue> = {};
-          for (const field of next.fields) {
-            const lk = labelKey(field.label);
-            if (lk === 'commodity' && fill.commodity_id) {
-              initialValues[field.id] = fill.commodity_id;
-            } else if (lk === 'quantity' && fill.quantity != null) {
-              initialValues[field.id] = fill.quantity;
-            } else if (lk === 'target_price' && fill.price_per_unit != null) {
-              initialValues[field.id] = fill.price_per_unit;
-            } else if (lk === 'delivery_options' && fill.delivery_option) {
-              initialValues[field.id] = fill.delivery_option;
-            } else if (lk === 'location' && fill.city_id && fill.city_name) {
-              initialValues[field.id] = { id: fill.city_id, name: fill.city_name };
-            } else if (lk === 'grades' && fill.grades?.length) {
-              initialValues[field.id] = fill.grades;
-            }
-          }
-          setValues(initialValues);
-
-          if (fill.payment_type) {
-            setPaymentMode(fill.payment_type as PaymentMode);
-            setPaymentValue(fill.payment_term_id ?? '');
-          }
-          if (fill.delivery_term_id) {
-            setDeliveryDays(fill.delivery_term_id);
-          }
-          if (fill.mills?.length) {
-            setSelectedMills(fill.mills.map(m => ({
-              id: m.id ?? '',
-              name: m.name ?? '',
-              city: m.city ?? '',
-              price: m.price ?? '',
-              isCustom: !m.id,
-            })));
-          }
-        }
-      } catch (err: any) {
-        if (!mounted) return;
-        const status = err?.response?.status ?? err?.status;
-        if (status === 404 || String(err?.response?.data?.message ?? '').toLowerCase().includes('not found')) {
-          setNoForm(true);
-        } else {
-          setLoadError('Unable to load form. Please try again.');
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [categoryData?.id, isBuyer, postId]);
 
   const goBack = () => {
     if (navigation.canGoBack()) { navigation.goBack(); return; }
@@ -188,7 +289,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     }
     const opt = opts.find(o => String(o.id ?? o.value ?? '') === millId);
     if (!opt) return;
-    setPendingMill({ id: millId, name: String(opt.name ?? ''), city: opt.city ?? '', price: '', isCustom: false });
+    setPendingMill({ id: millId, name: String(opt.name ?? ''), city: (opt as any).city ?? '', price: '', isCustom: false });
     closeDropdown();
   };
 
@@ -207,7 +308,10 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   const removeMill = (id: string) => setSelectedMills(prev => prev.filter(m => m.id !== id));
 
   const buildPayload = (): Record<string, unknown> => {
-    const payload: Record<string, unknown> = { category_id: categoryData?.id ?? form?.category_id };
+    const payload: Record<string, unknown> = {
+      category_id: categoryData?.id ?? (form as any)?.category_id,
+      commodity_id: selectedCommodity?.id ?? null,
+    };
     for (const field of sortedFields) {
       const lk = labelKey(field.label);
       const type = field.field_type?.toLowerCase();
@@ -218,7 +322,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
         continue;
       }
       if (lk === 'location') {
-        const cv = values[field.id] as { id?: string; name?: string } | null;
+        const cv = values[field.id] as { id?: string | null; name?: string } | null;
         payload.city_id = cv?.id ?? null;
         payload.location = cv?.name ?? null;
         continue;
@@ -246,8 +350,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
 
   const buildPreview = (): string => {
     const parts: string[] = [];
-    const cf = findField('commodity');
-    if (cf) { const opt = cf.options?.find(o => String(o.id ?? o.value ?? '') === String(values[cf.id] ?? '')); if (opt) parts.push(String(opt.name ?? '')); }
+    if (selectedCommodity) parts.push(selectedCommodity.name);
     const qf = findField('quantity');
     if (qf && values[qf.id]) parts.push(`Qty: ${values[qf.id]}`);
     const lf = findField('location');
@@ -259,14 +362,23 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   };
 
   const resetForm = () => {
-    setValues({}); setSelectedMills([]); setPendingMill({ id: '', name: '', city: '', price: '', isCustom: false });
-    setDeliveryDays(''); setIsCustomDelivery(false); setCustomDeliveryInput('');
-    setPaymentMode('FIXED'); setPaymentValue(''); setOpenDropdown(null);
+    setValues({});
+    setSelectedMills([]);
+    setPendingMill({ id: '', name: '', city: '', price: '', isCustom: false });
+    setDeliveryDays('');
+    setIsCustomDelivery(false);
+    setCustomDeliveryInput('');
+    setPaymentMode('FIXED');
+    setPaymentValue('');
+    setOpenDropdown(null);
   };
 
   const handleSaveAndAdd = () => {
     if (!canSubmit) return;
-    const snap: FormSnapshot = { values: { ...values }, selectedMills: [...selectedMills], deliveryDays, isCustomDelivery, customDeliveryInput, paymentMode, paymentValue };
+    const snap: FormSnapshot = {
+      values: { ...values }, selectedMills: [...selectedMills],
+      deliveryDays, isCustomDelivery, customDeliveryInput, paymentMode, paymentValue,
+    };
     setQueuedPosts(prev => [...prev, { payload: buildPayload(), preview: buildPreview(), formSnapshot: snap }]);
     resetForm();
   };
@@ -275,15 +387,20 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
 
   const editQueuedPost = (i: number) => {
     const { formSnapshot: s } = queuedPosts[i];
-    setValues(s.values); setSelectedMills(s.selectedMills); setDeliveryDays(s.deliveryDays);
-    setIsCustomDelivery(s.isCustomDelivery); setCustomDeliveryInput(s.customDeliveryInput);
-    setPaymentMode(s.paymentMode); setPaymentValue(s.paymentValue);
+    setValues(s.values);
+    setSelectedMills(s.selectedMills);
+    setDeliveryDays(s.deliveryDays);
+    setIsCustomDelivery(s.isCustomDelivery);
+    setCustomDeliveryInput(s.customDeliveryInput);
+    setPaymentMode(s.paymentMode);
+    setPaymentValue(s.paymentValue);
     setQueuedPosts(prev => prev.filter((_, idx) => idx !== i));
   };
 
   const handleSubmit = async () => {
     if (!canSubmitAny) return;
-    setSubmitting(true); setSubmitError('');
+    setSubmitting(true);
+    setSubmitError('');
 
     if (postId) {
       try {
@@ -295,7 +412,9 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
         }
         if (navigation.canGoBack()) navigation.goBack();
       } catch (err: any) {
-        if (err?.code !== 'AUTH_REQUIRED') setSubmitError(isBuyer ? 'Unable to update demand.' : 'Unable to update supply.');
+        if (err?.code !== 'AUTH_REQUIRED') {
+          setSubmitError(isBuyer ? 'Unable to update demand.' : 'Unable to update supply.');
+        }
       } finally {
         setSubmitting(false);
       }
@@ -307,15 +426,23 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
       const res = isBuyer
         ? await api.buyer.createBuyDemandPost(payloads)
         : await api.seller.createSupplyPost(payloads);
-      navigation.navigate('PostCreated', { mode: isBuyer ? 'buyer' : 'seller', postData: res, categoryName, totalCount: payloads.length });
+      navigation.navigate('PostCreated', {
+        mode: isBuyer ? 'buyer' : 'seller',
+        postData: res,
+        categoryName,
+        totalCount: payloads.length,
+      });
     } catch (err: any) {
-      if (err?.code !== 'AUTH_REQUIRED') setSubmitError(isBuyer ? 'Unable to create demand.' : 'Unable to create supply.');
+      if (err?.code !== 'AUTH_REQUIRED') {
+        setSubmitError(isBuyer ? 'Unable to create demand.' : 'Unable to create supply.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   return {
+    commodities, commoditiesLoading, selectedCommodity, setSelectedCommodity, commodityUnit,
     form, sortedFields, values, openDropdown,
     paymentMode, paymentValue, setNextPaymentMode, setPaymentValue,
     loading, loadError, noForm, submitting, submitError,

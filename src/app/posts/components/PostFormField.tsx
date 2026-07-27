@@ -96,7 +96,7 @@ export const PostFormField = (props: Props) => {
       style={s.input}
       value={String(value ?? '')}
       onChangeText={t => onChange(t)}
-      placeholder={`Enter ${field.label.toLowerCase()}...`}
+      placeholder={field.placeholder ?? `Enter ${field.label.toLowerCase()}...`}
       placeholderTextColor="#9CA3AF"
       keyboardType={type === 'number' ? 'numeric' : 'default'}
     />

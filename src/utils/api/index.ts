@@ -134,6 +134,12 @@ export const api = {
         Get('public/banks'),
       getTradeConfigs: (params?: { type?: string }) =>
         Get('public/trade-configs', params),
+      getCommoditiesByCategory: (category_id: string) =>
+        Get('public/commodities', { category_id }),
+      getPublicMills: () =>
+        Get('public/mills'),
+      getFormByCommodity: (commodity_id: string, form_type: 'supply' | 'demand') =>
+        Get('form-templates/by-commodity', { commodity_id, form_type }),
     },
   },
   buyer: {

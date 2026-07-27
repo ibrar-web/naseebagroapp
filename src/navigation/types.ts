@@ -20,6 +20,14 @@ export type CategoryRouteParam = {
   commodity_count?: number;
 };
 
+export type CommodityRouteParam = {
+  id: string;
+  name: string;
+  default_unit: { id: string; name: string } | null;
+  grades: string[];
+  minimum_quantity: number | null;
+};
+
 export type PostPrefillData = {
   commodity_id?: string | null;
   quantity?: string | null;

@@ -136,8 +136,8 @@ export const api = {
         Get('public/trade-configs', params),
       getCommoditiesByCategory: (category_id: string) =>
         Get('public/commodities', { category_id }),
-      getPublicMills: () =>
-        Get('public/mills'),
+      getPublicMills: (params?: { search?: string; skip?: number; limit?: number }) =>
+        Get('public/mills', params),
       getFormByCommodity: (commodity_id: string, form_type: 'supply' | 'demand') =>
         Get('form-templates/by-commodity', { commodity_id, form_type }),
     },

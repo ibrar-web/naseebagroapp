@@ -54,6 +54,14 @@ type SupplyDetail = {
     value?: number;
     label?: string;
   };
+  original_quantity?: {
+    value?: number;
+    label?: string;
+  };
+  available_quantity?: {
+    value?: number;
+    label?: string;
+  };
   mills?: {
     is_mill_based?: boolean;
     available_mills?: SupplyMill[];
@@ -344,11 +352,24 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           is_highlighted: true,
         }
       : null,
-    detail.total_quantity?.label
+    detail.original_quantity?.label
+      ? {
+          key: 'stock',
+          label: 'Total Posted',
+          value: detail.original_quantity.label,
+        }
+      : detail.total_quantity?.label
       ? {
           key: 'stock',
           label: 'Total Quantity',
           value: detail.total_quantity.label,
+        }
+      : null,
+    detail.available_quantity?.label
+      ? {
+          key: 'available',
+          label: 'Available',
+          value: detail.available_quantity.label,
         }
       : null,
     detail.location?.label

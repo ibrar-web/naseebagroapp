@@ -43,6 +43,14 @@ type DemandDetail = {
     value?: number;
     label?: string;
   };
+  original_quantity?: {
+    value?: number;
+    label?: string;
+  };
+  available_quantity?: {
+    value?: number;
+    label?: string;
+  };
   mills?: {
     is_mill_based?: boolean;
     available_mills?: DemandMill[];
@@ -370,9 +378,16 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
       <View style={styles.metaBar}>
         <View style={styles.metaItem}>
           <Text style={styles.metaLabel}>QUANTITY</Text>
-          <Text style={styles.metaValue}>
-            {toStr(detail.total_quantity?.label, '—')}
-          </Text>
+          <View style={styles.metaQtyRow}>
+            <Text style={styles.metaValue} numberOfLines={1}>
+              {toStr(detail.original_quantity?.label ?? detail.total_quantity?.label, '—')}
+            </Text>
+            {detail.available_quantity?.label ? (
+              <Text style={styles.metaAvailLabel} numberOfLines={1}>
+                ({detail.available_quantity.label})
+              </Text>
+            ) : null}
+          </View>
         </View>
         <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>LOCATION</Text>
@@ -583,6 +598,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   metaValue: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  metaQtyRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
+  metaAvailLabel: { fontSize: 9, color: '#7FD4A0', fontWeight: '600' },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 20 },
   brokerCard: {

@@ -67,7 +67,7 @@ export const GooglePlacesInput = ({
           body: JSON.stringify({
             input,
             includedRegionCodes: [countryCode],
-            includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
+            // includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
           }),
         });
         const json = await res.json();

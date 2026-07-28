@@ -27,8 +27,7 @@ import type { AppIconName } from '../../../assets/icons';
 import MockStatusBar from '../../components/MockStatusBar';
 import iconRegistry from '../../../assets/icons/iconRegistry';
 import api from '../../../utils/api';
-import { useCities } from '../../../hooks/useCities';
-import type { CachedCity } from '../../../store/slices/publicDataSlice';
+import { GooglePlacesInput } from '../../components/GooglePlacesInput';
 import { AppLoader } from '../../components';
 
 type SheetType = 'filter' | 'sort' | 'signup' | null;
@@ -59,6 +58,7 @@ type ListingMillPrice = {
     name?: string;
     city?: string;
     province?: string;
+    location?: string;
   };
   price_display?: string;
   available_label?: string;
@@ -88,8 +88,11 @@ type MarketListing = {
     rating?: string;
     deals_count?: number;
   };
+  status?: string;
   total_quantity?: number;
   total_quantity_label?: string;
+  available_quantity?: number;
+  available_quantity_label?: string;
   price_display?: string;
   is_mill_based?: boolean;
   mill_prices_preview?: ListingMillPrice[];
@@ -127,7 +130,7 @@ type MarketplacePayload = {
 
 type MarketplaceFilters = {
   selectedCommodityId: string;
-  selectedLocations: string[];
+  locationQuery: string;
   selectedGrades: string[];
   verifiedOnly: boolean;
   minPrice: string;
@@ -139,7 +142,7 @@ const PAGE_SIZE = 20;
 const FALLBACK_COLORS = ['#8A9A5B', '#C29A4A', '#D8D6C7', '#DCA640', '#D9A825'];
 const EMPTY_FILTERS: MarketplaceFilters = {
   selectedCommodityId: '',
-  selectedLocations: [],
+  locationQuery: '',
   selectedGrades: [],
   verifiedOnly: false,
   minPrice: '',
@@ -563,12 +566,11 @@ const MultiSelectDropdown = ({
 
 const FilterSheet = ({
   commodities,
-  cities,
   grades,
   selectedCommodityId,
   setSelectedCommodityId,
-  selectedLocations,
-  setSelectedLocations,
+  locationQuery,
+  setLocationQuery,
   selectedGrades,
   setSelectedGrades,
   verifiedOnly,
@@ -583,12 +585,11 @@ const FilterSheet = ({
   onDone,
 }: {
   commodities: FilterOption[];
-  cities: CachedCity[];
   grades: string[];
   selectedCommodityId: string;
   setSelectedCommodityId: (value: string) => void;
-  selectedLocations: string[];
-  setSelectedLocations: (value: string[]) => void;
+  locationQuery: string;
+  setLocationQuery: (value: string) => void;
   selectedGrades: string[];
   setSelectedGrades: (value: string[]) => void;
   verifiedOnly: boolean;
@@ -645,13 +646,10 @@ const FilterSheet = ({
             onSelect={setSelectedCommodityId}
           />
 
-          <MultiSelectDropdown
-            label="LOCATION"
-            allLabel="All Cities"
-            items={cities.map(c => ({ id: c.id, name: c.name }))}
-            selectedIds={selectedLocations}
-            onChangeIds={setSelectedLocations}
-            searchable
+          <GooglePlacesInput
+            value={locationQuery}
+            onChange={setLocationQuery}
+            placeholder="Search city or area..."
           />
 
           {grades.length > 0 && (
@@ -868,9 +866,7 @@ const MillPriceRow = ({
   featured: boolean;
 }) => {
   const millName = mill.mill?.name ?? 'Direct listing';
-  const location = [mill.mill?.city, mill.mill?.province]
-    .filter(Boolean)
-    .join(', ');
+  const location = mill.mill?.location ?? '';
 
   return (
     <View
@@ -980,8 +976,15 @@ const MarketplaceListingCard = ({
         style={[styles.listingImage, { backgroundColor: fallback }]}
       >
         <View style={isBuyer ? styles.listingOverlay : styles.demandOverlay} />
-        <View className="absolute top-2.5 left-3 bg-yellow-400 rounded-md px-2.5 py-1">
-          <Text className="text-green-950 text-[9px] font-black">{badge}</Text>
+        <View className="absolute top-2.5 left-3" style={styles.cardBadgeRow}>
+          <View className="bg-yellow-400 rounded-md px-2.5 py-1">
+            <Text className="text-green-950 text-[9px] font-black">{badge}</Text>
+          </View>
+          {item.status === 'completed' ? (
+            <View style={styles.completedBadge}>
+              <Text className="text-[9px] font-black text-white">COMPLETED</Text>
+            </View>
+          ) : null}
         </View>
         {item.is_verified ? (
           <View className="absolute top-2.5 right-3 flex-row items-center rounded-md px-2 py-1 bg-black/45">
@@ -1009,17 +1012,23 @@ const MarketplaceListingCard = ({
 
       <View className="px-3.5 pt-3 pb-3.5">
         <View className="flex-row justify-between items-center mb-2.5">
-          <View className="flex-row items-center flex-1" style={{ gap: 6 }}>
-            <Text className="text-gray-500 text-[11px] font-semibold">
+          <View className="flex-1">
+            <Text className="text-gray-500 text-[11px] font-semibold mb-0.5">
               {category}
             </Text>
-            <Text className="text-gray-200 text-[10px]">·</Text>
-            <Text
-              numberOfLines={1}
-              className="text-gray-700 text-[11px] font-bold flex-1"
-            >
-              {toStr(item.total_quantity_label, 'Quantity available')}
-            </Text>
+            <View style={styles.qtyRow}>
+              <Text
+                numberOfLines={1}
+                className="text-gray-700 text-[11px] font-bold"
+              >
+                {toStr(item.total_quantity_label, 'Qty')}
+              </Text>
+              {item.available_quantity_label ? (
+                <Text numberOfLines={1} className="text-green-700 text-[10px] font-semibold">
+                  ({item.available_quantity_label})
+                </Text>
+              ) : null}
+            </View>
           </View>
           <View className="flex-row items-center" style={{ gap: 3 }}>
             <Text className="text-[10px]">★</Text>
@@ -1094,7 +1103,7 @@ const MarketplaceListingCard = ({
 const MarketplaceScreen = ({ navigation }: any) => {
   const mode = useAppSelector(s => s.app.mode);
   const { t } = useTranslation();
-  const cachedCities = useCities();
+
   const isBuyer = mode === 'buyer';
   const postType: PostType = isBuyer ? 'SUPPLY' : 'DEMAND';
   const [search, setSearch] = useState('');
@@ -1102,7 +1111,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
   const [activeCategoryId, setActiveCategoryId] = useState('');
   const [activeSheet, setActiveSheet] = useState<SheetType>(null);
   const [selectedCommodityId, setSelectedCommodityId] = useState('');
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [minPrice, setMinPrice] = useState('');
@@ -1140,7 +1149,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
       post_type: postType,
       category_id: activeCategoryId,
       commodity_id: appliedFilters.selectedCommodityId,
-      location: appliedFilters.selectedLocations.length ? appliedFilters.selectedLocations.join(',') : undefined,
+      location: appliedFilters.locationQuery.trim() || undefined,
       min_price: appliedFilters.minPrice,
       max_price: appliedFilters.maxPrice,
       min_quantity: appliedFilters.minQuantity,
@@ -1249,7 +1258,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
 
   const syncDraftFilters = (filters: MarketplaceFilters) => {
     setSelectedCommodityId(filters.selectedCommodityId);
-    setSelectedLocations(filters.selectedLocations);
+    setLocationQuery(filters.locationQuery);
     setSelectedGrades(filters.selectedGrades);
     setVerifiedOnly(filters.verifiedOnly);
     setMinPrice(filters.minPrice);
@@ -1258,7 +1267,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
   };
   const getDraftFilters = (): MarketplaceFilters => ({
     selectedCommodityId,
-    selectedLocations,
+    locationQuery,
     selectedGrades,
     verifiedOnly,
     minPrice,
@@ -1267,7 +1276,7 @@ const MarketplaceScreen = ({ navigation }: any) => {
   });
   const hasActiveFilters =
     appliedFilters.selectedCommodityId !== '' ||
-    appliedFilters.selectedLocations.length > 0 ||
+    !!appliedFilters.locationQuery.trim() ||
     appliedFilters.selectedGrades.length > 0 ||
     appliedFilters.verifiedOnly ||
     appliedFilters.minPrice !== '' ||
@@ -1469,12 +1478,11 @@ const MarketplaceScreen = ({ navigation }: any) => {
       >
         <FilterSheet
           commodities={filterOptions.commodities}
-          cities={cachedCities}
           grades={filterOptions.grades}
           selectedCommodityId={selectedCommodityId}
           setSelectedCommodityId={setSelectedCommodityId}
-          selectedLocations={selectedLocations}
-          setSelectedLocations={setSelectedLocations}
+          locationQuery={locationQuery}
+          setLocationQuery={setLocationQuery}
           selectedGrades={selectedGrades}
           setSelectedGrades={setSelectedGrades}
           verifiedOnly={verifiedOnly}
@@ -1559,6 +1567,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     overflow: 'hidden',
+  },
+  cardBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  completedBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#6B7280',
+  },
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   listingOverlay: {
     ...StyleSheet.absoluteFillObject,

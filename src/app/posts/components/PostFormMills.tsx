@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { AppIcon } from '../../../assets/icons';
 import { GooglePlacesInput } from '../../components/GooglePlacesInput';
+import { api } from '../../../utils/api';
 import type { FieldOption, FormField, MillEntry } from '../types/postForm.types';
 
 type Props = {
@@ -21,18 +28,34 @@ type Props = {
 
 const MILLS_DD_ID = '__mills_dropdown__';
 const OTHER_ID = '__other__';
+const PAGE_SIZE = 20;
 
 const optId = (o: FieldOption) => String(o.id ?? o.value ?? '');
 const optLabel = (o: FieldOption) => String(o.name ?? o.label ?? '');
 
 export const PostFormMills = ({
-  millsField, openDropdown, selectedMills, pendingMill, commodityUnit = '40kg',
-  onToggleDropdown, onSelectMill, onPendingMillChange, onAddMill, onRemoveMill,
+  millsField,
+  openDropdown,
+  selectedMills,
+  pendingMill,
+  commodityUnit = '40kg',
+  onToggleDropdown,
+  onSelectMill,
+  onPendingMillChange,
+  onAddMill,
+  onRemoveMill,
 }: Props) => {
-  const opts = millsField?.options ?? [];
+  const [mills, setMills] = useState<FieldOption[]>([]);
+  const [millsTotal, setMillsTotal] = useState(0);
+  const [millsLoading, setMillsLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [skip, setSkip] = useState(0);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isOpen = openDropdown === MILLS_DD_ID;
   const isCustom = pendingMill.isCustom === true;
-  const selected = isCustom ? null : opts.find(o => optId(o) === pendingMill.id);
+  const selected = isCustom ? null : mills.find(o => optId(o) === pendingMill.id);
+
   const canAdd = isCustom
     ? Boolean(pendingMill.name.trim() && pendingMill.city.trim() && pendingMill.price.trim())
     : Boolean(pendingMill.id && pendingMill.price.trim());
@@ -40,6 +63,60 @@ export const PostFormMills = ({
   const dropdownLabel = isCustom
     ? 'Other (enter manually)'
     : selected ? optLabel(selected) : 'Select mill...';
+
+  const hasMore = mills.length < millsTotal && !millsLoading;
+
+  const fetchMills = useCallback(async (q: string, s: number, append: boolean) => {
+    setMillsLoading(true);
+    try {
+      const res = await (api.marketplace.public.getPublicMills({
+        search: q,
+        skip: s,
+        limit: PAGE_SIZE,
+      }) as Promise<any>);
+      const items: FieldOption[] = (res?.data ?? res?.items ?? []).map((m: any) => ({
+        id: String(m.id ?? ''),
+        name: String(m.name ?? ''),
+        city: m.location ?? m.city ?? '',
+      }));
+      setMills(prev => (append ? [...prev, ...items] : items));
+      setMillsTotal(res?.total ?? 0);
+    } catch {
+      // silent
+    } finally {
+      setMillsLoading(false);
+    }
+  }, []);
+
+  const handleToggle = () => {
+    if (!isOpen) {
+      setMills([]);
+      setSkip(0);
+      setSearch('');
+      fetchMills('', 0, false);
+    }
+    onToggleDropdown(MILLS_DD_ID);
+  };
+
+  const handleSearch = (text: string) => {
+    setSearch(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSkip(0);
+      fetchMills(text, 0, false);
+    }, 350);
+  };
+
+  const handleLoadMore = () => {
+    const newSkip = skip + PAGE_SIZE;
+    setSkip(newSkip);
+    fetchMills(search, newSkip, true);
+  };
+
+  // Clean up debounce timer on unmount
+  useEffect(() => () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+  }, []);
 
   return (
     <View>
@@ -70,9 +147,10 @@ export const PostFormMills = ({
       <View style={s.addBox}>
         <Text style={s.addTitle}>ADD A MILL</Text>
 
+        {/* Dropdown trigger */}
         <TouchableOpacity
           style={[s.select, (selected || isCustom) && s.selectActive]}
-          onPress={() => onToggleDropdown(MILLS_DD_ID)}
+          onPress={handleToggle}
           activeOpacity={0.7}
         >
           <Text style={[s.selectText, !selected && !isCustom && s.placeholder]} numberOfLines={1}>
@@ -81,30 +159,68 @@ export const PostFormMills = ({
           <AppIcon name="chevronDown" size={13} color="#9CA3AF" />
         </TouchableOpacity>
 
+        {/* Dropdown sheet */}
         {isOpen && (
           <View style={s.sheet}>
-            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-              {opts.map(o => {
+            {/* Search bar */}
+            <View style={s.searchRow}>
+              <AppIcon name="search" size={13} color="#9CA3AF" />
+              <TextInput
+                style={s.searchInput}
+                value={search}
+                onChangeText={handleSearch}
+                placeholder="Search mills..."
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="search"
+                autoCorrect={false}
+              />
+              {millsLoading && <ActivityIndicator size="small" color="#2E9E52" />}
+            </View>
+
+            <ScrollView style={s.list} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+              {mills.map(o => {
                 const id = optId(o);
                 const active = !isCustom && id === pendingMill.id;
                 return (
                   <TouchableOpacity
                     key={id}
                     style={[s.opt, active && s.optActive]}
-                    onPress={() => onSelectMill(id, opts)}
+                    onPress={() => onSelectMill(id, mills)}
                     activeOpacity={0.7}
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[s.optText, active && s.optTextActive]}>{optLabel(o)}</Text>
-                      {o.city ? <Text style={s.optSub}>{o.city}</Text> : null}
+                      {(o as any).city ? <Text style={s.optSub}>{(o as any).city}</Text> : null}
                     </View>
                     {active && <AppIcon name="approved" size={14} color="#2E9E52" />}
                   </TouchableOpacity>
                 );
               })}
+
+              {/* Load more */}
+              {hasMore && (
+                <TouchableOpacity style={s.loadMore} onPress={handleLoadMore} activeOpacity={0.7}>
+                  <Text style={s.loadMoreText}>Load more</Text>
+                </TouchableOpacity>
+              )}
+
+              {millsLoading && mills.length === 0 && (
+                <View style={s.loadingRow}>
+                  <ActivityIndicator size="small" color="#2E9E52" />
+                  <Text style={s.loadingText}>Loading mills...</Text>
+                </View>
+              )}
+
+              {!millsLoading && mills.length === 0 && (
+                <View style={s.emptyRow}>
+                  <Text style={s.emptyText}>No mills found</Text>
+                </View>
+              )}
+
+              {/* Other option — always last */}
               <TouchableOpacity
                 style={[s.opt, isCustom && s.optActive]}
-                onPress={() => onSelectMill(OTHER_ID, opts)}
+                onPress={() => onSelectMill(OTHER_ID, mills)}
                 activeOpacity={0.7}
               >
                 <View style={{ flex: 1 }}>
@@ -117,6 +233,7 @@ export const PostFormMills = ({
           </View>
         )}
 
+        {/* Custom mill fields */}
         {isCustom ? (
           <>
             <TextInput
@@ -146,6 +263,7 @@ export const PostFormMills = ({
           </View>
         )}
 
+        {/* Price input */}
         <View style={s.priceRow}>
           <Text style={s.rupee}>₨</Text>
           <TextInput
@@ -190,11 +308,20 @@ const s = StyleSheet.create({
   selectText: { fontSize: 12, color: '#374151', flex: 1 },
   placeholder: { color: '#9CA3AF' },
   sheet: { marginBottom: 6, backgroundColor: '#FFFFFF', borderRadius: 9, borderWidth: 1.5, borderColor: '#E5E7EB', overflow: 'hidden' },
-  opt: { paddingVertical: 10, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  searchInput: { flex: 1, fontSize: 12, color: '#374151', padding: 0 },
+  list: { maxHeight: 220 },
+  opt: { paddingVertical: 10, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
   optActive: { backgroundColor: '#F2FBF5' },
   optText: { fontSize: 12, color: '#374151' },
   optTextActive: { color: '#1A6B34', fontWeight: '600' },
   optSub: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
+  loadMore: { paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  loadMoreText: { fontSize: 12, color: '#2E9E52', fontWeight: '600' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  loadingText: { fontSize: 12, color: '#9CA3AF' },
+  emptyRow: { paddingVertical: 14, alignItems: 'center' },
+  emptyText: { fontSize: 12, color: '#9CA3AF' },
   input: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, fontSize: 12, color: '#374151', backgroundColor: '#FFFFFF', marginBottom: 6 },
   millCityBtn: { borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, marginBottom: 6 },
   cityRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, gap: 6, backgroundColor: '#FFFFFF', marginBottom: 6 },

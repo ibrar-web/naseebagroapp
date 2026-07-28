@@ -344,7 +344,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   const buildPayload = (): Record<string, unknown> => {
     const payload: Record<string, unknown> = {
       category_id: categoryData?.id ?? (form as any)?.category_id,
-      commodity_id: selectedCommodity?.id ?? null,
+      commodity: selectedCommodity?.id ?? null,
     };
     for (const field of sortedFields) {
       const lk = labelKey(field.label);

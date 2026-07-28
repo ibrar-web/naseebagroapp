@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ImageBackground,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,7 +22,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CommodityDetail'>;
 type DemandMill = {
   id: string;
   name?: string;
-  city?: string;
+  location?: string;
   price_per_unit?: string;
   available_quantity?: string;
   is_cheapest?: boolean;
@@ -98,6 +100,8 @@ type DemandDetail = {
     badge?: string | null;
     badge_label?: string | null;
   };
+  unit_name?: string;
+  unit_kg_value?: number;
 };
 
 const normalizeDemandDetail = (response: any): DemandDetail | null => {
@@ -125,7 +129,7 @@ const MillRow = ({ item, last }: { item: DemandMill; last?: boolean }) => (
       <View style={styles.millLocationRow}>
         <AppIcon name="profileCity" size={10} color="#9CA3AF" />
         <Text style={styles.millLocation} numberOfLines={1}>
-          {toStr(item?.city, 'Location not available')}
+          {toStr(item?.location, 'Location not available')}
         </Text>
       </View>
     </View>
@@ -172,6 +176,77 @@ const HOW_IT_WORKS = [
   'If approved, a deal is created for you',
 ];
 
+const MAUND_KG = 40;
+const TON_KG = 1000;
+
+const fmtConv = (n: number) =>
+  new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(n);
+
+const unitSlug = (name = '') => name.toLowerCase().replace(/\s+/g, '');
+
+const ConversionModal = ({
+  visible,
+  onClose,
+  unitName,
+  unitKgValue,
+  rawQuantity,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  unitName: string;
+  unitKgValue: number;
+  rawQuantity: number;
+}) => {
+  const totalKg = rawQuantity * unitKgValue;
+  const slug = unitSlug(unitName);
+  const isKg = slug.includes('kg') || slug.includes('kilo');
+  const isMaund = slug.includes('maund') || slug.includes('mound');
+  const isTon = slug.includes('ton');
+
+  const isStandard = isKg || isMaund || isTon;
+
+  const rows: { label: string; value: string; isPrimary: boolean }[] = [
+    ...(!isStandard ? [{ label: unitName, value: `${fmtConv(rawQuantity)} ${unitName}`, isPrimary: true }] : []),
+    { label: 'Kilograms', value: `${fmtConv(totalKg)} kg`, isPrimary: isKg },
+    { label: 'Maund', value: `${fmtConv(totalKg / MAUND_KG)} maund`, isPrimary: isMaund },
+    { label: 'Metric Ton', value: `${fmtConv(totalKg / TON_KG)} ton`, isPrimary: isTon },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.convOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.convCard}>
+              <Text style={styles.convTitle}>Quantity Breakdown</Text>
+              {rows.map((row, i) => (
+                <View
+                  key={row.label}
+                  style={[
+                    styles.convRow,
+                    row.isPrimary && styles.convRowFirst,
+                    i < rows.length - 1 && styles.convRowBorder,
+                  ]}
+                >
+                  <Text style={[styles.convLabel, row.isPrimary && styles.convLabelPrimary]}>
+                    {row.label}
+                  </Text>
+                  <Text style={[styles.convValue, row.isPrimary && styles.convValuePrimary]}>
+                    {row.value}
+                  </Text>
+                </View>
+              ))}
+              <TouchableOpacity onPress={onClose} style={styles.convCloseBtn}>
+                <Text style={styles.convCloseBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
 const SellerCommodityDetail = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<DemandDetail | null>(null);
@@ -179,6 +254,7 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
   const [savingFav, setSavingFav] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [convVisible, setConvVisible] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -262,11 +338,18 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           value: detail.pricing.price_range_label,
         }
       : null,
-    detail.total_quantity?.label
+    (detail.original_quantity?.label ?? detail.total_quantity?.label)
       ? {
           key: 'quantity',
-          label: 'Quantity',
-          value: detail.total_quantity.label,
+          label: 'Total Required',
+          value: detail.original_quantity?.label ?? detail.total_quantity?.label ?? '',
+        }
+      : null,
+    detail.available_quantity?.label
+      ? {
+          key: 'available',
+          label: 'Required',
+          value: detail.available_quantity.label,
         }
       : null,
     detail.payment_terms?.label
@@ -377,19 +460,6 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
 
       <View style={styles.metaBar}>
         <View style={styles.metaItem}>
-          <Text style={styles.metaLabel}>QUANTITY</Text>
-          <View style={styles.metaQtyRow}>
-            <Text style={styles.metaValue} numberOfLines={1}>
-              {toStr(detail.original_quantity?.label ?? detail.total_quantity?.label, '—')}
-            </Text>
-            {detail.available_quantity?.label ? (
-              <Text style={styles.metaAvailLabel} numberOfLines={1}>
-                ({detail.available_quantity.label})
-              </Text>
-            ) : null}
-          </View>
-        </View>
-        <View style={[styles.metaItem, styles.metaItemBorder]}>
           <Text style={styles.metaLabel}>LOCATION</Text>
           <Text style={styles.metaValue}>
             {toStr(detail.location?.label, '—')}
@@ -426,18 +496,37 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
               </View>
               <Text style={styles.cardTitle}>Request Details</Text>
             </View>
-            {requestRows.map((row, index) => (
-              <DetailRow
-                key={row.key}
-                label={toStr(row.label)}
-                value={toStr(row.value)}
-                highlight={
-                  row.key.includes('price') || row.key.includes('budget')
-                }
-                mono={row.key.includes('id')}
-                last={index === requestRows.length - 1}
-              />
-            ))}
+            {requestRows.map((row, index) => {
+              const isLast = index === requestRows.length - 1;
+              const isQtyRow = (row.key === 'quantity' || row.key === 'available') && detail.unit_kg_value;
+              if (isQtyRow) {
+                return (
+                  <View key={row.key} style={[styles.detailRow, !isLast && styles.detailRowBorder]}>
+                    <View style={styles.qtyLabelRow}>
+                      <Text style={styles.detailLabel}>{toStr(row.label)}</Text>
+                      <TouchableOpacity
+                        onPress={() => setConvVisible(true)}
+                        style={styles.infoIconBtn}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.infoIconText}>i</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.detailValue}>{toStr(row.value)}</Text>
+                  </View>
+                );
+              }
+              return (
+                <DetailRow
+                  key={row.key}
+                  label={toStr(row.label)}
+                  value={toStr(row.value)}
+                  highlight={row.key.includes('price') || row.key.includes('budget')}
+                  mono={row.key.includes('id')}
+                  last={isLast}
+                />
+              );
+            })}
           </View>
         )}
 
@@ -447,7 +536,7 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
               <View style={styles.cardIconBox}>
                 <AppIcon name="business" size={14} color="#217A3C" />
               </View>
-              <Text style={styles.cardTitle}>Available Mills</Text>
+              <Text style={styles.cardTitle}>Buyer's Mills</Text>
             </View>
             {mills.map((mill, index) => (
               <MillRow
@@ -490,6 +579,14 @@ const SellerCommodityDetail = ({ navigation, route }: Props) => {
           <Text style={styles.sendOfferBtnText}>{ctaLabel}</Text>
         </TouchableOpacity>
       </View>
+
+      <ConversionModal
+        visible={convVisible}
+        onClose={() => setConvVisible(false)}
+        unitName={detail.unit_name ?? 'units'}
+        unitKgValue={detail.unit_kg_value ?? 1}
+        rawQuantity={detail.total_quantity?.value ?? 0}
+      />
     </View>
   );
 };
@@ -757,6 +854,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0D3B1F',
   },
+  metaLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 2,
+  },
+  qtyLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+  },
+  infoIconBtn: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIconText: { fontSize: 11, fontWeight: '900', color: '#217A3C' },
+  convOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  convCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  convTitle: { fontSize: 14, fontWeight: '800', color: '#111827', marginBottom: 14 },
+  convRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  convRowFirst: {
+    backgroundColor: '#F2FBF5',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginBottom: 4,
+  },
+  convRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  convLabel: { fontSize: 13, color: '#6B7280' },
+  convLabelPrimary: { fontWeight: '700', color: '#145228' },
+  convValue: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  convValuePrimary: { fontSize: 14, fontWeight: '900', color: '#1A6B34' },
+  convCloseBtn: {
+    marginTop: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  convCloseBtnText: { fontSize: 13, fontWeight: '700', color: '#374151' },
 });
 
 export default SellerCommodityDetail;

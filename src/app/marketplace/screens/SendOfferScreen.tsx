@@ -153,6 +153,28 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
       <ScrollView style={styles.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <OfferPreviewCard imageUri={heroImage} code={detail.code ?? detail.id} title={detail.title ?? 'Demand Request'} stats={stats} />
 
+        {(detail.original_quantity?.label || detail.available_quantity?.label || detail.quantity_label) ? (
+          <View style={styles.demandInfoBox}>
+            <AppIcon name="shield" size={13} color="#1A6B34" />
+            <View style={styles.demandInfoContent}>
+              {(detail.original_quantity?.label || detail.quantity_label) ? (
+                <Text style={styles.demandInfoLine}>
+                  {'Buyer Requires: '}
+                  <Text style={styles.demandInfoValue}>
+                    {detail.original_quantity?.label ?? detail.quantity_label}
+                  </Text>
+                </Text>
+              ) : null}
+              {detail.available_quantity?.label ? (
+                <Text style={styles.demandInfoLine}>
+                  {'Still Available: '}
+                  <Text style={styles.demandInfoValue}>{detail.available_quantity.label}</Text>
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
         {hasMills ? (
           <View style={s.card}>
             <Text style={s.sectionTitle}>1. Select Your Mill <Text style={s.required}>*</Text></Text>
@@ -222,6 +244,10 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#F3CD03', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   submitBtnDisabled: { backgroundColor: '#9CA3AF' },
   submitBtnText: { fontSize: 14, fontWeight: '800', color: '#0D3B1F' },
+  demandInfoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#F2FBF5', borderRadius: 10, padding: 12, marginBottom: 10, gap: 8, borderWidth: 1, borderColor: '#C6E8D1' },
+  demandInfoContent: { flex: 1, gap: 2 },
+  demandInfoLine: { fontSize: 12, color: '#374151' },
+  demandInfoValue: { fontWeight: '700', color: '#1A6B34' },
 });
 
 export default SendOfferScreen;

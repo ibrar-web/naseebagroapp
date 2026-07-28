@@ -146,6 +146,26 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
       <ScrollView style={styles.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <OfferPreviewCard imageUri={heroImage} code={detail.code ?? detail.id} title={detail.title} badge={badge} />
 
+        {(detail.original_quantity?.label || detail.available_quantity?.label) ? (
+          <View style={styles.supplyInfoBox}>
+            <AppIcon name="shield" size={13} color="#1A6B34" />
+            <View style={styles.supplyInfoContent}>
+              {detail.original_quantity?.label ? (
+                <Text style={styles.supplyInfoLine}>
+                  {'Total Supply: '}
+                  <Text style={styles.supplyInfoValue}>{detail.original_quantity.label}</Text>
+                </Text>
+              ) : null}
+              {detail.available_quantity?.label ? (
+                <Text style={styles.supplyInfoLine}>
+                  {'Available: '}
+                  <Text style={styles.supplyInfoValue}>{detail.available_quantity.label}</Text>
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
         {hasMills ? (
           <View style={s.card}>
             <Text style={s.sectionTitle}>1. Select Mill <Text style={s.required}>*</Text></Text>
@@ -228,6 +248,10 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#1A6B34', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   submitBtnDisabled: { backgroundColor: '#9CA3AF' },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  supplyInfoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#F2FBF5', borderRadius: 10, padding: 12, marginBottom: 10, gap: 8, borderWidth: 1, borderColor: '#C6E8D1' },
+  supplyInfoContent: { flex: 1, gap: 2 },
+  supplyInfoLine: { fontSize: 12, color: '#374151' },
+  supplyInfoValue: { fontWeight: '700', color: '#1A6B34' },
 });
 
 export default RequestToPurchaseScreen;

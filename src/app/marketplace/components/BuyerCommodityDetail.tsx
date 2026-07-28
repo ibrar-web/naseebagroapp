@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ImageBackground,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -30,7 +32,7 @@ type SupplySummaryCard = {
 type SupplyMill = {
   id: string;
   name?: string;
-  city?: string;
+  location?: string;
   price_per_unit?: string;
   available_quantity?: string;
   is_cheapest?: boolean;
@@ -109,6 +111,8 @@ type SupplyDetail = {
     badge?: string | null;
     badge_label?: string | null;
   };
+  unit_name?: string;
+  unit_kg_value?: number;
 };
 
 const normalizeSupplyDetail = (response: any): SupplyDetail | null => {
@@ -251,7 +255,7 @@ const MillRow = ({ item, last }: { item: SupplyMill; last?: boolean }) => {
         <View style={styles.millLocationRow}>
           <AppIcon name="profileCity" size={10} color="#9CA3AF" />
           <Text style={styles.millLocation} numberOfLines={1}>
-            {toStr(item?.city, 'Location not available')}
+            {toStr(item?.location, 'Location not available')}
           </Text>
         </View>
       </View>
@@ -265,6 +269,69 @@ const MillRow = ({ item, last }: { item: SupplyMill; last?: boolean }) => {
   );
 };
 
+const MAUND_KG = 40;
+const TON_KG = 1000;
+
+const fmtConv = (n: number) =>
+  new Intl.NumberFormat('en-PK', { maximumFractionDigits: 2 }).format(n);
+
+const unitSlug = (name = '') => name.toLowerCase().replace(/\s+/g, '');
+
+const ConversionModal = ({
+  visible,
+  onClose,
+  unitName,
+  unitKgValue,
+  rawQuantity,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  unitName: string;
+  unitKgValue: number;
+  rawQuantity: number;
+}) => {
+  const totalKg = rawQuantity * unitKgValue;
+  const slug = unitSlug(unitName);
+  const isKg = slug.includes('kg') || slug.includes('kilo');
+  const isMaund = slug.includes('maund') || slug.includes('mound');
+  const isTon = slug.includes('ton');
+
+  const isStandard = isKg || isMaund || isTon;
+
+  const rows: { label: string; value: string; isPrimary: boolean }[] = [
+    ...(!isStandard ? [{ label: unitName, value: `${fmtConv(rawQuantity)} ${unitName}`, isPrimary: true }] : []),
+    { label: 'Kilograms', value: `${fmtConv(totalKg)} kg`, isPrimary: isKg },
+    { label: 'Maund', value: `${fmtConv(totalKg / MAUND_KG)} maund`, isPrimary: isMaund },
+    { label: 'Metric Ton', value: `${fmtConv(totalKg / TON_KG)} ton`, isPrimary: isTon },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.convOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.convCard}>
+              <Text style={styles.convTitle}>Quantity Breakdown</Text>
+              {rows.map((row, i) => (
+                <View
+                  key={row.label}
+                  style={[styles.convRow, row.isPrimary && styles.convRowFirst, i < rows.length - 1 && styles.convRowBorder]}
+                >
+                  <Text style={[styles.convLabel, row.isPrimary && styles.convLabelPrimary]}>{row.label}</Text>
+                  <Text style={[styles.convValue, row.isPrimary && styles.convValuePrimary]}>{row.value}</Text>
+                </View>
+              ))}
+              <TouchableOpacity onPress={onClose} style={styles.convCloseBtn}>
+                <Text style={styles.convCloseBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
 const BuyerCommodityDetail = ({ navigation, route }: Props) => {
   const { listingId } = route.params;
   const [detail, setDetail] = useState<SupplyDetail | null>(null);
@@ -272,6 +339,7 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
   const [savingFav, setSavingFav] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [convVisible, setConvVisible] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -553,10 +621,24 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
         showsVerticalScrollIndicator={false}
       >
         {infoCards.length ? (
-          <View style={styles.infoGrid}>
-            {infoCards.map(card => (
-              <SummaryCard key={card.key} item={card} />
-            ))}
+          <View>
+            <View style={styles.infoGrid}>
+              {infoCards.map(card => (
+                <SummaryCard key={card.key} item={card} />
+              ))}
+            </View>
+            {detail.unit_kg_value ? (
+              <TouchableOpacity
+                onPress={() => setConvVisible(true)}
+                style={styles.convTrigger}
+                activeOpacity={0.75}
+              >
+                <View style={styles.infoIconBtn}>
+                  <Text style={styles.infoIconText}>i</Text>
+                </View>
+                <Text style={styles.convTriggerText}>View quantity in other units</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : null}
 
@@ -578,6 +660,18 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           </View>
         ) : null}
 
+        <SectionCard title="POST DETAILS" icon="document">
+          {rows.map((row, index) => (
+            <DetailRow
+              key={row.key}
+              label={toStr(row.label)}
+              value={toStr(row.value)}
+              mono={row.key.includes('id')}
+              last={index === rows.length - 1}
+            />
+          ))}
+        </SectionCard>
+
         <SectionCard title="Available Mills" icon="business">
           {mills.length ? (
             mills.map((mill, index) => (
@@ -590,18 +684,6 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           ) : (
             <Text style={styles.emptySectionText}>No mills available.</Text>
           )}
-        </SectionCard>
-
-        <SectionCard title="POST DETAILS" icon="document">
-          {rows.map((row, index) => (
-            <DetailRow
-              key={row.key}
-              label={toStr(row.label)}
-              value={toStr(row.value)}
-              mono={row.key.includes('id')}
-              last={index === rows.length - 1}
-            />
-          ))}
         </SectionCard>
 
         <View style={styles.bottomSpacer} />
@@ -618,6 +700,14 @@ const BuyerCommodityDetail = ({ navigation, route }: Props) => {
           <Text style={styles.purchaseBtnText}>{ctaLabel}</Text>
         </TouchableOpacity>
       </View>
+
+      <ConversionModal
+        visible={convVisible}
+        onClose={() => setConvVisible(false)}
+        unitName={detail.unit_name ?? 'units'}
+        unitKgValue={detail.unit_kg_value ?? 1}
+        rawQuantity={detail.original_quantity?.value ?? Number(detail.total_quantity?.value ?? 0)}
+      />
     </View>
   );
 };
@@ -900,6 +990,71 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A6B34',
   },
   purchaseBtnText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
+  convOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  convCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  convTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 14,
+  },
+  convRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  convRowFirst: {
+    backgroundColor: '#F2FBF5',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginBottom: 4,
+  },
+  convRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  convLabel: { fontSize: 13, color: '#6B7280' },
+  convLabelPrimary: { fontWeight: '700', color: '#145228' },
+  convValue: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  convValuePrimary: { color: '#1A6B34', fontSize: 14, fontWeight: '900' },
+  convCloseBtn: {
+    marginTop: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  convCloseBtnText: { fontSize: 13, fontWeight: '700', color: '#374151' },
+  infoIconBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#E8F7EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIconText: { fontSize: 11, fontWeight: '900', color: '#217A3C' },
+  convTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  convTriggerText: { fontSize: 12, color: '#217A3C', fontWeight: '600' },
 });
 
 export default BuyerCommodityDetail;

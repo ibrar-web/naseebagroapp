@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 export type Mill = {
   id: string;
   name?: string;
-  city?: string;
+  location?: string;
   price_per_unit?: string;
   available_quantity?: number | string;
 };
@@ -31,7 +31,9 @@ export const OfferMillSelector = ({ mills, selectedId, onSelect }: Props) => (
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.millName}>{mill.name ?? 'Mill'}</Text>
-            <Text style={styles.millCity}>{mill.city ?? ''}</Text>
+            {mill.location ? (
+              <Text style={styles.millCity} numberOfLines={1}>{mill.location}</Text>
+            ) : null}
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={styles.millPrice}>{mill.price_per_unit ? `PKR ${mill.price_per_unit}` : 'Ask'}</Text>

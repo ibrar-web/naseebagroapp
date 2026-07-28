@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { showAlert } from '../../components/toastConfig';
 import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { Feather } from '../../../assets/icons/feather';
@@ -28,6 +27,13 @@ export interface TruckDocument {
   signed_url: string | null;
 }
 
+export interface FreightSubmission {
+  id: string;
+  amount: number;
+  status: 'pending' | 'verified' | 'rejected';
+  signed_url: string | null;
+}
+
 export interface FullTruck {
   id: string;
   truck_number: string;
@@ -40,6 +46,7 @@ export interface FullTruck {
   dispatched_at: string | null;
   delivered_at: string | null;
   documents: TruckDocument[];
+  freight_submission?: FreightSubmission | null;
 }
 
 interface Props {
@@ -48,6 +55,7 @@ interface Props {
   totalAmount?: number | null;
   paymentTermType?: string | null;
   dealStatus?: string | null;
+  deliveryOption?: string | null;
   onTrucksLoaded?: (count: number) => void;
 }
 
@@ -89,9 +97,11 @@ const TrucksTab: React.FC<Props> = ({
   totalAmount,
   paymentTermType,
   dealStatus,
+  deliveryOption,
   onTrucksLoaded,
 }) => {
   const isCompleted = dealStatus === 'closed';
+  const isDeliveredDeal = deliveryOption === 'DELIVERED';
   const [trucks, setTrucks] = useState<FullTruck[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -100,9 +110,17 @@ const TrucksTab: React.FC<Props> = ({
   const [vehicleNo, setVehicleNo] = useState('');
   const [driverName, setDriverName] = useState('');
   const [weight, setWeight] = useState('');
+  // Mandatory bilti + waybill when seller creates a truck
+  const [biltiFile, setBiltiFile] = useState<{ uri: string; type: string; name: string } | null>(null);
+  const [waybillFile, setWaybillFile] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [editFreight, setEditFreight] = useState('');
+  // Buyer: freight submission form
+  const [freightInputAmount, setFreightInputAmount] = useState('');
+  const [freightReceipt, setFreightReceipt] = useState<{ uri: string; type: string; name: string } | null>(null);
+  const [submittingFreight, setSubmittingFreight] = useState(false);
+
+  // Buyer: unloaded weight (separate save)
   const [editUnloaded, setEditUnloaded] = useState('');
   const [savingFields, setSavingFields] = useState(false);
 
@@ -151,49 +169,110 @@ const TrucksTab: React.FC<Props> = ({
       setExpandedId(null);
     } else {
       setExpandedId(truck.id);
-      setEditFreight(
-        truck.freight_amount != null ? String(truck.freight_amount) : '',
-      );
+      setFreightInputAmount('');
       setEditUnloaded(
         truck.unloaded_weight_tons != null
           ? String(truck.unloaded_weight_tons)
           : '',
       );
+      setFreightReceipt(null);
     }
+  };
+
+  const pickFile = (onPick: (f: { uri: string; type: string; name: string }) => void) => {
+    launchImageLibrary({ mediaType: 'mixed', quality: 1 }, res => {
+      if (res.didCancel || !res.assets?.length) return;
+      const a = res.assets[0];
+      if (!a.uri) return;
+      onPick({ uri: a.uri, type: a.type ?? 'image/jpeg', name: a.fileName ?? 'file.jpg' });
+    });
   };
 
   const handleAddTruckSubmit = async () => {
     if (!vehicleNo.trim() || submitting) return;
+    if (!biltiFile) {
+      Alert.alert('Required', 'Please upload the Bilti document.');
+      return;
+    }
+    if (!waybillFile) {
+      Alert.alert('Required', 'Please upload the Waybill document.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await api.seller.addTruck(dealId, {
+      // weight input is in KG — convert to tons for API (weight_tons = kg / 1000)
+      const truck: any = await api.seller.addTruck(dealId, {
         truck_number: vehicleNo.trim(),
         driver_name: driverName.trim() || undefined,
-        weight_tons: weight ? Number(weight) : undefined,
+        weight_tons: weight ? Number(weight) / 1000 : undefined,
       });
+      const truckId: string = truck?.id ?? truck?.data?.id;
+      if (truckId) {
+        const biltiForm = new FormData();
+        biltiForm.append('file', { uri: biltiFile.uri, type: biltiFile.type, name: biltiFile.name } as any);
+        biltiForm.append('doc_type', 'bilti');
+        const waybillForm = new FormData();
+        waybillForm.append('file', { uri: waybillFile.uri, type: waybillFile.type, name: waybillFile.name } as any);
+        waybillForm.append('doc_type', 'waybill');
+        await Promise.all([
+          api.seller.addTruckDoc(dealId, truckId, biltiForm),
+          api.seller.addTruckDoc(dealId, truckId, waybillForm),
+        ]);
+      }
       setVehicleNo('');
       setDriverName('');
       setWeight('');
+      setBiltiFile(null);
+      setWaybillFile(null);
       setShowForm(false);
       await loadTrucks();
     } catch {
-      showAlert('error', 'Error', 'Failed to add truck.');
+      Alert.alert('Error', 'Failed to add truck.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Buyer: submit freight payment (DELIVERED deals — goes to admin for approval)
+  const handleSubmitTruckFreight = async (truckId: string) => {
+    if (!freightInputAmount || Number(freightInputAmount) <= 0) {
+      Alert.alert('Required', 'Please enter a valid freight amount.');
+      return;
+    }
+    if (!freightReceipt) {
+      Alert.alert('Receipt Required', 'Please upload a freight receipt (proof of payment to transporter).');
+      return;
+    }
+    if (submittingFreight) return;
+    setSubmittingFreight(true);
+    try {
+      const form = new FormData();
+      form.append('amount', String(freightInputAmount));
+      form.append('file', { uri: freightReceipt.uri, type: freightReceipt.type, name: freightReceipt.name } as any);
+      await api.buyer.submitTruckFreight(dealId, truckId, form);
+      setFreightInputAmount('');
+      setFreightReceipt(null);
+      await loadTrucks();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to submit freight.';
+      Alert.alert('Error', msg);
+    } finally {
+      setSubmittingFreight(false);
+    }
+  };
+
+  // Buyer: save unloaded weight only (for EX_LOAD or after freight is handled)
   const handleSaveBuyerFields = async (truckId: string) => {
-    if (savingFields) return;
+    if (savingFields || !editUnloaded) return;
     setSavingFields(true);
     try {
       await api.buyer.updateTruck(dealId, truckId, {
-        freight_amount: editFreight ? Number(editFreight) : undefined,
-        unloaded_weight_tons: editUnloaded ? Number(editUnloaded) : undefined,
+        unloaded_weight_tons: Number(editUnloaded) / 1000,
       });
       await loadTrucks();
-    } catch {
-      showAlert('error', 'Error', 'Failed to save changes.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to save changes.';
+      Alert.alert('Error', msg);
     } finally {
       setSavingFields(false);
     }
@@ -221,7 +300,7 @@ const TrucksTab: React.FC<Props> = ({
       }
       await loadTrucks();
     } catch {
-      showAlert('error', 'Error', 'Failed to upload document.');
+      Alert.alert('Error', 'Failed to upload document.');
     } finally {
       setUploadingDoc(null);
     }
@@ -270,7 +349,7 @@ const TrucksTab: React.FC<Props> = ({
         });
       } catch (e) {
         if (DocumentPicker.isCancel(e)) return;
-        showAlert('error', 'Error', 'Failed to pick document.');
+        Alert.alert('Error', 'Failed to pick document.');
       }
     };
 
@@ -399,9 +478,9 @@ const TrucksTab: React.FC<Props> = ({
         </View>
         <View style={s.statsBarDivider} />
         <View>
-          <Text style={s.statsBarLabel}>LOAD</Text>
+          <Text style={s.statsBarLabel}>LOAD (kg)</Text>
           <Text style={s.statsBarVal}>
-            {truck.weight_tons != null ? `${truck.weight_tons}` : '—'}
+            {truck.weight_tons != null ? fmtNum(Number(truck.weight_tons) * 1000) : '—'}
           </Text>
         </View>
         {mode === 'seller' && truck.freight_amount != null && (
@@ -440,54 +519,140 @@ const TrucksTab: React.FC<Props> = ({
             {renderDocChipRow(truck, 'pohnch', true, '#217A3C', '#FFFFFF')}
           </View>
 
-          {/* Freight + Weight inputs — locked once pohnch is verified */}
+          {/* FREIGHT SECTION */}
+          {isDeliveredDeal ? (
+            /* DELIVERED deal: freight goes through admin approval */
+            <View style={s.docSection}>
+              <Text style={s.sectionHead}>FREIGHT PAYMENT</Text>
+              {truck.freight_submission ? (
+                truck.freight_submission.status === 'verified' ? (
+                  <View style={s.freightVerifiedBox}>
+                    <Text style={s.freightVerifiedText}>
+                      ✓ Freight verified — PKR {fmtNum(truck.freight_submission.amount)}
+                    </Text>
+                  </View>
+                ) : truck.freight_submission.status === 'pending' ? (
+                  <View style={s.freightPendingBox}>
+                    <Text style={s.freightPendingText}>
+                      ⏱ PKR {fmtNum(truck.freight_submission.amount)} — Awaiting admin approval
+                    </Text>
+                  </View>
+                ) : (
+                  /* Rejected — allow resubmit */
+                  <>
+                    <View style={s.freightRejectedBox}>
+                      <Text style={s.freightRejectedText}>✕ Freight submission rejected. Please resubmit.</Text>
+                    </View>
+                    <View style={s.inputsRow}>
+                      <View style={s.flexOne}>
+                        <Text style={s.inputLabel}>Freight Amount (PKR) <Text style={s.required}>*</Text></Text>
+                        <NumberInput
+                          style={s.inputField}
+                          placeholder="e.g. 12500"
+                          placeholderTextColor="#9CA3AF"
+                          value={freightInputAmount}
+                          onChangeText={setFreightInputAmount}
+                        />
+                      </View>
+                    </View>
+                    <View style={s.receiptSection}>
+                      <Text style={s.inputLabel}>Receipt <Text style={s.required}>*</Text></Text>
+                      <TouchableOpacity
+                        style={[s.receiptPicker, freightReceipt && s.receiptPickerDone]}
+                        onPress={() => pickFile(setFreightReceipt)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={s.receiptPickerIcon}>{freightReceipt ? '✓' : '☁'}</Text>
+                        <Text style={[s.receiptPickerText, freightReceipt && s.receiptPickerTextDone]}>
+                          {freightReceipt ? freightReceipt.name : 'Upload Receipt'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity
+                      style={[s.saveBtn, submittingFreight && s.saveBtnDisabled]}
+                      onPress={() => handleSubmitTruckFreight(truck.id)}
+                      disabled={submittingFreight}
+                      activeOpacity={0.85}
+                    >
+                      {submittingFreight ? <ActivityIndicator size="small" color="#111827" /> : <Text style={s.saveBtnText}>Resubmit Freight</Text>}
+                    </TouchableOpacity>
+                  </>
+                )
+              ) : (
+                /* No submission yet */
+                <>
+                  <View style={s.inputsRow}>
+                    <View style={s.flexOne}>
+                      <Text style={s.inputLabel}>Freight Amount (PKR) <Text style={s.required}>*</Text></Text>
+                      <NumberInput
+                        style={s.inputField}
+                        placeholder="e.g. 12500"
+                        placeholderTextColor="#9CA3AF"
+                        value={freightInputAmount}
+                        onChangeText={setFreightInputAmount}
+                      />
+                    </View>
+                  </View>
+                  <View style={s.receiptSection}>
+                    <Text style={s.inputLabel}>Freight Receipt <Text style={s.required}>*</Text></Text>
+                    <TouchableOpacity
+                      style={[s.receiptPicker, freightReceipt && s.receiptPickerDone]}
+                      onPress={() => pickFile(setFreightReceipt)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={s.receiptPickerIcon}>{freightReceipt ? '✓' : '☁'}</Text>
+                      <Text style={[s.receiptPickerText, freightReceipt && s.receiptPickerTextDone]}>
+                        {freightReceipt ? freightReceipt.name : 'Upload Receipt'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.saveBtn, submittingFreight && s.saveBtnDisabled]}
+                    onPress={() => handleSubmitTruckFreight(truck.id)}
+                    disabled={submittingFreight}
+                    activeOpacity={0.85}
+                  >
+                    {submittingFreight ? <ActivityIndicator size="small" color="#111827" /> : <Text style={s.saveBtnText}>Submit Freight for Approval</Text>}
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          ) : null}
+
+          {/* Unloaded weight input */}
           {(() => {
             const pohnchVerified = truck.documents.some(
               d => d.doc_type === 'pohnch' && d.status === 'verified',
             );
             return pohnchVerified ? (
               <View style={s.lockedNotice}>
-                <Text style={s.lockedNoticeText}>
-                  ✓ Pohnch verified — freight and weight are locked.
-                </Text>
+                <Text style={s.lockedNoticeText}>✓ Pohnch verified — weight is locked.</Text>
               </View>
             ) : (
               <>
                 <View style={s.inputsRow}>
                   <View style={s.inputHalf}>
-                    <Text style={s.inputLabel}>Freight (PKR)</Text>
-                    <NumberInput
-                      style={s.inputField}
-                      placeholder="e.g. 12500"
-                      placeholderTextColor="#9CA3AF"
-                      value={editFreight}
-                      onChangeText={setEditFreight}
-                    />
-                  </View>
-                  <View style={s.inputHalf}>
-                    <Text style={s.inputLabel}>Weight Unloaded (tons)</Text>
+                    <Text style={s.inputLabel}>Weight Unloaded (kg)</Text>
                     <NumberInput
                       decimal
                       style={s.inputField}
-                      placeholder="e.g. 10.2"
+                      placeholder="e.g. 10200"
                       placeholderTextColor="#9CA3AF"
                       value={editUnloaded}
                       onChangeText={setEditUnloaded}
                     />
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={[s.saveBtn, savingFields && s.saveBtnDisabled]}
-                  onPress={() => handleSaveBuyerFields(truck.id)}
-                  disabled={savingFields}
-                  activeOpacity={0.85}
-                >
-                  {savingFields ? (
-                    <ActivityIndicator size="small" color="#111827" />
-                  ) : (
-                    <Text style={s.saveBtnText}>Save Changes</Text>
-                  )}
-                </TouchableOpacity>
+                {editUnloaded ? (
+                  <TouchableOpacity
+                    style={[s.saveBtn, savingFields && s.saveBtnDisabled]}
+                    onPress={() => handleSaveBuyerFields(truck.id)}
+                    disabled={savingFields}
+                    activeOpacity={0.85}
+                  >
+                    {savingFields ? <ActivityIndicator size="small" color="#111827" /> : <Text style={s.saveBtnText}>Save Weight</Text>}
+                  </TouchableOpacity>
+                ) : null}
               </>
             );
           })()}
@@ -573,7 +738,7 @@ const TrucksTab: React.FC<Props> = ({
           const isExpanded = expandedId === truck.id;
           const subtitle = [
             truck.truck_number,
-            truck.weight_tons != null ? `${truck.weight_tons}` : null,
+            truck.weight_tons != null ? `${fmtNum(Number(truck.weight_tons) * 1000)} kg` : null,
             truck.calculated_amount != null
               ? `PKR ${fmtNum(truck.calculated_amount)}`
               : null,
@@ -649,6 +814,8 @@ const TrucksTab: React.FC<Props> = ({
                     setVehicleNo('');
                     setDriverName('');
                     setWeight('');
+                    setBiltiFile(null);
+                    setWaybillFile(null);
                     setShowForm(false);
                   }}
                   activeOpacity={0.75}
@@ -658,7 +825,9 @@ const TrucksTab: React.FC<Props> = ({
               </View>
 
               <View style={s.formField}>
-                <Text style={s.formFieldLabel}>Vehicle No.</Text>
+                <Text style={s.formFieldLabel}>
+                  Vehicle No. <Text style={s.required}>*</Text>
+                </Text>
                 <TextInput
                   style={s.formInput}
                   placeholder="e.g. LHR-5001"
@@ -679,21 +848,58 @@ const TrucksTab: React.FC<Props> = ({
                 />
               </View>
               <View style={s.formField}>
-                <Text style={s.formFieldLabel}>Loaded Weight (tons)</Text>
+                <Text style={s.formFieldLabel}>Loaded Weight (kg)</Text>
                 <NumberInput
                   decimal
                   style={s.formInput}
-                  placeholder="e.g. 10"
+                  placeholder="e.g. 10000"
                   placeholderTextColor="#9CA3AF"
                   value={weight}
                   onChangeText={setWeight}
                 />
               </View>
 
+              {/* Bilti — mandatory */}
+              <View style={s.formField}>
+                <Text style={s.formFieldLabel}>
+                  Bilti Document <Text style={s.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[s.receiptPicker, biltiFile && s.receiptPickerDone]}
+                  onPress={() => pickFile(setBiltiFile)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.receiptPickerIcon}>{biltiFile ? '✓' : '☁'}</Text>
+                  <Text style={[s.receiptPickerText, biltiFile && s.receiptPickerTextDone]}>
+                    {biltiFile ? biltiFile.name : 'Upload Bilti'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Waybill — mandatory */}
+              <View style={s.formField}>
+                <Text style={s.formFieldLabel}>
+                  Waybill Document <Text style={s.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[s.receiptPicker, waybillFile && s.receiptPickerDone]}
+                  onPress={() => pickFile(setWaybillFile)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.receiptPickerIcon}>{waybillFile ? '✓' : '☁'}</Text>
+                  <Text style={[s.receiptPickerText, waybillFile && s.receiptPickerTextDone]}>
+                    {waybillFile ? waybillFile.name : 'Upload Waybill'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
-                style={[s.submitBtn, !vehicleNo.trim() && s.submitBtnDisabled]}
+                style={[
+                  s.submitBtn,
+                  (!vehicleNo.trim() || !biltiFile || !waybillFile) && s.submitBtnDisabled,
+                ]}
                 onPress={handleAddTruckSubmit}
-                disabled={!vehicleNo.trim() || submitting}
+                disabled={!vehicleNo.trim() || !biltiFile || !waybillFile || submitting}
                 activeOpacity={0.85}
               >
                 {submitting ? (
@@ -702,7 +908,7 @@ const TrucksTab: React.FC<Props> = ({
                   <Text
                     style={[
                       s.submitBtnText,
-                      !vehicleNo.trim() && s.submitBtnTextDisabled,
+                      (!vehicleNo.trim() || !biltiFile || !waybillFile) && s.submitBtnTextDisabled,
                     ]}
                   >
                     Add Truck
@@ -1064,6 +1270,61 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   lockedNoticeText: { fontSize: 12, fontWeight: '600', color: '#1A6B34' },
+
+  receiptSection: { marginBottom: 10 },
+  required: { color: '#EF4444' },
+  flexOne: { flex: 1 },
+
+  freightVerifiedBox: {
+    backgroundColor: '#F2FBF5',
+    borderWidth: 1.5,
+    borderColor: '#7FD4A0',
+    borderRadius: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  freightVerifiedText: { fontSize: 12, fontWeight: '700', color: '#1A6B34' },
+  freightPendingBox: {
+    backgroundColor: '#FFFDE6',
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    borderRadius: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  freightPendingText: { fontSize: 12, fontWeight: '600', color: '#92400E' },
+  freightRejectedBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  freightRejectedText: { fontSize: 12, fontWeight: '600', color: '#991B1B' },
+  receiptPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#FAFAFA',
+  },
+  receiptPickerDone: {
+    borderColor: '#7FD4A0',
+    backgroundColor: '#F2FBF5',
+    borderStyle: 'solid',
+  },
+  receiptPickerIcon: { fontSize: 16, color: '#9CA3AF' },
+  receiptPickerText: { fontSize: 12, fontWeight: '600', color: '#6B7280', flex: 1 },
+  receiptPickerTextDone: { color: '#1A6B34' },
 });
 
 export default TrucksTab;

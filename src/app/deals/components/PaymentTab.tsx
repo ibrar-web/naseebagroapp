@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -12,7 +13,6 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { showAlert } from '../../components/toastConfig';
 import {
   launchImageLibrary,
   type ImagePickerResponse,
@@ -25,27 +25,31 @@ interface ReceiptFile {
   name: string;
 }
 
-interface PaymentReceipt {
-  id: string;
-  amount: number;
-  status: string;
-  signed_url?: string | null;
-}
-
 export interface Payment {
   id: string;
+  public_id?: string;
   amount: number;
   amount_type: string;
+  status: string;
+  s3_key?: string | null;
+  signed_url?: string | null;
   created_at: string;
-  receipts?: PaymentReceipt[];
 }
 
 export interface PaymentSummaryData {
   deal_status?: string | null;
+  // buyer fields
   total_amount?: number;
-  total_payable?: number;
+  buyer_commission_amount?: number;
+  total_owed?: number;
   total_paid?: number;
+  // seller fields
+  seller_commission_amount?: number;
+  payable_to_seller?: number;
+  total_freight?: number;
+  effective_payable?: number;
   total_received?: number;
+  // shared
   remaining?: number;
   payments?: Payment[];
 }
@@ -70,21 +74,7 @@ const getReceiptStatus = (
   icon: string;
   borderColor?: string;
 } => {
-  const receipts = p.receipts ?? [];
-  if (receipts.length === 0)
-    return {
-      label: 'Pending',
-      rowBg: '#FFFFFF',
-      iconBg: '#F3F4F6',
-      iconColor: '#6B7280',
-      badgeBg: '#F3F4F6',
-      badgeText: '#6B7280',
-      icon: '?',
-    };
-  const verified = receipts.find(
-    r => r.status === 'verified' || r.status === 'approved',
-  );
-  if (verified)
+  if (p.status === 'verified')
     return {
       label: 'Verified',
       rowBg: '#F2FBF5',
@@ -93,6 +83,16 @@ const getReceiptStatus = (
       badgeBg: '#E8F7EE',
       badgeText: '#1A6B34',
       icon: '✓',
+    };
+  if (p.status === 'rejected')
+    return {
+      label: 'Rejected',
+      rowBg: '#FFF1F2',
+      iconBg: '#EF4444',
+      iconColor: '#FFFFFF',
+      badgeBg: '#FEE2E2',
+      badgeText: '#991B1B',
+      icon: '✕',
     };
   return {
     label: 'In Verification',
@@ -160,24 +160,27 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
 
   const handleSubmit = async () => {
     if (Number(amount) <= 0 || submitting) return;
+    if (!receipt) {
+      Alert.alert('Receipt Required', 'Please upload a payment receipt before submitting.');
+      return;
+    }
     setSubmitting(true);
     try {
       const form = new FormData();
       form.append('amount', String(amount));
-      if (receipt) {
-        form.append('file', {
-          uri: receipt.uri,
-          type: receipt.type,
-          name: receipt.name,
-        } as any);
-      }
+      form.append('file', {
+        uri: receipt.uri,
+        type: receipt.type,
+        name: receipt.name,
+      } as any);
       await api.buyer.addPayment(dealId, form);
       setAmount('');
       setReceipt(null);
       setShowModal(false);
       await loadPayments();
-    } catch {
-      showAlert('error', 'Error', 'Failed to submit payment.');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message ?? 'Failed to submit payment.';
+      Alert.alert('Payment Failed', msg);
     } finally {
       setSubmitting(false);
     }
@@ -216,10 +219,11 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
     );
   }
 
+  const dealAmount = Number(paymentSummary.total_amount ?? 0);
   const total =
     mode === 'buyer'
-      ? Number(paymentSummary.total_amount ?? 0)
-      : Number(paymentSummary.total_payable ?? 0);
+      ? Number(paymentSummary.total_owed ?? dealAmount)
+      : Number(paymentSummary.effective_payable ?? paymentSummary.payable_to_seller ?? 0);
   const received = Number(
     paymentSummary.total_paid ?? paymentSummary.total_received ?? 0,
   );
@@ -228,9 +232,16 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
   );
   const pct =
     total > 0 ? Math.min(Math.round((received / total) * 100), 100) : 0;
+
+  // Buyer breakdown
+  const buyerCommission = Number(paymentSummary.buyer_commission_amount ?? 0);
+  // Seller breakdown
+  const sellerCommission = Number(paymentSummary.seller_commission_amount ?? 0);
+  const payableToSeller = Number(paymentSummary.payable_to_seller ?? 0);
+  const totalFreight = Number(paymentSummary.total_freight ?? 0);
   const payments = paymentSummary.payments ?? [];
   const isCompleted = paymentSummary.deal_status === 'closed';
-  const canSubmit = Number(amount) > 0;
+  const canSubmit = Number(amount) > 0 && !!receipt;
 
   return (
     <ScrollView
@@ -270,6 +281,60 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
             {formatPKR(remaining)} remaining
           </Text>
         </View>
+      </View>
+
+      {/* Amount breakdown card */}
+      <View style={s.breakdownCard}>
+        <Text style={s.breakdownTitle}>Amount Breakdown</Text>
+
+        {mode === 'buyer' ? (
+          <>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Deal Amount</Text>
+              <Text style={s.breakdownValue}>{formatPKR(dealAmount)}</Text>
+            </View>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Commission</Text>
+              <Text style={s.breakdownValue}>+ {formatPKR(buyerCommission)}</Text>
+            </View>
+            <View style={s.breakdownDivider} />
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownTotalLabel}>Total Owed</Text>
+              <Text style={s.breakdownTotalValue}>{formatPKR(total)}</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Deal Amount</Text>
+              <Text style={s.breakdownValue}>{formatPKR(dealAmount)}</Text>
+            </View>
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Commission</Text>
+              <Text style={[s.breakdownValue, s.breakdownRed]}>- {formatPKR(sellerCommission)}</Text>
+            </View>
+            <View style={s.breakdownDivider} />
+            <View style={s.breakdownRow}>
+              <Text style={s.breakdownLabel}>Payable to You</Text>
+              <Text style={s.breakdownValue}>{formatPKR(payableToSeller)}</Text>
+            </View>
+            {totalFreight > 0 && (
+              <View style={s.breakdownRow}>
+                <Text style={s.breakdownLabel}>Freight (deducted)</Text>
+                <Text style={[s.breakdownValue, s.breakdownRed]}>- {formatPKR(totalFreight)}</Text>
+              </View>
+            )}
+            {totalFreight > 0 && (
+              <>
+                <View style={s.breakdownDivider} />
+                <View style={s.breakdownRow}>
+                  <Text style={s.breakdownTotalLabel}>Net Payable</Text>
+                  <Text style={s.breakdownTotalValue}>{formatPKR(total)}</Text>
+                </View>
+              </>
+            )}
+          </>
+        )}
       </View>
 
       {/* Truck payment allocation info */}
@@ -409,8 +474,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
                 </View>
 
                 <Text style={[s.payFieldLabel, { marginTop: 14 }]}>
-                  Payment Receipt{' '}
-                  <Text style={s.payFieldSubLabel}>(optional)</Text>
+                  Payment Receipt <Text style={s.required}>*</Text>
                 </Text>
                 <TouchableOpacity
                   style={[s.uploadArea, receipt && s.uploadAreaDone]}
@@ -764,6 +828,39 @@ const s = StyleSheet.create({
   submitPayBtnDisabled: { backgroundColor: '#E5E7EB' },
   submitPayBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   submitPayBtnTextDisabled: { color: '#9CA3AF' },
+
+  breakdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  breakdownTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  breakdownLabel: { fontSize: 12, color: '#6B7280' },
+  breakdownValue: { fontSize: 12, fontWeight: '600', color: '#111827' },
+  breakdownDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 6,
+  },
+  breakdownTotalLabel: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  breakdownTotalValue: { fontSize: 13, fontWeight: '800', color: '#217A3C' },
+  breakdownRed: { color: '#EF4444' },
 
   completedNotice: {
     flexDirection: 'row',

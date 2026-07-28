@@ -192,6 +192,8 @@ export const api = {
       Patch(`buyer/buydeals/${dealId}/trucks/${truckId}`, data, protectedRequest),
     addTruckDocument: (dealId: string, truckId: string, data: FormData) =>
       Post(`buyer/buydeals/${dealId}/trucks/${truckId}/documents`, data, protectedRequest),
+    submitTruckFreight: (dealId: string, truckId: string, data: FormData) =>
+      Post(`buyer/buydeals/${dealId}/trucks/${truckId}/freight`, data, protectedRequest),
     submitRating: (dealId: string, data: { score: number; note?: string }) =>
       Post(`buyer/buydeals/${dealId}/rating`, data, protectedRequest),
     submitDispute: (dealId: string, data: FormData) =>

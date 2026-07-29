@@ -47,16 +47,9 @@ const FINAL_STAGE: Record<string, StageItem> = {
   disputed: { key: 'disputed', name: 'Disputed', desc: 'This deal is under review by admin.', color: '#F97316' },
 };
 
-// backendStage comes from the API current_stage field:
-//   1 = matched (no trucks/payments yet) → display stage 1
-//   2–5 = open/in-progress (trucks or payments exist) → display stage 2
-//   6 = closed → display stage 3
-//   0 = cancelled, or 'disputed' status → display stage 3
-const getDisplayStage = (status: string, backendStage?: number): number => {
-  if (status === 'cancelled' || status === 'disputed' || backendStage === 6 || backendStage === 0) return 3;
-  if (backendStage !== undefined && backendStage >= 2) return 2;
-  if (backendStage === 1) return 1;
-  if (status === 'open') return 2;
+const getDisplayStage = (status: string): number => {
+  if (status === 'closed' || status === 'cancelled' || status === 'disputed') return 3;
+  if (status === 'in_progress' || status === 'open') return 2;
   return 1;
 };
 
@@ -99,7 +92,7 @@ const StagesTab: React.FC<Props> = ({ dealId, mode }) => {
 
   if (!deal) return null;
 
-  const displayStage = getDisplayStage(deal.status, deal.current_stage);
+  const displayStage = getDisplayStage(deal.status);
   const finalStage = FINAL_STAGE[deal.status] ?? FINAL_STAGE.closed;
   const allStages = [...BASE_STAGES, finalStage];
   // Only render stages up to and including the current one

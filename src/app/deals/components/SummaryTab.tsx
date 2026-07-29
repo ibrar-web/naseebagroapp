@@ -56,6 +56,7 @@ interface Props {
 const STAGE_MSG: Record<string, { title: string; desc: string }> = {
   matched: { title: 'Deal Created', desc: 'Waiting for dispatch' },
   open: { title: 'In Progress', desc: 'Deal is being fulfilled' },
+  in_progress: { title: 'In Progress', desc: 'Deal is being fulfilled' },
   closed: { title: 'Deal Complete', desc: 'All stages completed successfully' },
   cancelled: { title: 'Cancelled', desc: 'This deal was cancelled' },
   disputed: { title: 'Disputed', desc: 'Under review by admin' },

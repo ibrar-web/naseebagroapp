@@ -15,8 +15,9 @@ import { useTranslation } from '../../../localization';
 import MockStatusBar from '../../components/MockStatusBar';
 import api from '../../../utils/api';
 import { showAuthRequiredSheet } from '../../auth/utils/authRequiredSheet';
+import { getSocket } from '../../../utils/sockets';
 
-type DealStatus = 'open' | 'matched' | 'closed' | 'cancelled' | 'disputed';
+type DealStatus = 'open' | 'matched' | 'in_progress' | 'closed' | 'cancelled' | 'disputed';
 
 interface DealListItem {
   id: string;
@@ -55,44 +56,38 @@ const FINAL_STAGE_CIRCLE_COLOR: Record<string, string> = {
   disputed: '#F97316',
 };
 
-// backendStage comes from the API current_stage field:
-//   1 = matched (no trucks/payments yet) → display stage 1
-//   2–5 = open/in-progress (trucks or payments exist) → display stage 2
-//   6 = closed → display stage 3
-//   0 = cancelled, or 'disputed' status → display stage 3
-const getDisplayStage = (status: string, backendStage?: number): number => {
-  if (status === 'cancelled' || status === 'disputed' || backendStage === 6 || backendStage === 0) return 3;
-  if (backendStage !== undefined && backendStage >= 2) return 2;
-  if (backendStage === 1) return 1;
-  // fallback if backendStage not available
-  if (status === 'open') return 2;
+const getDisplayStage = (status: string): number => {
+  if (status === 'closed' || status === 'cancelled' || status === 'disputed') return 3;
+  if (status === 'in_progress' || status === 'open') return 2;
   return 1;
 };
 
 const STATUS_COLORS: Record<DealStatus, { bg: string; text: string }> = {
   matched: { bg: '#F3CD03', text: '#0D3B1F' },
   open: { bg: 'rgba(255,255,255,0.22)', text: '#FFFFFF' },
+  in_progress: { bg: '#DBEAFE', text: '#1D4ED8' },
   closed: { bg: '#F2FBF5', text: '#1A6B34' },
   cancelled: { bg: '#FEF2F2', text: '#EF4444' },
   disputed: { bg: '#FFF7ED', text: '#F97316' },
 };
 
 const STATUS_LABELS: Record<DealStatus, string> = {
-  matched: 'Matched',
+  matched: 'Created',
   open: 'Active',
+  in_progress: 'In Progress',
   closed: 'Closed',
   cancelled: 'Cancelled',
   disputed: 'Disputed',
 };
 
 const isActive = (s: DealStatus) =>
-  s === 'matched' || s === 'open' || s === 'disputed';
+  s === 'matched' || s === 'open' || s === 'in_progress' || s === 'disputed';
 const isClosed = (s: DealStatus) => s === 'closed' || s === 'cancelled';
 const formatPKR = (n: number) =>
   'PKR ' + Math.round(n).toLocaleString('en-PK');
 
-const StageTimeline = ({ status, backendStage }: { status: string; backendStage?: number }) => {
-  const displayStage = getDisplayStage(status, backendStage);
+const StageTimeline = ({ status }: { status: string }) => {
+  const displayStage = getDisplayStage(status);
   const finalLabel = FINAL_STAGE_LABEL[status] ?? 'Completed';
   const finalColor = FINAL_STAGE_CIRCLE_COLOR[status] ?? '#217A3C';
   const allStages = [...BASE_STAGE_NAMES, finalLabel];
@@ -226,7 +221,7 @@ const DealCard = ({
         </View>
       </View>
 
-      <StageTimeline status={item.status} backendStage={item.current_stage} />
+      <StageTimeline status={item.status} />
 
       <View style={styles.cardFooter}>
         <Text style={styles.footerDate}>
@@ -307,6 +302,15 @@ const DealsScreen = ({ navigation }: any) => {
     await fetchDeals();
     setRefreshing(false);
   }, [fetchDeals]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const socket = getSocket();
+    if (!socket) return;
+    const EVENTS = ['deal.truck_added', 'deal.payment_verified', 'deal.updated', 'deal.completed'];
+    EVENTS.forEach(e => socket.on(e, fetchDeals));
+    return () => { EVENTS.forEach(e => socket.off(e, fetchDeals)); };
+  }, [isAuthenticated, fetchDeals]);
 
   const filtered = deals.filter(d => {
     if (activeTab === 'Active') return isActive(d.status);

@@ -15,10 +15,12 @@ import {
   consumePendingNotification,
 } from './services/notifications/notificationService';
 import { RootState } from './store/rootReducer';
+import { useReviewPrompt } from './app/deals/hooks/useReviewPrompt';
 
 const AppContent = () => {
   useHydrateLanguage();
   useGlobalSocketListeners();
+  useReviewPrompt();
 
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated,

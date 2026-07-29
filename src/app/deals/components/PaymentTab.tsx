@@ -18,6 +18,7 @@ import {
   type ImagePickerResponse,
 } from 'react-native-image-picker';
 import api from '../../../utils/api';
+import DocumentViewerModal from './DocumentViewerModal';
 
 interface ReceiptFile {
   uri: string;
@@ -116,6 +117,7 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
   const [amount, setAmount] = useState('');
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [docViewer, setDocViewer] = useState<{ url: string; name: string } | null>(null);
 
   const loadPayments = useCallback(async () => {
     try {
@@ -376,6 +378,23 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
                       month: 'short',
                     })}
                   </Text>
+                  {p.signed_url && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const ext = p.s3_key ? p.s3_key.split('.').pop() ?? '' : '';
+                        const label = mode === 'buyer' ? 'Payment Receipt' : 'Payment Proof';
+                        setDocViewer({
+                          url: p.signed_url!,
+                          name: ext ? `${label}.${ext}` : label,
+                        });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={s.viewReceiptBtn}>
+                        📎 {mode === 'buyer' ? 'View Receipt' : 'View Proof'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <View style={[s.payBadge, { backgroundColor: rs.badgeBg }]}>
                   <Text style={[s.payBadgeText, { color: rs.badgeText }]}>
@@ -423,6 +442,13 @@ const PaymentTab: React.FC<Props> = ({ dealId, mode }) => {
       )}
 
       <View style={s.bottomSpacer} />
+
+      <DocumentViewerModal
+        visible={!!docViewer}
+        url={docViewer?.url ?? null}
+        fileName={docViewer?.name ?? ''}
+        onClose={() => setDocViewer(null)}
+      />
 
       {/* Add Payment bottom-sheet modal */}
       <Modal
@@ -876,6 +902,7 @@ const s = StyleSheet.create({
   },
   completedNoticeIcon: { fontSize: 18, color: '#217A3C', fontWeight: '900' },
   completedNoticeText: { fontSize: 13, fontWeight: '600', color: '#1A6B34' },
+  viewReceiptBtn: { fontSize: 11, fontWeight: '600', color: '#2563EB', marginTop: 4 },
 });
 
 export default PaymentTab;

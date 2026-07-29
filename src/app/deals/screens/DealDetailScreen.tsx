@@ -20,6 +20,7 @@ import PaymentTab from '../components/PaymentTab';
 import StagesTab from '../components/StagesTab';
 import { MockStatusBar } from '../../components';
 import { AppIcon } from '../../../assets/icons';
+import { getSocket } from '../../../utils/sockets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DealDetail'>;
 
@@ -39,6 +40,7 @@ type TabRoute = { key: RouteKey; title: string };
 const STATUS_LABEL_MAP: Record<string, string> = {
   matched: 'Deal Created',
   open: 'In Progress',
+  in_progress: 'In Progress',
   closed: 'Complete',
   cancelled: 'Cancelled',
   disputed: 'Disputed',
@@ -60,21 +62,39 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
   const [loading, setLoading] = useState(true);
   const [tabIndex, setTabIndex] = useState(0);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res: any =
-          mode === 'buyer'
-            ? await api.buyer.getDeal(dealId)
-            : await api.seller.getDeal(dealId);
-        if (res) setDeal(res);
-      } catch {
-        // keep existing
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const fetchDeal = useCallback(async () => {
+    try {
+      const res: any =
+        mode === 'buyer'
+          ? await api.buyer.getDeal(dealId)
+          : await api.seller.getDeal(dealId);
+      if (res) setDeal(res);
+    } catch {
+      // keep existing
+    }
   }, [dealId, mode]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchDeal().finally(() => setLoading(false));
+  }, [fetchDeal]);
+
+  // Re-fetch deal header when backend changes deal status (truck added, payment verified, etc.)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const EVENTS = [
+      'deal.truck_added', 'deal.truck_delivered',
+      'deal.payment_verified', 'deal.truck_doc_approved',
+      'deal.updated', 'deal.completed',
+    ];
+    const handler = (payload: any) => {
+      const eid = payload?.deal_id ?? payload?.id;
+      if (!eid || eid === dealId) fetchDeal();
+    };
+    EVENTS.forEach(e => socket.on(e, handler));
+    return () => { EVENTS.forEach(e => socket.off(e, handler)); };
+  }, [dealId, fetchDeal]);
 
   const handleTrucksLoaded = useCallback((count: number) => {
     setTruckCount(count);

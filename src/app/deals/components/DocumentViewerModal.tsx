@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Modal,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { showAlert } from '../../components/toastConfig';
 import { WebView } from 'react-native-webview';
+import { showAlert } from '../../components/toastConfig';
 
 interface Props {
   visible: boolean;
@@ -23,16 +25,16 @@ const isImage = (name: string) =>
   /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(name);
 
 const DocumentViewerModal: React.FC<Props> = ({ visible, url, fileName, onClose }) => {
+  const [imgLoading, setImgLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
   const [webLoading, setWebLoading] = useState(true);
   const [webError, setWebError] = useState(false);
 
   if (!url) return null;
 
-  const viewUrl = isImage(fileName)
-    ? url
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+  const image = isImage(fileName);
 
-  const handleDownload = () => {
+  const handleOpenBrowser = () => {
     Linking.openURL(url).catch(() =>
       showAlert('error', 'Error', 'Could not open document.'),
     );
@@ -54,40 +56,78 @@ const DocumentViewerModal: React.FC<Props> = ({ visible, url, fileName, onClose 
           <Text style={s.fileName} numberOfLines={1}>
             {fileName}
           </Text>
-          <TouchableOpacity style={s.downloadBtn} onPress={handleDownload} activeOpacity={0.8}>
-            <Text style={s.downloadBtnText}>↓ Download</Text>
+          <TouchableOpacity style={s.openBtn} onPress={handleOpenBrowser} activeOpacity={0.8}>
+            <Text style={s.openBtnText}>↗ Open</Text>
           </TouchableOpacity>
         </View>
 
         {/* Viewer */}
         <View style={s.viewer}>
-          {webError ? (
-            <View style={s.errorWrap}>
-              <Text style={s.errorText}>Could not load document.</Text>
-              <TouchableOpacity style={s.openBrowserBtn} onPress={handleDownload} activeOpacity={0.8}>
-                <Text style={s.openBrowserBtnText}>Open in Browser</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <WebView
-                source={{ uri: viewUrl }}
-                style={s.webview}
-                onLoadStart={() => { setWebLoading(true); setWebError(false); }}
-                onLoadEnd={() => setWebLoading(false)}
-                onError={() => { setWebLoading(false); setWebError(true); }}
-                onHttpError={() => { setWebLoading(false); setWebError(true); }}
-                javaScriptEnabled
-                domStorageEnabled
-                allowsInlineMediaPlayback
-              />
-              {webLoading && (
-                <View style={s.loaderOverlay}>
-                  <ActivityIndicator size="large" color="#217A3C" />
-                  <Text style={s.loaderText}>Loading document…</Text>
+          {image ? (
+            /* ── Image viewer ── */
+            <ScrollView
+              contentContainerStyle={s.imageScroll}
+              maximumZoomScale={4}
+              minimumZoomScale={1}
+            >
+              {imgError ? (
+                <View style={s.errorWrap}>
+                  <Text style={s.errorText}>Could not load image.</Text>
+                  <TouchableOpacity style={s.retryBtn} onPress={handleOpenBrowser} activeOpacity={0.8}>
+                    <Text style={s.retryBtnText}>Open in Browser</Text>
+                  </TouchableOpacity>
                 </View>
+              ) : (
+                <>
+                  <Image
+                    source={{ uri: url }}
+                    style={s.image}
+                    resizeMode="contain"
+                    onLoadStart={() => { setImgLoading(true); setImgError(false); }}
+                    onLoadEnd={() => setImgLoading(false)}
+                    onError={() => { setImgLoading(false); setImgError(true); }}
+                  />
+                  {imgLoading && (
+                    <View style={s.loaderOverlay}>
+                      <ActivityIndicator size="large" color="#217A3C" />
+                      <Text style={s.loaderText}>Loading…</Text>
+                    </View>
+                  )}
+                </>
               )}
-            </>
+            </ScrollView>
+          ) : (
+            /* ── PDF / file viewer — load signed URL directly in WebView ── */
+            webError ? (
+              <View style={s.errorWrap}>
+                <Text style={s.errorIcon}>📄</Text>
+                <Text style={s.errorText}>Could not display this file inline.</Text>
+                <TouchableOpacity style={s.retryBtn} onPress={handleOpenBrowser} activeOpacity={0.8}>
+                  <Text style={s.retryBtnText}>Open in Browser</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <WebView
+                  source={{ uri: url }}
+                  style={s.webview}
+                  onLoadStart={() => { setWebLoading(true); setWebError(false); }}
+                  onLoadEnd={() => setWebLoading(false)}
+                  onError={() => { setWebLoading(false); setWebError(true); }}
+                  onHttpError={() => { setWebLoading(false); setWebError(true); }}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  allowsInlineMediaPlayback
+                  allowFileAccess
+                />
+                {webLoading && (
+                  <View style={s.loaderOverlay}>
+                    <ActivityIndicator size="large" color="#217A3C" />
+                    <Text style={s.loaderText}>Loading document…</Text>
+                  </View>
+                )}
+              </>
+            )
           )}
         </View>
       </SafeAreaView>
@@ -117,24 +157,26 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   closeBtnText: { fontSize: 13, color: '#374151', fontWeight: '600' },
-  fileName: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  downloadBtn: {
+  fileName: { flex: 1, fontSize: 13, fontWeight: '600', color: '#111827' },
+  openBtn: {
     backgroundColor: '#145228',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 7,
     flexShrink: 0,
   },
-  downloadBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  openBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
 
   viewer: { flex: 1 },
+
+  // Image
+  imageScroll: { flexGrow: 1, justifyContent: 'center' },
+  image: { width: '100%', aspectRatio: 1 },
+
+  // WebView (PDF / other)
   webview: { flex: 1 },
 
+  // Shared loader / error
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#FFFFFF',
@@ -149,16 +191,17 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
-    padding: 24,
+    padding: 32,
   },
+  errorIcon: { fontSize: 52 },
   errorText: { fontSize: 14, color: '#6B7280', textAlign: 'center' },
-  openBrowserBtn: {
+  retryBtn: {
     backgroundColor: '#217A3C',
     borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
   },
-  openBrowserBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  retryBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 });
 
 export default DocumentViewerModal;

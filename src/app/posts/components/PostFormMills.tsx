@@ -246,6 +246,9 @@ export const PostFormMills = ({
             <GooglePlacesInput
               value={pendingMill.city}
               onChange={city => onPendingMillChange({ ...pendingMill, city })}
+              onPlaceSelect={({ city, province }) =>
+                onPendingMillChange({ ...pendingMill, parsedCity: city, province })
+              }
               placeholder="City / location"
               buttonStyle={s.millCityBtn}
             />

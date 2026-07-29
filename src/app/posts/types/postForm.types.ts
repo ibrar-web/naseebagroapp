@@ -40,6 +40,8 @@ export type MillEntry = {
   city: string;
   price: string;
   isCustom?: boolean;
+  parsedCity?: string;
+  province?: string;
 };
 
 export type FormSnapshot = {

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,17 +14,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../assets/icons';
-
-const PLACES_KEY = 'AIzaSyCks4PR0s3MnM-aXmNQ3_3oT9LQiB0-q0M';
-const AUTOCOMPLETE_URL = 'https://places.googleapis.com/v1/places:autocomplete';
+import ENV from '../../environment';
 
 type Suggestion = { placeId: string; mainText: string; secondaryText: string };
+
+export type PlaceDetails = {
+  name: string;
+  city: string;
+  province: string;
+};
 
 const Separator = () => <View style={s.sep} />;
 
 type Props = {
   value: string;
   onChange: (name: string) => void;
+  onPlaceSelect?: (details: PlaceDetails) => void;
   placeholder?: string;
   countryCode?: string;
   buttonStyle?: object;
@@ -33,6 +38,7 @@ type Props = {
 export const GooglePlacesInput = ({
   value,
   onChange,
+  onPlaceSelect,
   placeholder = 'Search location...',
   countryCode = 'pk',
   buttonStyle,
@@ -42,6 +48,8 @@ export const GooglePlacesInput = ({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onPlaceSelectRef = useRef(onPlaceSelect);
+  useEffect(() => { onPlaceSelectRef.current = onPlaceSelect; }, [onPlaceSelect]);
 
   const close = () => {
     setOpen(false);
@@ -58,21 +66,12 @@ export const GooglePlacesInput = ({
       }
       setLoading(true);
       try {
-        const res = await fetch(AUTOCOMPLETE_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': PLACES_KEY,
-          },
-          body: JSON.stringify({
-            input,
-            includedRegionCodes: [countryCode],
-            // includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
-          }),
-        });
+        const res = await fetch(
+          `${ENV.API_BASE_URL}/public/places/autocomplete?input=${encodeURIComponent(input)}&countryCode=${countryCode}`,
+        );
         const json = await res.json();
         console.log('[GooglePlaces] response:', JSON.stringify(json));
-        const items: Suggestion[] = (json.suggestions ?? []).map((s: any) => {
+        const items: Suggestion[] = ((json.data?.suggestions ?? json.suggestions) ?? []).map((s: any) => {
           const p = s.placePrediction;
           return {
             placeId: p.placeId ?? '',
@@ -96,10 +95,29 @@ export const GooglePlacesInput = ({
     debounceRef.current = setTimeout(() => fetchSuggestions(text), 300);
   };
 
-  const onSelect = (item: Suggestion) => {
+  const onSelect = async (item: Suggestion) => {
     console.log('[GooglePlaces] selected:', item.mainText);
     onChange(item.mainText);
     close();
+    if (!onPlaceSelectRef.current) return;
+    try {
+      const res = await fetch(
+        `${ENV.API_BASE_URL}/public/places/details/${item.placeId}`,
+      );
+      const json = await res.json();
+      const components: { types: string[]; longText: string }[] =
+        json.data?.addressComponents ?? json.addressComponents ?? [];
+      const get = (type: string) =>
+        components.find(c => c.types.includes(type))?.longText ?? '';
+      onPlaceSelectRef.current({
+        name: item.mainText,
+        city: get('locality') || get('administrative_area_level_2'),
+        province: get('administrative_area_level_1'),
+      });
+    } catch (err) {
+      console.error('[GooglePlaces] details error:', err);
+      onPlaceSelectRef.current?.({ name: item.mainText, city: '', province: '' });
+    }
   };
 
   return (

@@ -375,7 +375,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     if (selectedMills.length > 0) {
       payload.mills = selectedMills.map(m =>
         m.isCustom
-          ? { name: m.name, city: m.city, price: parseFloat(m.price) || 0 }
+          ? { name: m.name, city: m.city, parsedCity: m.parsedCity, province: m.province, price: parseFloat(m.price) || 0 }
           : { id: m.id, price: parseFloat(m.price) || 0 },
       );
     }

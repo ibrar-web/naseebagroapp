@@ -123,6 +123,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
               totalAmount={deal?.total_amount ?? null}
               paymentTermType={deal?.offer?.payment_term_type ?? null}
               dealStatus={deal?.status}
+              dealQuantityBags={deal?.offer?.quantity ?? null}
               onTrucksLoaded={handleTrucksLoaded}
             />
           );
@@ -134,7 +135,7 @@ const DealDetailScreen = ({ navigation, route }: Props) => {
           return null;
       }
     },
-    [dealId, mode, deal?.total_amount, deal?.offer?.payment_term_type, deal?.status, handleTrucksLoaded],
+    [dealId, mode, deal?.total_amount, deal?.offer?.payment_term_type, deal?.offer?.quantity, deal?.status, handleTrucksLoaded],
   );
 
   const renderTabBar = useCallback(

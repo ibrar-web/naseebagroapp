@@ -22,6 +22,8 @@ export type PlaceDetails = {
   name: string;
   city: string;
   province: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 const Separator = () => <View style={s.sep} />;
@@ -64,6 +66,7 @@ export const GooglePlacesInput = ({
         setSuggestions([]);
         return;
       }
+      console.log("searching",ENV.API_BASE_URL)
       setLoading(true);
       try {
         const res = await fetch(
@@ -109,10 +112,13 @@ export const GooglePlacesInput = ({
         json.data?.addressComponents ?? json.addressComponents ?? [];
       const get = (type: string) =>
         components.find(c => c.types.includes(type))?.longText ?? '';
+      const loc = json.data?.location ?? json.location ?? null;
       onPlaceSelectRef.current({
         name: item.mainText,
         city: get('locality') || get('administrative_area_level_2'),
         province: get('administrative_area_level_1'),
+        latitude: typeof loc?.latitude === 'number' ? loc.latitude : null,
+        longitude: typeof loc?.longitude === 'number' ? loc.longitude : null,
       });
     } catch (err) {
       console.error('[GooglePlaces] details error:', err);

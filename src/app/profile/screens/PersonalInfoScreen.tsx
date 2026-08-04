@@ -19,6 +19,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import SubHeader from '../components/SubHeader';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
+import { GooglePlacesInput } from '../../components/GooglePlacesInput';
 import { useTranslation } from '../../../localization';
 import type { TranslationKey } from '../../../localization';
 import { useAppDispatch, useAppSelector } from '../../../store';
@@ -141,6 +142,7 @@ const PersonalInfoScreen = ({ navigation }: any) => {
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedImage | null>(
     null,
   );
+  const [cityCoords, setCityCoords] = useState<{ latitude: number | null; longitude: number | null } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -290,6 +292,9 @@ const PersonalInfoScreen = ({ navigation }: any) => {
         } as any);
       }
 
+      if (cityCoords?.latitude != null) formData.append('latitude', String(cityCoords.latitude));
+      if (cityCoords?.longitude != null) formData.append('longitude', String(cityCoords.longitude));
+
       await api.profile.personal.updateForm(formData);
 
       // Fetch fresh data from server instead of relying on local state
@@ -367,14 +372,6 @@ const PersonalInfoScreen = ({ navigation }: any) => {
       keyboardType: 'phone-pad',
       placeholderKey: 'personal.placeholderPhone',
       icon: 'profilePhone',
-    },
-    {
-      labelKey: 'personal.city',
-      value: form.city,
-      onChangeText: setField('city'),
-      keyboardType: 'default',
-      placeholderKey: 'personal.placeholderCity',
-      icon: 'profileCity',
     },
     {
       labelKey: 'personal.dateOfBirth',
@@ -478,11 +475,40 @@ const PersonalInfoScreen = ({ navigation }: any) => {
           )}
 
           <View className="overflow-hidden rounded-[28px] bg-white shadow-2xl shadow-black/5">
-            {fields.map((field, index) => (
+            {/* fullName, email, phone */}
+            {fields.slice(0, 3).map(field => (
+              <InfoRow key={field.labelKey} field={field} isLast={false} />
+            ))}
+
+            {/* City — Google Places picker */}
+            <View className="flex-row items-center px-5 py-4 border-b border-gray-100">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-green-50">
+                <AppIcon name="profileCity" size={22} color="#1A6B34" />
+              </View>
+              <View className="ml-4 flex-1">
+                <Text className="text-gray-400 text-base font-medium mb-1">
+                  {t('personal.city')}
+                </Text>
+                <GooglePlacesInput
+                  value={form.city}
+                  onChange={v => { setField('city')(v); setCityCoords(null); setSaved(false); }}
+                  onPlaceSelect={({ name, latitude, longitude }) => {
+                    setField('city')(name);
+                    setCityCoords({ latitude, longitude });
+                    setSaved(false);
+                  }}
+                  placeholder={t('personal.placeholderCity')}
+                  buttonStyle={styles.cityPickerBtn}
+                />
+              </View>
+            </View>
+
+            {/* date_of_birth, cnic */}
+            {fields.slice(3).map((field, i) => (
               <InfoRow
                 key={field.labelKey}
                 field={field}
-                isLast={index === fields.length - 1}
+                isLast={i === fields.slice(3).length - 1}
               />
             ))}
           </View>
@@ -550,6 +576,13 @@ const styles = StyleSheet.create({
     color: '#991B1B',
     marginTop: 2,
     fontWeight: '500',
+  },
+  cityPickerBtn: {
+    borderWidth: 0,
+    borderRadius: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
   },
 });
 

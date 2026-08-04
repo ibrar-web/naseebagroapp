@@ -56,6 +56,7 @@ interface Props {
   paymentTermType?: string | null;
   dealStatus?: string | null;
   deliveryOption?: string | null;
+  dealQuantityBags?: number | null;
   onTrucksLoaded?: (count: number) => void;
 }
 
@@ -98,6 +99,7 @@ const TrucksTab: React.FC<Props> = ({
   paymentTermType,
   dealStatus,
   deliveryOption,
+  dealQuantityBags,
   onTrucksLoaded,
 }) => {
   const isCompleted = dealStatus === 'closed';
@@ -198,6 +200,25 @@ const TrucksTab: React.FC<Props> = ({
       Alert.alert('Required', 'Please upload the Waybill document.');
       return;
     }
+
+    // Quantity limit check — all trucks (any status) count toward the deal qty
+    if (dealQuantityBags && dealQuantityBags > 0) {
+      const BAGS_PER_TON = 25;
+      const allocatedBags = trucks.reduce(
+        (sum, t) => sum + Math.round((Number(t.weight_tons) || 0) * BAGS_PER_TON),
+        0,
+      );
+      const newBags = weight ? Math.round((Number(weight) / 40)) : 0;
+      if (allocatedBags + newBags > dealQuantityBags) {
+        Alert.alert(
+          'Quantity Exceeded',
+          `Adding this truck would exceed the deal quantity.\n\nDeal: ${dealQuantityBags} bags\nAlready allocated: ${allocatedBags} bags\nThis truck: ${newBags} bags\nTotal: ${allocatedBags + newBags} bags\n\nReduce the weight or remove this truck.`,
+          [{ text: 'OK' }],
+        );
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       // weight input is in KG — convert to tons for API (weight_tons = kg / 1000)
@@ -673,6 +694,15 @@ const TrucksTab: React.FC<Props> = ({
     t => t.status === 'dispatched' || t.status === 'delivered',
   ).length;
   const delivered = trucks.filter(t => t.status === 'delivered').length;
+
+  // Quantity capacity check — count ALL trucks toward deal limit
+  const BAGS_PER_TON = 25;
+  const allocatedBags = trucks.reduce(
+    (sum, t) => sum + Math.round((Number(t.weight_tons) || 0) * BAGS_PER_TON),
+    0,
+  );
+  const isQtyFull =
+    dealQuantityBags != null && dealQuantityBags > 0 && allocatedBags >= dealQuantityBags;
   const totalAmountNum = Number(totalAmount ?? 0);
   const paymentLabel = paymentTermType
     ? paymentTermType.charAt(0).toUpperCase() + paymentTermType.slice(1).toLowerCase()
@@ -915,6 +945,16 @@ const TrucksTab: React.FC<Props> = ({
                   </Text>
                 )}
               </TouchableOpacity>
+            </View>
+          ) : isQtyFull ? (
+            <View style={s.qtyFullNotice}>
+              <Text style={s.qtyFullIcon}>🚫</Text>
+              <View>
+                <Text style={s.qtyFullTitle}>Deal quantity reached</Text>
+                <Text style={s.qtyFullSub}>
+                  {allocatedBags.toLocaleString()} / {(dealQuantityBags ?? 0).toLocaleString()} bags allocated — cannot add more trucks.
+                </Text>
+              </View>
             </View>
           ) : (
             <TouchableOpacity
@@ -1325,6 +1365,23 @@ const s = StyleSheet.create({
   receiptPickerIcon: { fontSize: 16, color: '#9CA3AF' },
   receiptPickerText: { fontSize: 12, fontWeight: '600', color: '#6B7280', flex: 1 },
   receiptPickerTextDone: { color: '#1A6B34' },
+
+  // Capacity-full notice (replaces Add Truck button)
+  qtyFullNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    padding: 12,
+    paddingHorizontal: 14,
+    marginTop: 8,
+  },
+  qtyFullIcon: { fontSize: 20 },
+  qtyFullTitle: { fontSize: 13, fontWeight: '800', color: '#92400E', marginBottom: 2 },
+  qtyFullSub: { fontSize: 11, color: '#B45309' },
 });
 
 export default TrucksTab;

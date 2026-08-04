@@ -356,9 +356,11 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
         continue;
       }
       if (lk === 'location') {
-        const cv = values[field.id] as { id?: string | null; name?: string } | null;
+        const cv = values[field.id] as CityValue | null;
         payload.city_id = cv?.id ?? null;
         payload.location = cv?.name ?? null;
+        if (cv?.latitude != null) payload.latitude = cv.latitude;
+        if (cv?.longitude != null) payload.longitude = cv.longitude;
         continue;
       }
       if (type === 'number') { payload[lk] = parseNumber(values[field.id]); continue; }

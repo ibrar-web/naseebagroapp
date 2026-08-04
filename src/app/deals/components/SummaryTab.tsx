@@ -22,6 +22,7 @@ export interface Truck {
   id: string;
   truck_number: string;
   driver_name?: string | null;
+  weight_tons?: number | null;
   status: string;
   dispatched_at?: string | null;
   delivered_at?: string | null;
@@ -83,6 +84,7 @@ const Row = ({
 const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
   const navigation = useNavigation();
   const [deal, setDeal] = useState<DealSummaryData | null>(null);
+  const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -92,11 +94,13 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
 
   const loadDeal = useCallback(async () => {
     try {
-      const res: any =
-        mode === 'buyer'
-          ? await api.buyer.getDeal(dealId)
-          : await api.seller.getDeal(dealId);
-      if (res) setDeal(res);
+      const [dealRes, trucksRes]: any[] = await Promise.all([
+        mode === 'buyer' ? api.buyer.getDeal(dealId) : api.seller.getDeal(dealId),
+        mode === 'buyer' ? api.buyer.getTrucks(dealId) : api.seller.getDealTrucks(dealId),
+      ]);
+      if (dealRes) setDeal(dealRes);
+      const list = trucksRes?.data ?? trucksRes ?? [];
+      setTrucks(Array.isArray(list) ? list : []);
     } catch {
       // keep existing
     } finally {
@@ -153,6 +157,14 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
   const stageMsg = STAGE_MSG[deal.status] ?? STAGE_MSG.open;
   const qty = deal.offer?.quantity;
   const price = deal.offer?.price_per_unit;
+
+  // Quantity summary — 1 ton = 25 bags (40 kg/bag)
+  const BAGS_PER_TON = 25;
+  const dealQtyBags = Number(qty) || 0;
+  const deliveredBags = trucks
+    .filter(t => t.status === 'delivered')
+    .reduce((sum, t) => sum + Math.round((Number(t.weight_tons) || 0) * BAGS_PER_TON), 0);
+  const remainingBags = Math.max(0, dealQtyBags - deliveredBags);
   const totalAmount =
     mode === 'seller' && deal.payable_to_seller != null
       ? deal.payable_to_seller
@@ -218,6 +230,21 @@ const SummaryTab: React.FC<Props> = ({ dealId, mode }) => {
           })}
         />
       </View>
+
+      {dealQtyBags > 0 && (
+        <View style={s.qtyStrip}>
+          {[
+            { label: 'Deal Qty', value: `${dealQtyBags} bags`, color: '#1A6B34' },
+            { label: 'Delivered', value: `${deliveredBags} bags`, color: '#1D4ED8' },
+            { label: 'Remaining', value: `${remainingBags} bags`, color: remainingBags === 0 ? '#6B7280' : '#B45309' },
+          ].map(({ label, value, color }) => (
+            <View key={label} style={s.qtyCard}>
+              <Text style={s.qtyLabel}>{label}</Text>
+              <Text style={[s.qtyValue, { color }]}>{value}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <View style={s.stageCard}>
         <View style={s.stageIconBox}>
@@ -421,6 +448,35 @@ const s = StyleSheet.create({
     marginLeft: 8,
   },
   rowValueGreen: { fontSize: 14, fontWeight: '800', color: '#1A6B34' },
+
+  qtyStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  qtyCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  qtyLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  qtyValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
 
   stageCard: {
     backgroundColor: '#F2FBF5',

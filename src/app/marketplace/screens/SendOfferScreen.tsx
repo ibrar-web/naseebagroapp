@@ -124,7 +124,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
         summary: [
           { label: 'Demand ID', value: detail.code ?? listingId },
           ...(hasMills ? [{ label: 'Mill', value: selectedMillData?.name ?? 'Mill' }] : []),
-          { label: 'Supply Quantity', value: `${quantityNum} bags` },
+          { label: 'Supply Quantity', value: `${quantityNum} ${detail.unit_name ?? 'units'}` },
           { label: 'Price Option', value: priceMode === 'MAKE_COUNTER' ? `Offer PKR ${submittedPrice}` : 'Original price' },
           { label: 'Payment Terms', value: `${paymentDays} days` },
           { label: 'Delivery Terms', value: `${deliveryDays} days` },
@@ -184,7 +184,7 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
         ) : null}
 
         <View style={s.card}>
-          <Text style={s.sectionTitle}>2. Quantity You Can Supply (bags) <Text style={s.required}>*</Text></Text>
+          <Text style={s.sectionTitle}>2. Quantity You Can Supply ({detail.unit_name ?? 'units'}) <Text style={s.required}>*</Text></Text>
           <TextInput style={s.input} placeholder="e.g. 150" keyboardType="numeric" value={quantity} onChangeText={v => setQuantity(enforceInt(v))} placeholderTextColor="#9CA3AF" />
         </View>
 

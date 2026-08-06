@@ -11,8 +11,8 @@
 ### 2. Version Bump (required for every release)
 File: `android/app/build.gradle`
 ```
-versionCode 22          ← increment by 1 each release (Play Store rejects same/lower)
-versionName "1.3.7"     ← semver: MAJOR.MINOR.PATCH
+versionCode 25          ← increment by 1 each release (Play Store rejects same/lower)
+versionName "1.4.0"     ← semver: MAJOR.MINOR.PATCH
 ```
 - `versionCode` must always increase — Play Store rejects a build with the same or lower code
 - `versionName` is the human-readable label shown to users
@@ -48,6 +48,8 @@ Output: `android/app/build/outputs/apk/release/app-release.apk`
 
 | versionCode | versionName | Date       | Notes                          |
 |-------------|-------------|------------|-------------------------------|
+| 25          | 1.4.0       | 2026-08-06 | Buyer/seller form services, form template constraint fix, ListingDetail redesign |
+| 24          | 1.3.9       | —          | Previous release               |
 | 22          | 1.3.7       | 2026-07-29 | Firebase notifications, market rates, alerts redesign |
 | 21          | 1.3.6       | —          | Previous release               |
 

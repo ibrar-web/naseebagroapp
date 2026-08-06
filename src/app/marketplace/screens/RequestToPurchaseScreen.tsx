@@ -117,7 +117,7 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         summary: [
           { label: 'Listing ID', value: detail.code ?? listingId },
           ...(hasMills ? [{ label: 'Mill', value: selectedMillData?.name ?? 'Mill' }] : []),
-          { label: 'Quantity', value: `${stripNonDigit(quantity)}` },
+          { label: 'Quantity', value: `${stripNonDigit(quantity)} ${detail.unit_name ?? 'units'}` },
           { label: 'Price Option', value: priceMode === 'MAKE_OFFER' ? `Offer PKR ${submittedPrice}` : 'Original price' },
           { label: 'Payment Terms', value: `${paymentDays} days` },
           { label: 'Delivery Terms', value: `${deliveryDays} days` },
@@ -183,7 +183,7 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
         )}
 
         <View style={s.card}>
-          <Text style={s.sectionTitle}>2. Quantity Required (bags) <Text style={s.required}>*</Text></Text>
+          <Text style={s.sectionTitle}>2. Quantity Required ({detail.unit_name ?? 'units'}) <Text style={s.required}>*</Text></Text>
           <TextInput style={s.input} placeholder="e.g. 100" keyboardType="numeric" value={quantity} onChangeText={v => setQuantity(enforceInt(v))} placeholderTextColor="#9CA3AF" />
         </View>
 

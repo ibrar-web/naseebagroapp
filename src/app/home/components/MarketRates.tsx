@@ -1,14 +1,13 @@
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  FlatList,
+  Animated,
   ImageBackground,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
 import { AppIcon } from '../../../assets/icons';
 import SectionHeader from '../../components/headers/SectionHeader';
 import { useTranslation } from '../../../localization';
@@ -19,64 +18,97 @@ interface MarketDataItem {
   name: string;
   mill: string;
   price: string;
+  prevPrice?: string | null;
+  unit?: string;
   change: string;
   up: boolean;
   image: string;
-  fallback?: string;
 }
+
+const CARD_WIDTH = 162;
+const CARD_GAP = 10;
+const CARD_STEP = CARD_WIDTH + CARD_GAP;
+const SLIDE_DURATION = 700;
+
 const MarketRates = ({ navigation }: any) => {
-  const [rateIndex, setRateIndex] = useState(0);
   const { t } = useTranslation();
   const [marketData, setMarketData] = useState<MarketDataItem[]>([]);
-  const handleRateScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / 172);
-    setRateIndex(idx);
-  };
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollAnim = useRef(new Animated.Value(0)).current;
+  const activeIndexRef = useRef(0);
+  const dataLenRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
+    const id = scrollAnim.addListener(({ value }) => {
+      scrollViewRef.current?.scrollTo({ x: value, animated: false });
+    });
+    return () => scrollAnim.removeListener(id);
+  }, [scrollAnim]);
+
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const res: any = await api.marketplace.public.listMarketRatesAll({ page: 1, limit: 10 });
+        const data: MarketDataItem[] = (res?.rates ?? []).slice(0, 10);
+        setMarketData(data);
+        dataLenRef.current = data.length;
+      } catch {
+        // silently ignore
+      }
+    };
     getData();
   }, []);
 
-  const getData = async () => {
-    try {
-      const data: any = await api.marketplace.public.listMarketRates();
-      console.log('Market reates', data);
-      setMarketData(data?? []);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  useEffect(() => {
+    if (marketData.length < 2) return;
+
+    timerRef.current = setInterval(() => {
+      const next = (activeIndexRef.current + 1) % dataLenRef.current;
+      activeIndexRef.current = next;
+      setActiveIndex(next);
+      Animated.timing(scrollAnim, {
+        toValue: next * CARD_STEP,
+        duration: SLIDE_DURATION,
+        useNativeDriver: false,
+      }).start();
+    }, 2000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [marketData.length, scrollAnim]);
+
   return (
     <View style={styles.section}>
       <SectionHeader
         title={t('home.marketRates')}
         onSeeAll={() => navigation.navigate('MarketRates')}
       />
-      <FlatList
+
+      <ScrollView
+        ref={scrollViewRef}
         horizontal
-        data={marketData}
-        keyExtractor={item => item.id}
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 10, paddingBottom: 6 }}
-        snapToInterval={172}
-        decelerationRate="fast"
-        onScroll={handleRateScroll}
-        scrollEventThrottle={16}
-        renderItem={({ item }) => (
+        contentContainerStyle={{ gap: CARD_GAP, paddingBottom: 6 }}
+      >
+        {marketData.map(item => (
           <MarketRateCard
+            key={item.id}
             item={item}
             onPress={() => navigation.navigate('MarketRates')}
           />
-        )}
-      />
-      {/* Dot indicators */}
+        ))}
+      </ScrollView>
+
       <View style={styles.dots}>
         {marketData.map((_, i) => (
           <View
             key={i}
-            style={[
-              styles.dot,
-              i === rateIndex ? styles.dotActive : styles.dotInactive,
-            ]}
+            style={[styles.dot, i === activeIndex ? styles.dotActive : styles.dotInactive]}
           />
         ))}
       </View>
@@ -93,11 +125,7 @@ const MarketRateCard = ({
   item: MarketDataItem;
   onPress: () => void;
 }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={styles.rateCard}
-    activeOpacity={0.88}
-  >
+  <TouchableOpacity onPress={onPress} style={styles.rateCard} activeOpacity={0.88}>
     <ImageBackground
       source={{ uri: item.image }}
       style={styles.rateImage}
@@ -107,11 +135,7 @@ const MarketRateCard = ({
       <View
         style={[
           styles.changeBadge,
-          {
-            backgroundColor: item.up
-              ? 'rgba(22,163,74,0.88)'
-              : 'rgba(220,38,38,0.88)',
-          },
+          { backgroundColor: item.up ? 'rgba(22,163,74,0.88)' : 'rgba(220,38,38,0.88)' },
         ]}
       >
         <Text style={styles.changeArrow}>{item.up ? '▲' : '▼'}</Text>
@@ -121,33 +145,37 @@ const MarketRateCard = ({
         <Text style={styles.rateName}>{item.name}</Text>
       </View>
     </ImageBackground>
+
     <View style={styles.rateBody}>
       <View style={styles.rateMillRow}>
         <AppIcon name="listing" size={10} color="#9CA3AF" />
-        <Text style={styles.rateMill}>{item.mill}</Text>
+        <Text style={styles.rateMill} numberOfLines={1}>{item.mill}</Text>
       </View>
       <View style={styles.ratePriceRow}>
         <Text style={styles.ratePrice}>{item.price}</Text>
-        <Text style={styles.rateUnit}>/40kg</Text>
+        {item.unit ? <Text style={styles.rateUnit}>{item.unit}</Text> : null}
       </View>
+      {item.prevPrice ? (
+        <View style={styles.prevRow}>
+          <Text style={[styles.prevArrow, { color: item.up ? '#16A34A' : '#DC2626' }]}>
+            {item.up ? '▲' : '▼'}
+          </Text>
+          <Text style={styles.prevLabel}>Prev </Text>
+          <Text style={styles.prevValue}>{item.prevPrice}</Text>
+          {item.change ? (
+            <Text style={[styles.prevChange, { color: item.up ? '#16A34A' : '#DC2626' }]}>
+              {' '}{item.change}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   </TouchableOpacity>
 );
+
 const styles = StyleSheet.create({
-  // Scroll & sections
-  scrollContent: { paddingBottom: 100 },
   section: { paddingHorizontal: 16, marginBottom: 20, marginTop: 16 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  seeAllText: { fontSize: 12, color: '#217A3C', fontWeight: '600' },
-  seeAllChevron: { fontSize: 14, color: '#217A3C', fontWeight: '700' },
-  // Dots
+
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -158,9 +186,8 @@ const styles = StyleSheet.create({
   dotActive: { width: 20, backgroundColor: '#217A3C' },
   dotInactive: { width: 6, backgroundColor: '#E5E7EB' },
 
-  // Market rate card
   rateCard: {
-    width: 162,
+    width: CARD_WIDTH,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
@@ -216,5 +243,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     lineHeight: 20,
   },
-  rateUnit: { fontSize: 9, color: '#9CA3AF', fontWeight: '500' },
+  rateUnit: { fontSize: 10, color: '#6B7280', fontWeight: '600' },
+  prevRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  prevArrow: { fontSize: 8, fontWeight: '800' },
+  prevLabel: { fontSize: 9, color: '#9CA3AF', marginLeft: 2 },
+  prevValue: { fontSize: 9, color: '#6B7280', fontWeight: '600' },
+  prevChange: { fontSize: 9, fontWeight: '700' },
 });

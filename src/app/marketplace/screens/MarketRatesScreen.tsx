@@ -20,11 +20,9 @@ import MockStatusBar from '../../components/MockStatusBar';
 
 type MarketMill = {
   id: string;
-  mill_id?: string;
   name: string;
   city?: string;
   province?: string;
-  short_code?: string;
 };
 
 type MarketRate = {
@@ -39,8 +37,18 @@ type MarketRate = {
   change: string;
   up: boolean;
   updatedAt: string;
+  updatedAtIso?: string;
   image?: string;
   fallback?: string;
+};
+
+const getRateAgeLabel = (isoDate?: string): string => {
+  if (!isoDate) return "TODAY'S RATE";
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days === 0) return "TODAY'S RATE";
+  if (days === 1) return "YESTERDAY'S RATE";
+  return `${days} DAYS AGO`;
 };
 
 type MarketRatesPayload = {
@@ -95,22 +103,12 @@ const buildRateParams = ({
   millId: string;
   search: string;
   sort: SortValue;
-}) => {
-  const sortParams =
-    sort === 'rising'
-      ? { trend: 'rising' }
-      : {
-          sort,
-        };
-
-  return cleanParams({
-    page: 1,
-    limit: 20,
+}) =>
+  cleanParams({
     mill_id: millId,
     search: search.trim(),
-    ...sortParams,
+    sort,
   });
-};
 
 const RateCard = ({ item, index }: { item: MarketRate; index: number }) => {
   const changeColor = item.up ? '#16A34A' : '#DC2626';
@@ -144,7 +142,7 @@ const RateCard = ({ item, index }: { item: MarketRate; index: number }) => {
       </View>
 
       <View style={styles.cardRight}>
-        <Text style={styles.rateLabel}>TODAY'S RATE</Text>
+        <Text style={styles.rateLabel}>{getRateAgeLabel(item.updatedAtIso)}</Text>
         <View style={styles.priceRow}>
           <Text style={styles.price}>{item.price}</Text>
           <Text style={styles.unit}>{item.unit}</Text>
@@ -241,7 +239,10 @@ const MarketRatesScreen = ({ navigation }: any) => {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -261,17 +262,20 @@ const MarketRatesScreen = ({ navigation }: any) => {
 
   const loadRates = useCallback(
     async (isRefresh = false) => {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       setError('');
       try {
-        const response: any = await api.marketplace.public.listMarketRatesAll(
-          params,
-        );
+        const response: any = await api.marketplace.public.listMarketRatesAll({
+          ...params,
+          page: 1,
+          limit: 20,
+        });
+        console.log('========== RATES API RESPONSE ==========');
+        
         const payload = normalizeMarketRatesPayload(response);
+        console.log('fukcign api resposne',JSON.stringify(payload, null, 2));
+        console.log('========================================');
         setMills(payload.mills ?? []);
         setRates(payload.rates ?? []);
         setNotice(
@@ -279,21 +283,43 @@ const MarketRatesScreen = ({ navigation }: any) => {
             'Indicative rates only. Actual transaction price may vary.',
         );
         setTotalCount(payload.meta?.total ?? payload.rates?.length ?? 0);
+        const totalPages = payload.meta?.total_pages ?? 1;
+        setHasMore(1 < totalPages);
+        setCurrentPage(1);
         setHasLoadedOnce(true);
       } catch {
         setError('Unable to load market rates. Pull latest again.');
         setRates([]);
         setHasLoadedOnce(true);
       } finally {
-        if (isRefresh) {
-          setRefreshing(false);
-        } else {
-          setLoading(false);
-        }
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
       }
     },
     [params],
   );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading || refreshing) return;
+    setLoadingMore(true);
+    const nextPage = currentPage + 1;
+    try {
+      const response: any = await api.marketplace.public.listMarketRatesAll({
+        ...params,
+        page: nextPage,
+        limit: 20,
+      });
+      const payload = normalizeMarketRatesPayload(response);
+      setRates(prev => [...prev, ...(payload.rates ?? [])]);
+      const totalPages = payload.meta?.total_pages ?? 1;
+      setHasMore(nextPage < totalPages);
+      setCurrentPage(nextPage);
+    } catch {
+      // silently ignore load-more errors
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, loading, refreshing, currentPage, params]);
 
   useEffect(() => {
     loadRates();
@@ -376,7 +402,7 @@ const MarketRatesScreen = ({ navigation }: any) => {
                   style={[styles.tabText, isActive && styles.tabTextActive]}
                   numberOfLines={1}
                 >
-                  {mill.short_code || mill.name}
+                  {mill.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -411,7 +437,17 @@ const MarketRatesScreen = ({ navigation }: any) => {
             tintColor="#217A3C"
           />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
         renderItem={({ item, index }) => <RateCard item={item} index={index} />}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator color="#217A3C" size="small" />
+              <Text style={styles.footerLoaderText}>Loading more...</Text>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             {loading ? (
@@ -794,6 +830,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#374151',
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+  footerLoaderText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });
 

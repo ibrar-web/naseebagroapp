@@ -138,8 +138,10 @@ export const api = {
         Get('public/commodities', { category_id }),
       getPublicMills: (params?: { search?: string; skip?: number; limit?: number }) =>
         Get('public/mills', params),
-      getFormByCommodity: (commodity_id: string, form_type: 'supply' | 'demand') =>
-        Get('form-templates/by-commodity', { commodity_id, form_type }),
+      getBuyerForm: (category_id: string) =>
+        Get(`buyer/forms/demand/${category_id}`, undefined, protectedRequest),
+      getSellerForm: (category_id: string) =>
+        Get(`seller/forms/supply/${category_id}`, undefined, protectedRequest),
     },
   },
   buyer: {

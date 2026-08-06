@@ -139,8 +139,10 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
   }, [categoryData?.id]);
 
   // Load form when commodity selected
+  const selectedCommodityId = selectedCommodity?.id;
+  const categoryDataId = categoryData?.id;
   useEffect(() => {
-    if (!selectedCommodity) {
+    if (!selectedCommodityId || !categoryDataId) {
       setForm(null);
       setLoadError('');
       setNoForm(false);
@@ -151,12 +153,14 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
     setLoadError('');
     setNoForm(false);
 
-    const formType = isBuyer ? 'demand' : 'supply';
+    const formCall = isBuyer
+      ? api.marketplace.public.getBuyerForm(categoryDataId)
+      : api.marketplace.public.getSellerForm(categoryDataId);
 
-    (api.marketplace.public.getFormByCommodity(selectedCommodity.id, formType) as Promise<any>)
+    (formCall as Promise<any>)
       .then((res: any) => {
         if (!mounted) return;
-        console.log('[PostForm] form raw response for commodity', selectedCommodity.id, ':', JSON.stringify(res));
+        console.log('[PostForm] form raw response for commodity', selectedCommodityId, ':', JSON.stringify(res));
         const next = normalizeForm(res);
         if (!next) { setNoForm(true); return; }
         console.log('[PostForm] form fields:', JSON.stringify(next.fields?.map((f: any) => ({ id: f.id, label: f.label, type: f.field_type, options: f.options?.length }))));
@@ -210,7 +214,7 @@ export const usePostForm = ({ categoryData, categoryName, mode, navigation, pref
       .finally(() => { if (mounted) setLoading(false); });
 
     return () => { mounted = false; };
-  }, [selectedCommodity?.id, isBuyer]);
+  }, [selectedCommodityId, isBuyer, categoryDataId]);
 
   const commodityUnit = selectedCommodity?.default_unit?.name ?? 'Bag';
 

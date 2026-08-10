@@ -48,6 +48,7 @@ Output: `android/app/build/outputs/apk/release/app-release.apk`
 
 | versionCode | versionName | Date       | Notes                          |
 |-------------|-------------|------------|-------------------------------|
+| 26          | 1.4.1       | 2026-08-06 | Unit name from commodity default unit in market rates, request/send offer screens |
 | 25          | 1.4.0       | 2026-08-06 | Buyer/seller form services, form template constraint fix, ListingDetail redesign |
 | 24          | 1.3.9       | —          | Previous release               |
 | 22          | 1.3.7       | 2026-07-29 | Firebase notifications, market rates, alerts redesign |

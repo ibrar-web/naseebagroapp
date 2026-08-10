@@ -54,6 +54,13 @@ type OfferState = {
   lastPrice: number;
   originalPrice: number;
   unitName: string;
+  lastPaymentType: 'fixed' | 'weekly' | null;
+  lastPaymentDays: number | null;
+  lastDeliveryDays: number | null;
+  listedPrice: number;
+  priceJump: number | null;
+  minBelowPct: number | null;
+  maxAbovePct: number | null;
 };
 
 type DropdownOption = { label: string; value: number };
@@ -68,7 +75,9 @@ const normalizeOffer = (payload: any): OfferState => {
   const mill = initial.mill ?? {};
   const millName = [mill.name, mill.city].filter(Boolean).join(', ') || '—';
 
-  const history: ChatBubble[] = (payload.history ?? []).map((r: any, i: number, arr: any[]) => {
+  const rawRounds: any[] = payload.history ?? [];
+
+  const history: ChatBubble[] = rawRounds.map((r: any, i: number, arr: any[]) => {
     const rawPrice = firstValue(r.price, r.offered_price) ?? 0;
     const isAwaiting = !r.is_mine && i === arr.length - 1 &&
       ['pending', 'counter_received'].includes(payload.status ?? '');
@@ -84,6 +93,10 @@ const normalizeOffer = (payload: any): OfferState => {
       is_awaiting: isAwaiting,
     };
   });
+
+  // Walk back through rounds to find last set payment/delivery values
+  const lastWithPayment = [...rawRounds].reverse().find(r => r.payment_type);
+  const lastWithDelivery = [...rawRounds].reverse().find(r => r.delivery_days != null);
 
   const round1 = history.find(h => h.round_number === 1);
   const originalPrice = round1?.price || Number(initial.price ?? 0) || 0;
@@ -105,6 +118,13 @@ const normalizeOffer = (payload: any): OfferState => {
     lastPrice,
     originalPrice,
     unitName: payload.unit_name ?? '40kg',
+    lastPaymentType: (lastWithPayment?.payment_type as 'fixed' | 'weekly') ?? null,
+    lastPaymentDays: lastWithPayment?.payment_days ?? null,
+    lastDeliveryDays: lastWithDelivery?.delivery_days ?? null,
+    listedPrice: Number(payload.price_limits?.listed_price ?? 0),
+    priceJump: payload.price_limits?.price_jump ?? null,
+    minBelowPct: payload.price_limits?.min_below_pct ?? null,
+    maxAbovePct: payload.price_limits?.max_above_pct ?? null,
   };
 };
 
@@ -291,24 +311,31 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
     }
   }, [offer?.history.length]);
 
-  // Counter offer price bounds: min -30%, max +100% of original offer price
+  // Counter offer price bounds derived from snapshotted commodity limits on the offer.
+  // Falls back to sensible defaults when limits are not configured.
   const originalPrice = offer?.originalPrice ?? 0;
-  const minCounterPrice = originalPrice > 0 ? Math.floor(originalPrice * 0.7) : STEP;
-  const maxCounterPrice = originalPrice > 0 ? Math.ceil(originalPrice * 2.0) : Infinity;
+  const listedPrice = offer?.listedPrice && offer.listedPrice > 0 ? offer.listedPrice : originalPrice;
+  const step = offer?.priceJump ?? STEP;
+  const minCounterPrice = listedPrice > 0 && offer?.minBelowPct != null
+    ? Math.floor(listedPrice * (1 - offer.minBelowPct / 100))
+    : originalPrice > 0 ? Math.floor(originalPrice * 0.7) : step;
+  const maxCounterPrice = listedPrice > 0 && offer?.maxAbovePct != null
+    ? Math.ceil(listedPrice * (1 + offer.maxAbovePct / 100))
+    : originalPrice > 0 ? Math.ceil(originalPrice * 2.0) : Infinity;
 
   const openCounterSheet = () => {
     setCounterPrice(offer?.lastPrice ?? 2500);
     setCounterTab('price');
-    setPaymentType('fixed');
-    setPaymentDays(null);
-    setDeliveryDays(null);
+    setPaymentType(offer?.lastPaymentType ?? 'fixed');
+    setPaymentDays(offer?.lastPaymentDays ?? null);
+    setDeliveryDays(offer?.lastDeliveryDays ?? null);
     setCounterVisible(true);
   };
 
   const adjustPrice = (delta: number) => {
     setCounterPrice(prev => {
       const next = prev + delta;
-      return Math.max(minCounterPrice, Math.min(maxCounterPrice, next));
+      return Math.max(minCounterPrice, Math.min(maxCounterPrice === Infinity ? prev + delta : maxCounterPrice, next));
     });
   };
 
@@ -531,7 +558,7 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                   <View style={styles.stepper}>
                     <TouchableOpacity
                       style={[styles.stepBtn, minReached && styles.stepBtnDisabled]}
-                      onPress={() => adjustPrice(-STEP)}
+                      onPress={() => adjustPrice(-step)}
                       activeOpacity={0.75}
                       disabled={minReached}
                     >
@@ -539,11 +566,11 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                     </TouchableOpacity>
                     <View style={styles.stepCenter}>
                       <Text style={styles.stepValue}>{formattedCounter}</Text>
-                      <Text style={styles.stepHint}>tap ± PKR {STEP}</Text>
+                      <Text style={styles.stepHint}>tap ± PKR {step}</Text>
                     </View>
                     <TouchableOpacity
                       style={[styles.stepBtn, maxReached && styles.stepBtnDisabled]}
-                      onPress={() => adjustPrice(STEP)}
+                      onPress={() => adjustPrice(step)}
                       activeOpacity={0.75}
                       disabled={maxReached}
                     >

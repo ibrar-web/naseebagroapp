@@ -20,6 +20,8 @@ export type OfferStatusPayload = {
   accepted_by?: string;
   rejected_by?: string;
   accepted_price?: number;
+  deal_id?: string;
+  mode?: 'buyer' | 'seller';
 };
 
 // ─── Room helpers ─────────────────────────────────────────────────────────────
@@ -55,4 +57,21 @@ export const onOfferRejected = (callback: (data: OfferStatusPayload) => void): (
 export const onOfferCancelled = (callback: (data: OfferStatusPayload) => void): (() => void) => {
   getSocket()?.on('offer.cancelled', callback);
   return () => getSocket()?.off('offer.cancelled', callback);
+};
+
+export type AdminReviewPayload = {
+  offer_id: string;
+  code: string;
+  title: string;
+  body: string;
+};
+
+export const onAdminReview = (callback: (data: AdminReviewPayload) => void): (() => void) => {
+  getSocket()?.on('offer.admin_review', callback);
+  return () => getSocket()?.off('offer.admin_review', callback);
+};
+
+export const onOfferAdminFinalized = (callback: (data: OfferStatusPayload) => void): (() => void) => {
+  getSocket()?.on('offer.admin_finalized', callback);
+  return () => getSocket()?.off('offer.admin_finalized', callback);
 };

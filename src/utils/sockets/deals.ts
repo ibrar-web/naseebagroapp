@@ -5,6 +5,7 @@ import { getSocket } from './index';
 export type DealCreatedPayload = {
   deal_id: string;
   code: string;
+  mode?: 'buyer' | 'seller';
 };
 
 export type TruckDocPayload = {

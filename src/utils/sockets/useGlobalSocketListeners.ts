@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/rootReducer';
-import { showPostToast, showDealToast, showProfileToast, showDisputeToast, showQueryToast } from '../../app/components/toastConfig';
+import { showPostToast, showDealToast, showProfileToast, showDisputeToast, showQueryToast, showOfferToast } from '../../app/components/toastConfig';
 import { onPostApproved, onPostRejected, onPostNeedsRevision } from './posts';
+import { onAdminReview, onOfferAdminFinalized } from './negotiations';
 import {
   onDealCompleted,
   onDealCreated,
@@ -71,7 +72,7 @@ export const useGlobalSocketListeners = () => {
     if (!isAuthenticated) return;
 
     const unsubDealCreated = onDealCreated((data) => {
-      showDealToast('Deal Created', `Deal ${data.code} is ready.`, data.deal_id);
+      showDealToast('Deal Created', `Deal ${data.code} is ready.`, data.deal_id, data.mode);
     });
 
     const unsubTruckApproved = onTruckDocApproved((data) => {
@@ -240,6 +241,28 @@ export const useGlobalSocketListeners = () => {
       unsubBusiness();
       unsubBank();
       unsubBasic();
+    };
+  }, [isAuthenticated]);
+
+  // ── Admin offer events ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubAdminReview = onAdminReview((data) => {
+      showOfferToast(data.offer_id, data.title || 'Admin Notification', data.body);
+    });
+
+    const unsubFinalized = onOfferAdminFinalized((data) => {
+      if (data.deal_id) {
+        showDealToast('Deal Created by Admin', 'Admin has finalized the offer and created a deal. Tap to view.', data.deal_id, data.mode);
+      } else {
+        showOfferToast(data.offer_id, 'Deal Finalized by Admin', 'Admin has finalized the offer and created a deal.');
+      }
+    });
+
+    return () => {
+      unsubAdminReview();
+      unsubFinalized();
     };
   }, [isAuthenticated]);
 };

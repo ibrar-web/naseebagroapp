@@ -137,8 +137,8 @@ const NotificationsScreen = ({ navigation }: any) => {
       console.log('[Notifications] → navigate DisputeDetail disputeId:', item.entity_id);
       navigation.navigate('DisputeDetail', { disputeId: item.entity_id });
     } else if (item.entity_type === 'deal' && item.entity_id) {
-      console.log('[Notifications] → navigate DealDetail dealId:', item.entity_id);
-      navigation.navigate('DealDetail', { dealId: item.entity_id });
+      console.log('[Notifications] → navigate DealDetail dealId:', item.entity_id, 'mode:', item.recipient_role);
+      navigation.navigate('DealDetail', { dealId: item.entity_id, ...(item.recipient_role ? { mode: item.recipient_role } : {}) });
     } else {
       console.log('[Notifications] handleTap: no navigation — entity_type:', item.entity_type, 'entity_id:', item.entity_id);
     }

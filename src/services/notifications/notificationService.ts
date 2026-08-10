@@ -119,6 +119,7 @@ function handleNotificationNavigation(data: Record<string, string>): void {
 
   switch (module) {
     case 'offer':
+    case 'offers':
     case 'negotiation':
       if (entityId) {
         navigationRef.navigate('Negotiation', {
@@ -130,8 +131,9 @@ function handleNotificationNavigation(data: Record<string, string>): void {
 
     case 'deal': {
       if (entityId) {
-        const dealMode =
-          type === 'payment_verified' || type === 'payment_rejected' ? 'buyer'
+        const dealMode: 'buyer' | 'seller' | undefined =
+          (data.mode === 'buyer' || data.mode === 'seller') ? data.mode
+          : type === 'payment_verified' || type === 'payment_rejected' ? 'buyer'
           : type === 'payment_sent' ? 'seller'
           : undefined;
         navigationRef.navigate('DealDetail', { dealId: entityId, ...(dealMode ? { mode: dealMode } : {}) });

@@ -28,6 +28,13 @@ const PRICE_OPTIONS = [
   { label: 'Make an Offer', subLabel: 'Enter your target price', value: 'MAKE_OFFER' as PriceOption },
 ];
 
+const commissionLabel = (type: string | null, value: number | null, unitName = 'unit'): string => {
+  if (!type || value == null) return '';
+  if (type === 'percentage') return `${value}% Naseeb platform fee on total order value`;
+  if (type === 'flat') return `PKR ${value} per ${unitName} Naseeb platform fee`;
+  return '';
+};
+
 const normalizeSupply = (r: any) => {
   const p = r?.id ? r : r?.listing_id ? { ...r, id: r.listing_id } : r?.data ?? r;
   return p?.id ? p : null;
@@ -224,7 +231,12 @@ export const RequestToPurchaseScreen = ({ navigation, route }: Props) => {
           <AppIcon name="approved" size={13} color="#1A6B34" />
           <View style={{ flex: 1 }}>
             <Text style={s.infoNoteTitle}>How it works</Text>
-            <Text style={s.infoNoteText}>1.5% Naseeb platform fee is charged at the last payment. The seller will receive your request and can accept or reject it directly.</Text>
+            <Text style={s.infoNoteText}>
+              {commissionLabel(detail?.commission?.buyer_type, detail?.commission?.buyer_value, detail?.unit_name)
+                ? `${commissionLabel(detail.commission.buyer_type, detail.commission.buyer_value, detail.unit_name)} is charged at the last payment. `
+                : ''}
+              {'The seller will receive your request and can accept or reject it directly.'}
+            </Text>
           </View>
         </View>
         {submitError ? <View style={s.errorBox}><AppIcon name="notificationWarning" size={13} color="#B45309" /><Text style={s.errorText}>{submitError}</Text></View> : null}

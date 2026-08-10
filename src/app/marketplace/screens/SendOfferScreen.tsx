@@ -30,6 +30,13 @@ const PRICE_OPTIONS = [
   { label: 'Make an Offer', subLabel: 'Enter a different price', value: 'MAKE_COUNTER' as PriceOption },
 ];
 
+const commissionLabel = (type: string | null, value: number | null, unitName = 'unit'): string => {
+  if (!type || value == null) return '';
+  if (type === 'percentage') return `${value}% Naseeb platform fee on total order value`;
+  if (type === 'flat') return `PKR ${value} per ${unitName} Naseeb platform fee`;
+  return '';
+};
+
 const normalizeDemand = (r: any) => {
   const p = r?.id ? r : r?.listing_id ? { ...r, id: r.listing_id } : r?.data ?? r;
   return p?.id ? p : null;
@@ -219,7 +226,15 @@ export const SendOfferScreen = ({ navigation, route }: Props) => {
 
         <View style={s.infoNote}>
           <AppIcon name="shield" size={13} color="#217A3C" />
-          <Text style={styles.infoText}>Your offer goes directly to the buyer. They can accept, reject, or send a counter offer. <Text style={styles.infoBold}>1.5% platform fee</Text> on final payment.</Text>
+          <View style={styles.infoContent}>
+            <Text style={s.infoNoteTitle}>How it works</Text>
+            <Text style={s.infoNoteText}>
+              {commissionLabel(detail?.commission?.seller_type, detail?.commission?.seller_value, detail?.unit_name)
+                ? `${commissionLabel(detail.commission.seller_type, detail.commission.seller_value, detail.unit_name)} is deducted from your payout. `
+                : ''}
+              {'Your offer goes directly to the buyer. They can accept, reject, or send a counter offer.'}
+            </Text>
+          </View>
         </View>
         {submitError ? <View style={s.errorBox}><AppIcon name="notificationWarning" size={13} color="#B45309" /><Text style={s.errorText}>{submitError}</Text></View> : null}
         <View style={styles.scrollPad} />
@@ -238,6 +253,7 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 34 },
   counterInput: { marginTop: 10 },
   deliveryLabel: { marginTop: 12 },
+  infoContent: { flex: 1 },
   infoText: { fontSize: 11, color: '#1A6B34', lineHeight: 17, flex: 1 },
   infoBold: { fontWeight: '700' },
   scrollPad: { height: 100 },

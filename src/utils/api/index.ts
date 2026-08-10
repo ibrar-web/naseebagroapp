@@ -165,6 +165,8 @@ export const api = {
       Post(`buyer/offers/${id}/accept`, undefined, protectedRequest),
     rejectOffer: (id: string) =>
       Post(`buyer/offers/${id}/reject`, undefined, protectedRequest),
+    requestIntervention: (id: string) =>
+      Post(`buyer/offers/${id}/request-intervention`, undefined, protectedRequest),
     listNotifications: (params?: { limit?: number; offset?: number }) =>
       Get('buyer/notifications', params, protectedRequest),
     markNotificationRead: (id: string) =>
@@ -223,6 +225,8 @@ export const api = {
       Post(`seller/offers/${id}/accept`, undefined, protectedRequest),
     rejectOffer: (id: string) =>
       Post(`seller/offers/${id}/reject`, undefined, protectedRequest),
+    requestIntervention: (id: string) =>
+      Post(`seller/offers/${id}/request-intervention`, undefined, protectedRequest),
     listNotifications: (params?: { limit?: number; offset?: number }) =>
       Get('seller/notifications', params, protectedRequest),
     markNotificationRead: (id: string) =>

@@ -29,13 +29,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Negotiation'>;
 
 type ChatBubble = {
   round_number: number;
+  initiated_by: string;
+  is_admin: boolean;
+  counter_label: string;
   price: number;
   price_display: string;
-  label: string;
   is_mine: boolean;
   note: string | null;
   time_label: string;
-  payment_terms?: string;
+  quantity: number;
+  unit_name: string;
+  payment_type: string | null;
+  payment_days: number | null;
+  delivery_days: number | null;
+  payment_label: string | null;
+  delivery_label: string | null;
   is_awaiting?: boolean;
 };
 
@@ -50,9 +58,14 @@ type OfferState = {
   canCounter: boolean;
   canAccept: boolean;
   canReject: boolean;
+  canRequestIntervention: boolean;
+  isAdminIntervening: boolean;
+  hasAdminOffer: boolean;
+  adminOffer: { price_display: string; payment_label: string | null; delivery_label: string | null } | null;
   history: ChatBubble[];
   lastPrice: number;
   originalPrice: number;
+  quantity: number;
   unitName: string;
   lastPaymentType: 'fixed' | 'weekly' | null;
   lastPaymentDays: number | null;
@@ -83,13 +96,21 @@ const normalizeOffer = (payload: any): OfferState => {
       ['pending', 'counter_received'].includes(payload.status ?? '');
     return {
       round_number: r.round_number,
+      initiated_by: r.initiated_by ?? (r.is_mine ? 'BUYER' : 'SELLER'),
+      is_admin: r.is_admin ?? false,
+      counter_label: r.counter_label ?? (i === 0 ? 'INITIAL OFFER' : `COUNTER #${i}`),
       price: Number(rawPrice),
       price_display: firstValue(r.price_display, `PKR ${rawPrice}`) ?? '',
-      label: r.label ?? '',
       is_mine: r.is_mine ?? false,
       note: r.note ?? null,
       time_label: firstValue(r.time_label, '') ?? '',
-      payment_terms: r.round_number === 1 ? (initial.payment_terms ?? null) : null,
+      quantity: Number(r.quantity ?? payload.quantity ?? 0),
+      unit_name: r.unit_name ?? payload.unit_name ?? '40kg',
+      payment_type: r.payment_type ?? null,
+      payment_days: r.payment_days ?? null,
+      delivery_days: r.delivery_days ?? null,
+      payment_label: r.payment_label ?? null,
+      delivery_label: r.delivery_label ?? null,
       is_awaiting: isAwaiting,
     };
   });
@@ -114,9 +135,14 @@ const normalizeOffer = (payload: any): OfferState => {
     canCounter: payload.actions?.can_counter ?? false,
     canAccept: payload.actions?.can_accept ?? false,
     canReject: payload.actions?.can_reject ?? false,
+    canRequestIntervention: !payload.needs_intervention && !['accepted', 'rejected'].includes((payload.status ?? '').toLowerCase()),
+    isAdminIntervening: payload.needs_intervention === true,
+    hasAdminOffer: payload.has_admin_offer ?? false,
+    adminOffer: payload.admin_offer ?? null,
     history,
     lastPrice,
     originalPrice,
+    quantity: Number(payload.quantity ?? 0),
     unitName: payload.unit_name ?? '40kg',
     lastPaymentType: (lastWithPayment?.payment_type as 'fixed' | 'weekly') ?? null,
     lastPaymentDays: lastWithPayment?.payment_days ?? null,
@@ -184,30 +210,73 @@ const DropdownPicker = ({ placeholder, options, value, onChange, loading }: Drop
 
 const Bubble = ({ item }: { item: ChatBubble }) => {
   const alignRight = item.is_mine;
+  const isAdmin = item.is_admin;
+  const emoji = isAdmin ? '🛡️' : item.initiated_by === 'BUYER' ? '🛒' : '📦';
+
   return (
-    <View style={[styles.row, alignRight ? styles.rowRight : styles.rowLeft]}>
-      <View style={styles.bubbleWrap}>
-        <Text style={[styles.timeLabel, { textAlign: alignRight ? 'right' : 'left' }]}>
-          {alignRight ? 'You' : 'Counterparty'}{item.time_label ? ` · ${item.time_label}` : ''}
-        </Text>
-        <View style={[
-          styles.bubble,
-          alignRight ? styles.bubbleMine : styles.bubbleTheirs,
-          item.is_awaiting && styles.bubbleAwaiting,
-        ]}>
-          {item.is_awaiting ? (
-            <Text style={styles.awaitingLabel}>⏳ AWAITING YOUR RESPONSE</Text>
-          ) : (
-            <Text style={styles.bubbleLabel}>{item.label.toUpperCase()}</Text>
-          )}
-          <Text style={styles.bubblePrice}>{item.price_display}</Text>
-          {!!item.note && <Text style={styles.bubbleNote}>{item.note}</Text>}
-          {!!item.payment_terms && (
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>{item.payment_terms}</Text>
-            </View>
+    <View>
+      <Text style={[
+        styles.counterLabelText,
+        { textAlign: alignRight ? 'right' : 'left' },
+        isAdmin && styles.counterLabelAdmin,
+      ]}>
+        {item.counter_label}
+      </Text>
+      <View style={[styles.row, alignRight ? styles.rowRight : styles.rowLeft]}>
+        {!alignRight && (
+          <View style={[styles.avatar, isAdmin && styles.avatarAdmin]}>
+            <Text style={styles.avatarEmoji}>{emoji}</Text>
+          </View>
+        )}
+        <View style={styles.bubbleWrap}>
+          <View style={[
+            styles.bubble,
+            alignRight ? styles.bubbleMine : styles.bubbleTheirs,
+            isAdmin && styles.bubbleAdmin,
+            item.is_awaiting && styles.bubbleAwaiting,
+          ]}>
+            {item.is_awaiting && (
+              <Text style={styles.awaitingLabel}>⏳ AWAITING YOUR RESPONSE</Text>
+            )}
+            <Text style={[styles.bubblePrice, isAdmin && styles.bubblePriceAdmin]}>
+              {item.price_display}
+            </Text>
+            {item.quantity > 0 && (
+              <Text style={[styles.bubblePerUnit, isAdmin && styles.bubblePerUnitAdmin]}>
+                per {item.unit_name} · {item.quantity} bags
+              </Text>
+            )}
+            {(!!item.payment_label || !!item.delivery_label) && (
+              <View style={styles.chipsRow}>
+                {!!item.payment_label && (
+                  <View style={[styles.chip, isAdmin && styles.chipAdmin]}>
+                    <Text style={[styles.chipText, isAdmin && styles.chipTextAdmin]}>
+                      💳 {item.payment_label}
+                    </Text>
+                  </View>
+                )}
+                {!!item.delivery_label && (
+                  <View style={[styles.chip, isAdmin && styles.chipAdmin]}>
+                    <Text style={[styles.chipText, isAdmin && styles.chipTextAdmin]}>
+                      🚚 {item.delivery_label}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+            {!!item.note && <Text style={styles.bubbleNote}>{item.note}</Text>}
+          </View>
+          {!!item.time_label && (
+            <Text style={[styles.timeLabel, { textAlign: alignRight ? 'right' : 'left' }]}>
+              {item.time_label}
+            </Text>
           )}
         </View>
+        {alignRight && (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarEmoji}>{emoji}</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -243,6 +312,20 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
   const [deliveryDays, setDeliveryDays] = useState<number | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
+  const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startRepeat = (delta: number) => {
+    adjustPrice(delta);
+    repeatTimerRef.current = setTimeout(() => {
+      repeatIntervalRef.current = setInterval(() => adjustPrice(delta), 100);
+    }, 400);
+  };
+
+  const stopRepeat = () => {
+    if (repeatTimerRef.current) { clearTimeout(repeatTimerRef.current); repeatTimerRef.current = null; }
+    if (repeatIntervalRef.current) { clearInterval(repeatIntervalRef.current); repeatIntervalRef.current = null; }
+  };
 
   // Fetch trade configs (payment terms) from DB
   useEffect(() => {
@@ -393,6 +476,20 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
     });
   };
 
+  const handleRequestIntervention = () => {
+    showConfirm('warning', 'Contact Admin to Mediate', 'An admin will be assigned to help resolve this negotiation. Continue?', async () => {
+      setActionLoading(true);
+      try {
+        mode === 'buyer'
+          ? await api.buyer.requestIntervention(offerId)
+          : await api.seller.requestIntervention(offerId);
+        fetchOffer();
+      } catch (e: any) {
+        showAlert('error', 'Error', e?.response?.data?.message ?? e?.message ?? 'Request failed');
+      } finally { setActionLoading(false); }
+    });
+  };
+
   const goBack = () => {
     if (navigation.canGoBack()) { navigation.goBack(); return; }
     navigation.dispatch(CommonActions.reset({
@@ -436,6 +533,23 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
             <Text style={styles.anonymousText}>🔒 Anonymous</Text>
           </View>
         </View>
+        {offer?.canRequestIntervention && (
+          <TouchableOpacity style={[styles.mediateBtn, actionLoading && { opacity: 0.6 }]} onPress={handleRequestIntervention} activeOpacity={0.85} disabled={actionLoading}>
+            {actionLoading
+              ? <ActivityIndicator size="small" color="#FFFFFF" />
+              : <AppIcon name="shield" size={13} color="#FFFFFF" />}
+            <Text style={styles.mediateBtnText}>{actionLoading ? 'Contacting admin…' : 'Contact Admin to Mediate'}</Text>
+          </TouchableOpacity>
+        )}
+        {offer?.isAdminIntervening && (
+          <View style={styles.mediateActiveBtn}>
+            <AppIcon name="shield" size={13} color="#7C3AED" />
+            <Text style={styles.mediateActiveBtnText}>
+              {offer.hasAdminOffer ? 'Admin mediation offer received — respond below' : 'Admin contacted — awaiting mediation offer'}
+            </Text>
+            <View style={styles.mediateActiveDot} />
+          </View>
+        )}
       </View>
 
       {/* Chat area */}
@@ -461,6 +575,15 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
             <Text style={styles.emptyText}>No messages yet.</Text>
           )}
           {offer?.history.map((item, i) => <Bubble key={i} item={item} />)}
+          {offer?.isAdminIntervening && !offer?.hasAdminOffer && (
+            <View style={styles.adminPausedBlock}>
+              <Text style={styles.adminPausedIcon}>🛡️</Text>
+              <View style={styles.adminPausedBody}>
+                <Text style={styles.adminPausedTitle}>Negotiation paused — Admin involved</Text>
+                <Text style={styles.adminPausedSub}>An admin has been assigned. They will make a mediation offer shortly.</Text>
+              </View>
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -558,7 +681,8 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                   <View style={styles.stepper}>
                     <TouchableOpacity
                       style={[styles.stepBtn, minReached && styles.stepBtnDisabled]}
-                      onPress={() => adjustPrice(-step)}
+                      onPressIn={() => !minReached && startRepeat(-step)}
+                      onPressOut={stopRepeat}
                       activeOpacity={0.75}
                       disabled={minReached}
                     >
@@ -566,11 +690,12 @@ const NegotiationScreen = ({ navigation, route }: Props) => {
                     </TouchableOpacity>
                     <View style={styles.stepCenter}>
                       <Text style={styles.stepValue}>{formattedCounter}</Text>
-                      <Text style={styles.stepHint}>tap ± PKR {step}</Text>
+                      <Text style={styles.stepHint}>hold ± PKR {step}</Text>
                     </View>
                     <TouchableOpacity
                       style={[styles.stepBtn, maxReached && styles.stepBtnDisabled]}
-                      onPress={() => adjustPrice(step)}
+                      onPressIn={() => !maxReached && startRepeat(step)}
+                      onPressOut={stopRepeat}
                       activeOpacity={0.75}
                       disabled={maxReached}
                     >
@@ -648,6 +773,11 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   anonymousBadge: { backgroundColor: 'rgba(255,255,255,0.094)', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
   anonymousText: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.53)' },
+  mediateBtn: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 11, paddingHorizontal: 14, paddingVertical: 9 },
+  mediateBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF', flex: 1 },
+  mediateActiveBtn: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EDE9FE', borderRadius: 11, paddingHorizontal: 14, paddingVertical: 9 },
+  mediateActiveBtnText: { fontSize: 12, fontWeight: '700', color: '#7C3AED', flex: 1 },
+  mediateActiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#7C3AED' },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 40, fontSize: 13 },
   retryBtn: { backgroundColor: '#1A6B34', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
@@ -680,6 +810,28 @@ const styles = StyleSheet.create({
   acceptBtnText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   terminalBadge: { flex: 1, paddingVertical: 12, backgroundColor: '#F3F4F6', borderRadius: 11, alignItems: 'center' },
   terminalText: { fontSize: 13, fontWeight: '700', color: '#6B7280' },
+  // Bubble counter label
+  counterLabelText: { fontSize: 9, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4, paddingHorizontal: 2 },
+  counterLabelAdmin: { color: '#7C3AED' },
+  // Avatar
+  avatar: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.1)', alignItems: 'center', justifyContent: 'center', marginTop: 4, flexShrink: 0 },
+  avatarAdmin: { backgroundColor: '#EDE9FE' },
+  avatarEmoji: { fontSize: 16 },
+  // Admin bubble
+  bubbleAdmin: { backgroundColor: '#1E0B4B', borderWidth: 1.5, borderColor: '#D97706' },
+  bubblePriceAdmin: { color: '#FCD34D' },
+  bubblePerUnit: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 8, marginTop: -2 },
+  bubblePerUnitAdmin: { color: 'rgba(252,211,77,0.7)' },
+  // Chips
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  chipAdmin: { backgroundColor: 'rgba(217,119,6,0.18)', borderColor: 'rgba(217,119,6,0.35)', borderWidth: 1 },
+  chipTextAdmin: { color: '#FCD34D' },
+  // Admin paused block
+  adminPausedBlock: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#F5F3FF', borderRadius: 14, padding: 14, marginTop: 8, borderWidth: 1, borderColor: '#DDD6FE' },
+  adminPausedIcon: { fontSize: 22 },
+  adminPausedBody: { flex: 1 },
+  adminPausedTitle: { fontSize: 12, fontWeight: '800', color: '#5B21B6', marginBottom: 3 },
+  adminPausedSub: { fontSize: 11, color: '#7C3AED', lineHeight: 16 },
   // Modal / sheet
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 36, borderWidth: 2, borderColor: '#7FD4A0' },

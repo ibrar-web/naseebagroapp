@@ -866,7 +866,10 @@ const MillPriceRow = ({
   featured: boolean;
 }) => {
   const millName = mill.mill?.name ?? 'Direct listing';
-  const location = mill.mill?.location ?? '';
+  const locationLabel =
+    [mill.mill?.city, mill.mill?.province].filter(Boolean).join(', ') ||
+    mill.mill?.location ||
+    '';
 
   return (
     <View
@@ -902,13 +905,22 @@ const MillPriceRow = ({
           >
             {millName}
           </Text>
-          <Text
-            className="text-[10px] mt-0.5"
-            numberOfLines={1}
-            style={{ color: featured ? 'rgba(255,255,255,0.48)' : '#9CA3AF' }}
-          >
-            {toStr(mill.available_label) || location}
-          </Text>
+          {locationLabel ? (
+            <View className="flex-row items-center mt-0.5" style={styles.millLocationRow}>
+              <AppIcon
+                name="profileCity"
+                size={9}
+                color={featured ? 'rgba(255,255,255,0.48)' : '#9CA3AF'}
+              />
+              <Text
+                className="text-[10px]"
+                numberOfLines={1}
+                style={featured ? styles.millLocationTextFeatured : styles.millLocationText}
+              >
+                {locationLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
       <View className="items-end ml-2">
@@ -1761,6 +1773,17 @@ const styles = StyleSheet.create({
   },
   forwardIcon: {
     transform: [{ rotate: '180deg' }],
+  },
+  millLocationRow: {
+    gap: 3,
+  },
+  millLocationText: {
+    color: '#9CA3AF',
+    flex: 1,
+  },
+  millLocationTextFeatured: {
+    color: 'rgba(255,255,255,0.48)',
+    flex: 1,
   },
 });
 

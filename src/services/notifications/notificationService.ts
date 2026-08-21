@@ -10,20 +10,19 @@ const TOKEN_KEY = 'fcm_token';
 const TOKEN_TS_KEY = 'fcm_token_ts';
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
-// Firebase messaging is Android-only until iOS setup is added
 const getMessaging = () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require('@react-native-firebase/messaging').default();
 };
 
 async function requestPermission(): Promise<boolean> {
-  if (Platform.OS === 'ios') return false; // Firebase not configured for iOS yet
   if (Platform.OS === 'android' && Platform.Version >= 33) {
     const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
     );
     return result === PermissionsAndroid.RESULTS.GRANTED;
   }
+  // iOS and Android < 33: use Firebase messaging permission request
   const messagingModule = require('@react-native-firebase/messaging').default;
   const instance = messagingModule();
   const status = await instance.requestPermission();
@@ -64,8 +63,6 @@ async function syncToken(force = false): Promise<void> {
 }
 
 export async function initNotifications(): Promise<void> {
-  if (Platform.OS === 'ios') return; // Firebase not configured for iOS yet
-
   const granted = await requestPermission();
   if (!granted) return;
 
@@ -174,8 +171,6 @@ function handleNotificationNavigation(data: Record<string, string>): void {
 }
 
 export function setupNotificationListeners(): () => void {
-  if (Platform.OS === 'ios') return () => {}; // Firebase not configured for iOS yet
-
   const fcm = getMessaging();
 
   // Foreground message — show themed in-app toast

@@ -39,8 +39,12 @@
 	<string>Naseeb Agri uses your location to help you find nearby listings and mills.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Naseeb Agri uses your location to help you find nearby listings and mills.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Naseeb Agri needs access to your camera to take photos for your CNIC verification and profile.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Naseeb Agri needs access to your photo library to upload images for your listings and profile.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Naseeb Agri needs permission to save photos to your library.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

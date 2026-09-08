@@ -290,7 +290,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = naseebagroapp/naseebagroapp.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = HSHVMQ9UTP;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = naseebagroapp/Info.plist;
@@ -327,7 +327,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = naseebagroapp/naseebagroapp.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = HSHVMQ9UTP;
 				INFOPLIST_FILE = naseebagroapp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Naseeb Agri";

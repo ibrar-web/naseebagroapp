@@ -37,7 +37,7 @@ const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
 };
 
 // Change this line to switch environments: 'local' | 'development' | 'production'
-const currentEnv: EnvType = 'development';
+const currentEnv: EnvType = 'local';
 
 export const ENV = ENVIRONMENT_CONFIG[currentEnv];
 console.log('ENV', currentEnv, ENV);

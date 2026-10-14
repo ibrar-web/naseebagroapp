@@ -19,8 +19,8 @@ const ENVIRONMENT_CONFIG: Record<EnvType, EnvironmentConfig> = {
     NODE_ENV: 'local',
   },
   development: {
-    API_BASE_URL: 'https://naseebagri.com/api/v1',
-    SOCKET_URL: 'https://naseebagri.com',
+    API_BASE_URL: 'https://api.naseebagri.com/api/v1',
+    SOCKET_URL: 'https://api.naseebagri.com',
     TIMEOUT: 30000,
     VERSION: '1.0.0',
     APP_ENV: 'development',

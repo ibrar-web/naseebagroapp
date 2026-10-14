@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { showAlert, showConfirm } from '../../components/toastConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DeviceInfo from 'react-native-device-info';
 import { AppIcon } from '../../../assets/icons';
 import type { AppIconName } from '../../../assets/icons';
 import {
@@ -218,7 +219,7 @@ const AppSettingsScreen = ({ navigation }: any) => {
       titleKey: 'appSettings.data',
       rows: [
         { icon: 'cache', labelKey: 'appSettings.clearCache', value: t('common.cacheValue'), onPress: handleClearCache },
-        { icon: 'version', labelKey: 'appSettings.appVersion', value: t('common.versionValue') },
+        { icon: 'version', labelKey: 'appSettings.appVersion', value: `v${DeviceInfo.getVersion()} (${DeviceInfo.getBuildNumber()})` },
       ],
     },
   ];

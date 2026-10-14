@@ -15,6 +15,11 @@ type MyPostsListParams = {
 };
 
 export const api = {
+  app: {
+    checkVersion: (params: { platform: 'ios' | 'android'; version: string }) =>
+      Get('public/app-version', params),
+  },
+
   auth: {
     register: (data: any) => Post('auth/register', data),
     login: (data: any) => Post('auth/login', data),

@@ -77,6 +77,7 @@ import type { AppIconName } from '../assets/icons';
 import LoginRequiredSheet from '../app/auth/components/LoginRequiredSheet';
 import { subscribeAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 import OfferAlertToast from '../app/components/OfferAlertToast';
+import AppUpdatePrompt from '../app/components/AppUpdatePrompt';
 import { AppAlertProvider } from '../app/components/AppAlert';
 import { AppToastProvider } from '../app/components/AppToast';
 
@@ -332,6 +333,7 @@ export const AppNavigator = () => {
       <OfferAlertToast />
       <AppToastProvider />
       <AppAlertProvider />
+      <AppUpdatePrompt />
     </>
   );
 };

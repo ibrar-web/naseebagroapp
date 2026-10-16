@@ -32,6 +32,8 @@ export const commonTranslations = {
     'appUpdate.requiredBody': 'This version is no longer supported. Please update to version {{version}} to continue.',
     'appUpdate.updateNow': 'Update now',
     'appUpdate.later': 'Later',
+    'appUpdate.bodyGeneric': 'A new version of Naseeb Agri is available with the latest fixes and features.',
+    'appUpdate.requiredBodyGeneric': 'This version is no longer supported. Please update to continue.',
   },
   ur: {
     'tabs.home': 'ہوم',
@@ -66,5 +68,7 @@ export const commonTranslations = {
     'appUpdate.requiredBody': 'یہ ورژن اب سپورٹ نہیں ہوتا۔ جاری رکھنے کے لیے ورژن {{version}} پر اپ ڈیٹ کریں۔',
     'appUpdate.updateNow': 'ابھی اپ ڈیٹ کریں',
     'appUpdate.later': 'بعد میں',
+    'appUpdate.bodyGeneric': 'نصیب ایگری کا نیا ورژن نئی سہولیات اور بہتریوں کے ساتھ دستیاب ہے۔',
+    'appUpdate.requiredBodyGeneric': 'یہ ورژن اب سپورٹ نہیں ہوتا۔ جاری رکھنے کے لیے اپ ڈیٹ کریں۔',
   },
 } as const;

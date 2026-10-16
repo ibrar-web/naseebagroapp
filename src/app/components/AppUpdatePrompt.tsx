@@ -41,9 +41,9 @@ const AppUpdatePrompt = () => {
               {t(forced ? 'appUpdate.requiredTitle' : 'appUpdate.title')}
             </Text>
             <Text style={styles.body}>
-              {t(forced ? 'appUpdate.requiredBody' : 'appUpdate.body', {
-                version: info.latest_version,
-              })}
+              {info.latest_version
+                ? t(forced ? 'appUpdate.requiredBody' : 'appUpdate.body', { version: info.latest_version })
+                : t(forced ? 'appUpdate.requiredBodyGeneric' : 'appUpdate.bodyGeneric')}
             </Text>
             {!!info.release_notes && (
               <Text style={styles.notes}>{info.release_notes}</Text>

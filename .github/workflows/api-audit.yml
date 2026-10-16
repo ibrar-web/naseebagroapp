@@ -1,0 +1,43 @@
+name: API audit
+
+# Run from GitHub: Actions > API audit > Run workflow.
+# Needs repository secret AUDIT_USERS ("email:password,email:password").
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Environment
+        type: choice
+        options: [development, production]
+        default: development
+      full:
+        description: Include write flows and load test (development only)
+        type: boolean
+        default: false
+  # Uncomment to run every morning at 08:00 Pakistan time.
+  # schedule:
+  #   - cron: '0 3 * * *'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install socket.io-client only
+        run: npm install --no-save --ignore-scripts socket.io-client@4
+      - name: Run audit
+        env:
+          AUDIT_ENV: ${{ inputs.env || 'development' }}
+          AUDIT_USERS: ${{ secrets.AUDIT_USERS }}
+        run: node audit/api/run.mjs ${{ inputs.full && inputs.env != 'production' && '--write --load' || '' }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-audit-report
+          path: audit/reports/
+          retention-days: 30

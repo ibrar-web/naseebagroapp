@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API audit (read-only)",
+      "type": "shell",
+      "command": "npm run audit:api",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "API audit (full: writes + load)",
+      "type": "shell",
+      "command": "npm run audit:api:full",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

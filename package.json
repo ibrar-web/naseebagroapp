@@ -8,7 +8,11 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "audit:api": "node audit/api/run.mjs --open",
+    "audit:api:full": "node audit/api/run.mjs --write --load --open",
+    "audit:api:ci": "node audit/api/run.mjs",
+    "audit:api:cases": "node audit/api/cases.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",

@@ -3,6 +3,7 @@ import HttpService from './httpService';
 type ApiRequestOptions = {
   authRequired?: boolean;
   authOptional?: boolean;
+  errorsHandledByCaller?: boolean;
 };
 
 /**

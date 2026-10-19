@@ -40,6 +40,7 @@ export const profileTranslations = {
     'profile.deleteSubmit': 'Delete',
     'profile.deleteDoneTitle': 'Account Deleted',
     'profile.deleteDoneBody': 'Your account has been deleted.',
+    'profile.deleteFailed': 'Could not delete your account. Please try again.',
     'profile.disputes': 'Disputes & Queries',
     'profile.disputesSub': 'Tickets & support queries',
 
@@ -237,6 +238,7 @@ export const profileTranslations = {
     'profile.deleteSubmit': 'ڈیلیٹ کریں',
     'profile.deleteDoneTitle': 'اکاؤنٹ ڈیلیٹ ہو گیا',
     'profile.deleteDoneBody': 'آپ کا اکاؤنٹ ڈیلیٹ کر دیا گیا ہے۔',
+    'profile.deleteFailed': 'اکاؤنٹ ڈیلیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
     'profile.disputes': 'تنازعات اور سوالات',
     'profile.disputesSub': 'ٹکٹس اور سپورٹ سوالات',
 

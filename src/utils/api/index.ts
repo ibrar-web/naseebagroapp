@@ -37,9 +37,14 @@ export const api = {
       update: (data: any) => Patch('profile/personal', data, protectedRequest),
       updateForm: (data: any) =>
         Patch('profile/personal', data, protectedRequest),
-      // axios sends a DELETE body through the `data` config field.
+      // axios sends a DELETE body through the `data` config field. Errors are
+      // shown inside the delete dialog, not as a global alert.
       deleteAccount: (password: string) =>
-        Delete('profile/personal', { data: { password } }, protectedRequest),
+        Delete(
+          'profile/personal',
+          { data: { password } },
+          { ...protectedRequest, errorsHandledByCaller: true },
+        ),
     },
     business: {
       get: () => Get('profile/business', undefined, protectedRequest),

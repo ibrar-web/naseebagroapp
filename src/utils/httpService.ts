@@ -14,16 +14,20 @@ import {
 type HttpServiceOptions = {
   authRequired?: boolean;
   authOptional?: boolean;
+  // Skip the global error alert (except 401); the screen shows the error itself.
+  errorsHandledByCaller?: boolean;
 };
 
 class HttpService {
   service: any;
   private authRequired: boolean;
   private authOptional: boolean;
+  private errorsHandledByCaller: boolean;
 
   constructor(options: HttpServiceOptions = {}) {
     this.authRequired = Boolean(options.authRequired);
     this.authOptional = Boolean(options.authOptional);
+    this.errorsHandledByCaller = Boolean(options.errorsHandledByCaller);
 
     const token = store.getState().auth.token;
     const headers: Record<string, string> = {};
@@ -54,7 +58,7 @@ class HttpService {
 
     this.service.interceptors.response.use(
       this.handleSuccess,
-      this.handleError,
+      (error: any) => this.handleError(error),
     );
   }
 
@@ -65,6 +69,10 @@ class HttpService {
   handleError(error: any) {
     try {
       if (axios.isCancel(error)) {
+        return Promise.reject(error);
+      }
+
+      if (this.errorsHandledByCaller && error?.response?.status !== 401) {
         return Promise.reject(error);
       }
 

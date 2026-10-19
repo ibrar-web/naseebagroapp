@@ -46,6 +46,9 @@ const CARD_WIDTH = Math.min(Dimensions.get('window').width - 64, 300);
 
 let _setAlert: ((state: AlertState | null) => void) | null = null;
 
+// How long an alert stays up unless the caller passes its own duration.
+const DEFAULT_DURATION_MS = 6000;
+
 export const showAlert = (
   type: AlertType,
   title: string,
@@ -56,7 +59,7 @@ export const showAlert = (
     type,
     title,
     body,
-    duration: options?.duration ?? 3500,
+    duration: options?.duration ?? DEFAULT_DURATION_MS,
     confirmText: options?.confirmText ?? 'OK',
     cancelText: options?.cancelText,
     onConfirm: options?.onConfirm,
@@ -70,8 +73,10 @@ export const showConfirm = (
   body?: string,
   onConfirm?: () => void,
   onCancel?: () => void,
+  duration?: number,
 ) => {
   showAlert(type, title, body, {
+    duration,
     confirmText: 'OK',
     cancelText: 'Cancel',
     onConfirm,

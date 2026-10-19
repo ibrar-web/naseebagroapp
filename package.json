@@ -12,7 +12,8 @@
     "audit:api": "node audit/api/run.mjs --open",
     "audit:api:full": "node audit/api/run.mjs --write --load --open",
     "audit:api:ci": "node audit/api/run.mjs",
-    "audit:api:cases": "node audit/api/cases.mjs"
+    "audit:api:cases": "node audit/api/cases.mjs",
+    "crash:screens": "node scripts/generate-screen-modules.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",

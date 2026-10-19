@@ -16,6 +16,7 @@ import {
 } from './services/notifications/notificationService';
 import { RootState } from './store/rootReducer';
 import { useReviewPrompt } from './app/deals/hooks/useReviewPrompt';
+import { CrashBoundary } from './services/crashReporter';
 
 const AppContent = () => {
   useHydrateLanguage();
@@ -52,7 +53,9 @@ const App = () => (
   <GestureHandlerRootView className="flex-1">
     <SafeAreaProvider>
       <Provider store={store}>
-        <AppContent />
+        <CrashBoundary>
+          <AppContent />
+        </CrashBoundary>
       </Provider>
     </SafeAreaProvider>
   </GestureHandlerRootView>

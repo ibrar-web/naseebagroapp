@@ -104,13 +104,25 @@ export function consumePendingNotification(): void {
 function handleNotificationNavigation(data: Record<string, string>): void {
   if (!navigationRef.isReady()) return;
 
-  console.log('[FCM Nav] Navigating from notification, data:', JSON.stringify(data));
+  console.log(
+    '[FCM Nav] Navigating from notification, data:',
+    JSON.stringify(data),
+  );
 
   const module = data.module as string | undefined;
   const type = data.type as string | undefined;
   const entityId = data.entity_id as string | undefined;
 
-  console.log('[FCM Nav] module:', module, '| type:', type, '| entityId:', entityId, '| post_type:', data.post_type);
+  console.log(
+    '[FCM Nav] module:',
+    module,
+    '| type:',
+    type,
+    '| entityId:',
+    entityId,
+    '| post_type:',
+    data.post_type,
+  );
 
   if (!module) return;
 
@@ -129,11 +141,17 @@ function handleNotificationNavigation(data: Record<string, string>): void {
     case 'deal': {
       if (entityId) {
         const dealMode: 'buyer' | 'seller' | undefined =
-          (data.mode === 'buyer' || data.mode === 'seller') ? data.mode
-          : type === 'payment_verified' || type === 'payment_rejected' ? 'buyer'
-          : type === 'payment_sent' ? 'seller'
-          : undefined;
-        navigationRef.navigate('DealDetail', { dealId: entityId, ...(dealMode ? { mode: dealMode } : {}) });
+          data.mode === 'buyer' || data.mode === 'seller'
+            ? data.mode
+            : type === 'payment_verified' || type === 'payment_rejected'
+            ? 'buyer'
+            : type === 'payment_sent'
+            ? 'seller'
+            : undefined;
+        navigationRef.navigate('DealDetail', {
+          dealId: entityId,
+          ...(dealMode ? { mode: dealMode } : {}),
+        });
       }
       break;
     }
@@ -146,9 +164,16 @@ function handleNotificationNavigation(data: Record<string, string>): void {
 
     case 'listing':
       if (entityId) {
-        if (type === 'approved' || type === 'rejected' || type === 'needs_revision') {
+        if (
+          type === 'approved' ||
+          type === 'rejected' ||
+          type === 'needs_revision'
+        ) {
           const postType = (data.post_type as 'supply' | 'demand') ?? 'supply';
-          navigationRef.navigate('PostDetail', { postId: entityId, post_type: postType });
+          navigationRef.navigate('PostDetail', {
+            postId: entityId,
+            post_type: postType,
+          });
         } else {
           navigationRef.navigate('CommodityDetail', { listingId: entityId });
         }
@@ -176,7 +201,8 @@ export function setupNotificationListeners(): () => void {
   // Foreground message — show themed in-app toast
   const unsubForeground = fcm.onMessage(async (remoteMessage: any) => {
     const data: Record<string, string> = remoteMessage.data ?? {};
-    const title = remoteMessage.notification?.title ?? data.title ?? 'Notification';
+    const title =
+      remoteMessage.notification?.title ?? data.title ?? 'Notification';
     const body = remoteMessage.notification?.body ?? data.body;
     console.log('[FCM] Foreground message:', title, data);
 
@@ -190,11 +216,15 @@ export function setupNotificationListeners(): () => void {
     const resolvedStatus = isProfileModule ? status : type;
 
     const accentColor =
-      resolvedStatus === 'approved' ? '#4ADE80'
-      : resolvedStatus === 'rejected' ? '#F87171'
-      : type === 'needs_revision' ? '#FBBF24'
-      : module === 'deal' || module === 'truck' ? '#60A5FA'
-      : '#4ADE80';
+      resolvedStatus === 'approved'
+        ? '#4ADE80'
+        : resolvedStatus === 'rejected'
+        ? '#F87171'
+        : type === 'needs_revision'
+        ? '#FBBF24'
+        : module === 'deal' || module === 'truck'
+        ? '#60A5FA'
+        : '#4ADE80';
 
     showToast({
       title,
@@ -208,14 +238,20 @@ export function setupNotificationListeners(): () => void {
   // Background tap — clear any cold-start pending to prevent double navigation
   fcm.onNotificationOpenedApp((remoteMessage: any) => {
     _pendingColdStart = null;
-    console.log('[FCM] Background tap notification:', JSON.stringify(remoteMessage.data));
+    console.log(
+      '[FCM] Background tap notification:',
+      JSON.stringify(remoteMessage.data),
+    );
     handleNotificationNavigation(remoteMessage.data ?? {});
   });
 
   // App opened from quit state — store for deferred nav (auth may not be ready yet)
   fcm.getInitialNotification().then((remoteMessage: any) => {
     if (remoteMessage) {
-      console.log('[FCM] Cold-start notification:', JSON.stringify(remoteMessage.data));
+      console.log(
+        '[FCM] Cold-start notification:',
+        JSON.stringify(remoteMessage.data),
+      );
       _pendingColdStart = remoteMessage.data ?? {};
     }
   });

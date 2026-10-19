@@ -80,10 +80,15 @@ import OfferAlertToast from '../app/components/OfferAlertToast';
 import AppUpdatePrompt from '../app/components/AppUpdatePrompt';
 import { AppAlertProvider } from '../app/components/AppAlert';
 import { AppToastProvider } from '../app/components/AppToast';
+import { setCurrentScreen } from '../services/crashReporter/breadcrumbs';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+// Crash reports include the current screen and the screens before it.
+const trackScreen = () =>
+  setCurrentScreen(navigationRef.getCurrentRoute()?.name);
 const STATUS_BAR_BACKGROUND = 'rgb(20, 82, 40)';
 
 const TAB_CONFIG: Record<
@@ -222,7 +227,11 @@ export const AppNavigator = () => {
 
   return (
     <>
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={trackScreen}
+        onStateChange={trackScreen}
+      >
         <Stack.Navigator
           initialRouteName="Splash"
           screenOptions={{ headerShown: false, animation: 'slide_from_right' }}

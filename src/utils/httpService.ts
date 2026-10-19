@@ -6,6 +6,7 @@ import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
 import { showAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 import { navigationRef } from '../navigation/AppNavigator';
+import { addBreadcrumb } from '../services/crashReporter/breadcrumbs';
 import {
   ACCOUNT_GONE_MESSAGE,
   forceLogout,
@@ -45,6 +46,8 @@ class HttpService {
       (config: any) => {
         const fullUrl = `${config.baseURL ?? ''}/${config.url ?? ''}`.replace(/([^:]\/)\/+/g, '$1');
         console.log('[HTTP REQUEST]', config.method?.toUpperCase(), fullUrl);
+        // Path only: query strings can carry search text.
+        addBreadcrumb('api', `${config.method?.toUpperCase()} /${(config.url ?? '').split('?')[0]}`);
         if (config.data) {
           console.log('[HTTP REQUEST] body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data));
         }
@@ -84,6 +87,7 @@ class HttpService {
       const status = error?.response?.status ?? error.message;
       const errorMessage: string = error?.response?.data?.message || 'Something went wrong.';
       console.log('[HTTP ERROR] status:', status, errorMessage);
+      addBreadcrumb('api', `failed ${status} ${error?.config?.method?.toUpperCase() ?? ''} /${(error?.config?.url ?? '').split('?')[0]}`);
 
       switch (status) {
         case 'Network Error':

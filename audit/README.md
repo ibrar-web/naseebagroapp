@@ -16,8 +16,8 @@ Also available as VS Code tasks (**Terminal › Run Task › API audit**) and as
 - **Every app endpoint** (`api/suite.mjs`): HTTP status, response envelope, required fields, response time, payload size.
 - **List → detail**: takes the first record of each list and calls its detail endpoints (e.g. deal → detail, payments, trucks), checking the detail is the same record.
 - **Accounts**: tries each account in `AUDIT_USERS` until one has records, so list several with different data.
-- **Negative tests**: missing/forged tokens, wrong role, bad params, unknown ids.
-- **Security** (not on production): OTP bypass, public API docs.
+- **Negative tests**: missing/forged tokens, wrong role, empty/malformed/oversized bodies, wrong content type, invalid ids, negative or oversized paging, unknown filters, over-long search, unsupported methods.
+- **Security** (not on production, OWASP API Top 10 2023): cross-user record access (API1), token tampering and auth bypass, user enumeration, blocked-account login (API2), secret fields and seller PII in responses (API3), admin modules for non-admins (API5), SQL injection, error leaks, CORS, HTTP→HTTPS (API8), API docs reachable. The HTTP→HTTPS check only runs against https:// backends.
 - **Real-time**: socket connects with a valid token and rejects a forged one.
 - `--write`: save/unsave and favourite/unfavourite a listing, pause/resume a supply post. Each flow restores what it changed.
 - `--load`: 25 concurrent requests to the browse endpoints, p50/p95.

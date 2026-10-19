@@ -6,6 +6,7 @@
  *   npm run audit:api -- --write      + reversible write flows (save/unsave, favourite, toggle)
  *   npm run audit:api -- --load       + 25-concurrent load test on browse endpoints
  *   npm run audit:api:full            all of the above
+ *   --flows                           end-to-end business flows that create data (local/Docker only)
  *   --env=local|development|production   or   --base=https://host/api/v1
  *   --open                            open the HTML report when done
  *
@@ -26,6 +27,7 @@ import {
 import { loadTargets, probes, securityChecks, suite, writeFlows } from './suite.mjs';
 import { renderReport } from './report.mjs';
 import { buildCatalog } from './catalog.mjs';
+import { flows } from './flows.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const AUDIT_DIR = path.resolve(HERE, '..');
@@ -43,6 +45,7 @@ const baseUrl = args.base || process.env.AUDIT_BASE_URL || ENVIRONMENTS[envName]
 const isProd = envName === 'production' || /naseebagro\.com/.test(baseUrl);
 const opts = {
   write: !!args.write || !!args.full,
+  flows: !!args.flows,
   load: !!args.load || !!args.full,
   security: !args['no-security'] && !isProd,
   open: !!args.open,
@@ -53,6 +56,13 @@ const opts = {
 };
 if (!baseUrl) {
   console.error(`Unknown environment "${envName}". Use --env=local|development|production or --base=URL`);
+  process.exit(2);
+}
+// HTTPS-only checks (redirects, TLS) do not apply to a backend served over plain http://.
+const isPlainHttp = baseUrl.startsWith('http://');
+const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.|10\.)/.test(baseUrl);
+if (opts.flows && !isLocal && !args.force) {
+  console.error('Refusing --flows: it creates posts, offers, deals and users. Use a local/Docker backend (or --force).');
   process.exit(2);
 }
 if (isProd && (opts.write || opts.load) && !args.force) {
@@ -133,13 +143,22 @@ async function login() {
   }
 }
 const liveSessions = () => sessions.filter(s => s.ok);
+let adminSession = null;
+async function loginAdmin() {
+  const acc = parseAccounts(process.env.AUDIT_ADMIN)[0];
+  if (!acc) return;
+  const res = await request('POST', 'auth/admin/login', { body: acc });
+  const token = res.json?.data?.access_token;
+  adminSession = { email: acc.email, token, ok: !!token, status: res.status, admin: true };
+  log(token ? ICON.pass : ICON.fail, `admin login ${acc.email} → ${res.status} ${res.ms} ms`);
+}
 
 // ── Endpoint runner ────────────────────────────────────────────────────────
 async function runEndpoint(group, ep) {
   const isList = ep.list !== undefined;
-  const candidates = ep.auth === 'user' ? liveSessions() : [{ email: ep.auth === 'optional' && liveSessions()[0] ? liveSessions()[0].email : 'anonymous', token: ep.auth === 'optional' ? liveSessions()[0]?.token : undefined }];
-  if (ep.auth === 'user' && !candidates.length) {
-    return { id: ep.id, group, name: ep.name, screen: ep.screen, path: ep.path, outcome: 'skip', checks: [{ label: 'No logged-in account', ok: false, level: 'warn' }], details: [] };
+  const candidates = ep.auth === 'admin' ? (adminSession?.ok ? [adminSession] : []) : ep.auth === 'user' ? liveSessions() : [{ email: ep.auth === 'optional' && liveSessions()[0] ? liveSessions()[0].email : 'anonymous', token: ep.auth === 'optional' ? liveSessions()[0]?.token : undefined }];
+  if ((ep.auth === 'user' || ep.auth === 'admin') && !candidates.length) {
+    return { id: ep.id, group, name: ep.name, screen: ep.screen, path: ep.path, outcome: 'skip', checks: [{ label: ep.auth === 'admin' ? 'No admin account (set AUDIT_ADMIN)' : 'No logged-in account', ok: false, level: 'warn' }], details: [] };
   }
 
   // Try accounts until one has records, so details can be tested.
@@ -174,7 +193,7 @@ async function runEndpoint(group, ep) {
       result.details.push({ id, name: d.name, outcome: 'skip', checks: [{ label: 'No record to open', ok: false, level: 'warn' }] });
       continue;
     }
-    const token = d.auth === 'user' || ep.auth === 'user' || d.auth === 'optional' ? session.token || liveSessions()[0]?.token : undefined;
+    const token = (d.auth ?? ep.auth) === 'none' ? undefined : session.token || liveSessions()[0]?.token;
     const dres = await request('GET', d.path(first), { token, query: d.query?.(first) });
     const { checks: dchecks, records: drecords } = baseChecks(dres, { fields: d.fields, list: d.list !== undefined, listKey: d.list });
     const dobj = unwrap(dres.json);
@@ -190,19 +209,138 @@ async function runEndpoint(group, ep) {
 }
 
 // ── Probes, security, sockets, load, writes ────────────────────────────────
+/** Builds the Authorization token a probe asks for. */
+function probeToken(kind) {
+  const userToken = liveSessions()[0]?.token;
+  if (kind === 'user') return userToken;
+  if (kind === 'forged') return 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdWRpdCJ9.forged';
+  if ((kind === 'alg-none' || kind === 'tampered') && userToken) {
+    const [head, body, sig] = userToken.split('.');
+    const claims = JSON.parse(Buffer.from(body, 'base64url').toString());
+    const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+    // alg "none": unsigned token for the same user. tampered: real signature, role edited to admin.
+    return kind === 'alg-none' ? `${b64({ alg: 'none', typ: 'JWT' })}.${body}.` : `${head}.${b64({ ...claims, role: 'admin' })}.${sig}`;
+  }
+  return undefined;
+}
+
+const requestOpts = c => ({
+  token: probeToken(c.token), query: c.query, body: c.body, raw: c.raw, contentType: c.contentType, headers: c.headers, authHeader: c.authHeader,
+});
+
 async function runProbe(p) {
-  const token = p.token === 'user' ? liveSessions()[0]?.token : p.token === 'forged' ? 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdWRpdCJ9.forged' : undefined;
-  const res = await request(p.method, p.path, { token, query: p.query, body: p.body });
+  const res = await request(p.method, p.path, requestOpts(p));
   const ok = p.expect.includes(res.status);
   const checks = [{ label: `Expected ${p.expect.join(' or ')}, got ${res.status}`, ok, level: 'fail' }];
   return { id: p.id, group: 'Negative tests', name: p.name, path: p.path, ...snapshot(res), checks, outcome: outcomeOf(checks), details: [] };
 }
 
-async function runSecurity(c) {
-  const res = await request(c.method, c.path, { body: c.body });
-  const ok = c.pass(res);
-  const checks = [{ label: ok ? 'OK' : c.why, ok, level: 'fail' }];
-  return { id: c.id, group: 'Security', name: c.name, path: c.path, ...snapshot(res), response: c.evidence ? c.evidence(res) : res.json ? redact(res.json) : `HTTP ${res.status}`, checks, outcome: outcomeOf(checks), details: [] };
+const SECRET_KEYS = /^(password|password_hash|passwordHash|hash|salt|reset_token|resetToken|refresh_token|refreshToken|otp|otp_code)$/;
+const PII_KEYS = /^(email|phone|cnic|cnic_number|address|bank_iban_number|bank_account_number)$/i;
+function findKeys(value, pattern, found = new Set(), depth = 0) {
+  if (depth > 12 || value === null || typeof value !== 'object') return found;
+  for (const [k, v] of Object.entries(value)) {
+    if (pattern.test(k)) found.add(k);
+    findKeys(v, pattern, found, depth + 1);
+  }
+  return found;
+}
+
+async function runSecurity(c, results) {
+  const result = (checks, extra = {}) => ({ id: c.id, group: 'Security', name: c.name, path: c.path, checks, outcome: outcomeOf(checks), details: [], ...extra });
+  const users = liveSessions();
+  const listIds = async (s, listPath) => (extractList((await request('GET', listPath, { token: s.token })).json) || []).map(r => r.id).filter(Boolean);
+
+  if (c.kind === 'bola') {
+    // Find a record owned by account A that account B does not own, then ask for it as B.
+    const owned = new Map();
+    for (const s of users) owned.set(s.email, await listIds(s, c.list));
+    for (const owner of users) {
+      for (const attacker of users) {
+        const id = owned.get(owner.email)[0];
+        if (owner === attacker || !id || owned.get(attacker.email).includes(id)) continue;
+        const res = await request('GET', c.detail(id), { token: attacker.token });
+        const ok = res.status === 403 || res.status === 404;
+        const checks = [{ label: ok ? `Refused with ${res.status} (${owner.email}'s record requested by ${attacker.email})` : `HTTP ${res.status}: ${attacker.email} received ${owner.email}'s record`, ok, level: 'fail' }];
+        return result(checks, { ...snapshot(res), account: attacker.email });
+      }
+    }
+    return { ...result([{ label: 'Needs two test accounts with different records', ok: false, level: 'warn' }]), outcome: 'skip' };
+  }
+
+  if (c.kind === 'admin') {
+    const anon = await request('GET', c.path);
+    const user = await request('GET', c.path, { token: users[0]?.token });
+    const checks = [
+      { label: `Without token: HTTP ${anon.status} (expected 401)`, ok: anon.status === 401, level: 'fail' },
+      { label: `With a user token: HTTP ${user.status} (expected 403)`, ok: user.status === 403, level: 'fail' },
+    ];
+    return result(checks, { ...snapshot(user), response: { without_token: anon.status, user_token: user.status } });
+  }
+
+  if (c.kind === 'enumeration') {
+    const known = users[0]?.email;
+    const a = await request('POST', c.path, { body: { email: 'audit-nobody-zz@naseeb.test', password: 'Wrong@12345' } });
+    const b = await request('POST', c.path, { body: { email: known, password: 'Wrong@12345' } });
+    const same = a.status === b.status && a.json?.message === b.json?.message;
+    const checks = [{ label: same ? `Both return ${a.status} "${a.json?.message}"` : `Unknown email: ${a.status} "${a.json?.message}"; wrong password: ${b.status} "${b.json?.message}"`, ok: same, level: 'fail' }];
+    return result(checks, { method: 'POST', url: `${baseUrl}/${c.path}`, status: b.status, response: { unknown_email: { status: a.status, message: a.json?.message }, wrong_password: { status: b.status, message: b.json?.message } } });
+  }
+
+  if (c.kind === 'blocked-login') {
+    const blocked = parseAccounts(process.env.AUDIT_BLOCKED_USERS);
+    if (!blocked.length) return { ...result([{ label: 'Set AUDIT_BLOCKED_USERS to inactive / KYC-rejected test accounts', ok: false, level: 'warn' }]), outcome: 'skip' };
+    const outcomes = [];
+    for (const acc of blocked) {
+      const r = await request('POST', c.path, { body: acc });
+      outcomes.push({ email: acc.email, status: r.status, message: r.json?.message });
+    }
+    const checks = outcomes.map(o => ({ label: `${o.email}: HTTP ${o.status} ${o.message ?? ''}`, ok: o.status === 401 || o.status === 403, level: 'fail' }));
+    return result(checks, { method: 'POST', url: `${baseUrl}/${c.path}`, status: outcomes.at(-1)?.status, response: outcomes });
+  }
+
+  if (c.kind === 'exposure') {
+    const found = new Set();
+    for (const r of results.flatMap(x => [x, ...(x.details || [])])) {
+      findKeys(r.response, SECRET_KEYS, found);
+      findKeys(r.sample, SECRET_KEYS, found);
+    }
+    const scanned = results.flatMap(x => [x, ...(x.details || [])]).filter(r => r.response).length;
+    const checks = [{ label: found.size ? `Secret fields found: ${[...found].join(', ')}` : `No secret fields in ${scanned} responses`, ok: !found.size, level: 'fail' }];
+    return result(checks, { response: { responses_scanned: scanned, secret_fields_found: [...found] } });
+  }
+
+  if (c.kind === 'pii') {
+    const res = await request('GET', c.path, { query: { page: 1, limit: 20 } });
+    const listings = extractList(res.json, 'data.listings') || [];
+    const found = new Set();
+    for (const l of listings) findKeys(l.seller, PII_KEYS, found);
+    const checks = listings.length
+      ? [{ label: found.size ? `Seller fields exposed: ${[...found].join(', ')}` : `${listings.length} listings checked; seller shows only ${Object.keys(listings[0].seller || {}).join(', ') || 'no fields'}`, ok: !found.size, level: 'fail' }]
+      : [{ label: 'No public listings to check', ok: false, level: 'warn' }];
+    return result(checks, { ...snapshot(res), response: { seller_fields: Object.keys(listings[0]?.seller || {}) } });
+  }
+
+  if (c.kind === 'https') {
+    const httpUrl = `${baseUrl.replace(/^https:/, 'http:')}/${c.path}`;
+    let status = 0, location = null;
+    try {
+      const r = await fetch(httpUrl, { redirect: 'manual', signal: AbortSignal.timeout(opts.timeoutMs) });
+      status = r.status;
+      location = r.headers.get('location');
+    } catch (e) {
+      status = 0;
+    }
+    const ok = status === 0 || ([301, 302, 307, 308].includes(status) && /^https:/.test(location || ''));
+    const checks = [{ label: status === 0 ? 'Plain HTTP refused' : `HTTP ${status}${location ? ` → ${location}` : ''}`, ok, level: 'fail' }];
+    return result(checks, { method: 'GET', url: httpUrl, status, response: { status, location } });
+  }
+
+  // Plain request: `expect` statuses, or a `pass` predicate.
+  const res = await request(c.method, c.path, requestOpts(c));
+  const ok = c.pass ? c.pass(res) : c.expect.includes(res.status);
+  const label = c.pass ? (ok ? `OK (HTTP ${res.status})` : `${c.why} (HTTP ${res.status})`) : `Expected ${c.expect.join(' or ')}, got ${res.status}`;
+  return result([{ label, ok, level: 'fail' }], { ...snapshot(res), response: c.evidence ? c.evidence(res) : res.json ? trimForReport(redact(res.json)) : `HTTP ${res.status}` });
 }
 
 async function runSockets() {
@@ -304,6 +442,75 @@ async function runWrites(results) {
   return out;
 }
 
+// ── End-to-end flows (--flows) ─────────────────────────────────────────────
+async function runFlows() {
+  const out = [];
+  for (const flow of flows) {
+    const tokens = { seller: liveSessions()[0]?.token, buyer: liveSessions()[1]?.token, admin: adminSession?.token };
+    const state = {};
+    let blockedBy = null;
+    for (const step of flow.steps) {
+      const id = `flow.${flow.id}.${step.id}`;
+      if (blockedBy) {
+        out.push({ id, group: flow.title, name: step.name, outcome: 'skip', checks: [{ label: `Blocked: "${blockedBy}" failed`, ok: false, level: 'warn' }], details: [] });
+        continue;
+      }
+      const calls = [];
+      const checks = [];
+      const ctx = {
+        state, tokens, pollMs: 8000,
+        call: async (role, method, p, o = {}) => {
+          const res = await request(method, p, { ...o, token: role ? tokens[role] : undefined });
+          calls.push(res);
+          return res;
+        },
+        list: (res, key) => extractList(res.json, key),
+        check: (ok, label, level = 'fail') => (checks.push({ label, ok: !!ok, level }), !!ok),
+        fail: msg => Object.assign(new Error(msg), { stepFail: true }),
+        expect: (res, statuses, label, { stop = true } = {}) => {
+          const ok = statuses.includes(res.status);
+          const why = ok ? '' : ` (expected ${statuses.join('/')})${res.json?.message ? `: ${res.json.message}` : res.error ? `: ${res.error}` : ''}`;
+          checks.push({ label: `${label}: HTTP ${res.status}${why}`, ok, level: 'fail' });
+          if (!ok && stop) throw ctx.fail(label);
+          return ok;
+        },
+        poll: async fn => {
+          const end = Date.now() + ctx.pollMs;
+          for (;;) {
+            const r = await fn();
+            if (r || Date.now() > end) return r;
+            await new Promise(r2 => setTimeout(r2, 500));
+          }
+        },
+        login: async (role, email, password, admin = false) => {
+          const res = await ctx.call(null, 'POST', admin ? 'auth/admin/login' : 'auth/login', { body: { email, password } });
+          tokens[role] = res.json?.data?.access_token;
+          return res;
+        },
+      };
+      const started = performance.now();
+      try {
+        await step.run(ctx);
+      } catch (e) {
+        if (!e.stepFail) checks.push({ label: `Error: ${e.message}`, ok: false, level: 'fail' });
+      }
+      const outcome = checks.length ? outcomeOf(checks) : 'pass';
+      if (outcome === 'fail' && !step.optional) blockedBy = step.name;
+      const last = calls.at(-1);
+      out.push({
+        id, group: flow.title, name: step.name, outcome, checks, details: [],
+        method: last?.method, url: last?.url, status: last?.status, ms: Math.round(performance.now() - started), bytes: last?.bytes,
+        response: {
+          requests: calls.map(c => `${c.method} ${c.url.replace(baseUrl, '')} → ${c.status} (${c.ms} ms)`),
+          last_response: last?.json ? trimForReport(redact(last.json)) : last?.text ?? null,
+        },
+      });
+      log(ICON[outcome], `${flow.title} › ${step.name}`);
+    }
+  }
+  return out;
+}
+
 // ── Report assembly ────────────────────────────────────────────────────────
 function flatten(results) {
   return results.flatMap(r => [r, ...(r.details || [])]);
@@ -315,7 +522,7 @@ function toTestCases(results) {
   return buildCatalog().map(c => {
     const r = byKey.get(c.key);
     if (!r) {
-      const reason = c.runOnly ? `Not selected (run with ${c.runOnly})` : c.module === 'Security' ? 'Skipped on production' : 'Not executed';
+      const reason = c.runOnly ? `Not selected (run with ${c.runOnly})` : c.remoteOnly && isPlainHttp ? 'Not applicable: local backend runs over plain HTTP' : c.module === 'Security' ? 'Skipped on production' : 'Not executed';
       return { ...c, outcome: 'notrun', actual: reason };
     }
     const problems = (r.checks || []).filter(k => !k.ok);
@@ -403,8 +610,9 @@ function removeOldReports(dir, keep) {
 // ── Main ───────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\nNaseeb Agri API audit → ${baseUrl} (${envName})`);
-  console.log(`Options: write=${opts.write} load=${opts.load} security=${opts.security}\n`);
+  console.log(`Options: write=${opts.write} load=${opts.load} security=${opts.security} flows=${opts.flows}\n`);
   await login();
+  await loginAdmin();
 
   const results = [];
   for (const g of suite) {
@@ -416,10 +624,11 @@ async function main() {
     }
   }
   for (const p of probes) { const r = await runProbe(p); results.push(r); log(ICON[r.outcome], `Negative › ${r.name}`); }
-  if (opts.security) for (const c of securityChecks) { const r = await runSecurity(c); results.push(r); log(ICON[r.outcome], `Security › ${r.name}`); }
+  if (opts.security) for (const c of securityChecks.filter(c => !(c.remoteOnly && isPlainHttp))) { const r = await runSecurity(c, results); results.push(r); log(ICON[r.outcome], `Security › ${r.name}`); }
   for (const r of await runSockets()) { results.push(r); log(ICON[r.outcome], `Real-time › ${r.name}`); }
   if (opts.write) for (const r of await runWrites(results)) { results.push(r); log(ICON[r.outcome], `Write › ${r.name}`); }
   if (opts.load) for (const r of await runLoad()) { results.push(r); log(ICON[r.outcome], `Load › ${r.name}`); }
+  if (opts.flows) results.push(...(await runFlows()));
 
   const reportsDir = ensureDir(path.join(AUDIT_DIR, 'reports'));
   const historyFile = path.join(reportsDir, 'history.json');
@@ -456,7 +665,8 @@ async function main() {
   const trend = [...sameEnv.slice(-9), { reportId: meta.reportId, startedAt: meta.startedAt, totals }];
   const report = { meta, gate, defects, cases, trend };
 
-  const stem = path.join(reportsDir, `${meta.reportId}_${envName}`);
+  // Runs against a local/Docker backend are named "locallytested" so they are never mistaken for server runs.
+  const stem = path.join(reportsDir, `${meta.reportId}_${isLocal ? 'locallytested' : envName}`);
   fs.writeFileSync(`${stem}.json`, JSON.stringify(report, null, 2));
   fs.writeFileSync(`${stem}.html`, renderReport(report));
   const pdfError = writePdf(`${stem}.html`, `${stem}.pdf`);

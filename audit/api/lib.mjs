@@ -28,20 +28,37 @@ export function parseAccounts(value) {
     });
 }
 
+// 1x1 PNG, used wherever an endpoint needs an uploaded file (receipts, truck documents).
+const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'base64');
+export const testFile = (name = 'test.png') => ({ __file: true, name });
+
+/** { field: value | testFile() } -> multipart FormData (fetch sets the boundary header). */
+function toFormData(fields) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === undefined || v === null) continue;
+    if (v?.__file) fd.append(k, new Blob([TINY_PNG], { type: 'image/png' }), v.name);
+    else fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+  }
+  return fd;
+}
+
 export function createClient(baseUrl, timeoutMs) {
-  return async function request(method, urlPath, { token, query, body } = {}) {
+  return async function request(method, urlPath, { token, query, body, raw, contentType, headers: extra, authHeader, form } = {}) {
     const url = new URL(baseUrl.replace(/\/$/, '') + '/' + urlPath.replace(/^\//, ''));
     for (const [k, v] of Object.entries(query || {})) if (v !== undefined) url.searchParams.set(k, v);
-    const headers = { Accept: 'application/json' };
+    const headers = { Accept: 'application/json', ...(extra || {}) };
     if (token) headers.Authorization = `Bearer ${token}`;
-    if (body) headers['Content-Type'] = 'application/json';
+    if (authHeader !== undefined) headers.Authorization = authHeader;
+    if (body || raw !== undefined) headers['Content-Type'] = contentType || 'application/json';
 
     const started = performance.now();
     try {
       const res = await fetch(url, {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: form ? toFormData(form) : raw !== undefined ? raw : body ? JSON.stringify(body) : undefined,
+        redirect: 'manual',
         signal: AbortSignal.timeout(timeoutMs),
       });
       const text = await res.text();

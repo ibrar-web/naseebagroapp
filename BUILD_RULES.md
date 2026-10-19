@@ -35,6 +35,14 @@ cd android
 Always use `clean` for Play Store releases to avoid stale cached JS bundle artifacts from previous builds.
 Output: `android/app/build/outputs/bundle/release/app-release.aab`
 
+**If `clean` fails with `CMake Error ... Imported target "ReactAndroid::jsi" includes non-existent path`:**
+the native CMake cache points at a purged Gradle cache folder. Delete the generated dirs and build without `clean`:
+```bash
+cd android
+rm -rf app/.cxx app/build build
+./gradlew bundleRelease
+```
+
 ### APK — Direct install / testing
 ```bash
 cd android
@@ -48,6 +56,8 @@ Output: `android/app/build/outputs/apk/release/app-release.apk`
 
 | versionCode | versionName | Date       | Notes                          |
 |-------------|-------------|------------|-------------------------------|
+| 28          | 1.4.3       | 2026-10-19 | New server APIs, app version check / update alert, camera permissions |
+| 27          | 1.4.2       | 2026-08-21 | Notifications, signup, icons & app identity |
 | 26          | 1.4.1       | 2026-08-06 | Unit name from commodity default unit in market rates, request/send offer screens |
 | 25          | 1.4.0       | 2026-08-06 | Buyer/seller form services, form template constraint fix, ListingDetail redesign |
 | 24          | 1.3.9       | —          | Previous release               |

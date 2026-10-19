@@ -426,11 +426,11 @@ export function renderReport({ meta, gate, defects, cases, trend }) {
       Functional: 'status code, response envelope, required fields, response time and payload size of each endpoint the app calls.',
       'Integration (list → detail)': 'first record of a list opened through its detail endpoints; detail must return the same record.',
       Negative: 'invalid tokens, wrong roles, malformed parameters and unknown resources must be rejected correctly.',
-      Security: 'checks for known weaknesses: OTP bypass, public API documentation, socket authentication.',
+      Security: 'checks for known weaknesses: public API documentation, socket authentication.',
       Integration: 'real-time socket connection with a valid token.',
       'End-to-end (reversible)': 'user journeys that change data and then restore it.',
       Load: 'concurrent requests on the busiest public endpoints.',
-    }[ty] || ''}</li>`).join('')}</ul>
+    }[ty] || (ty.startsWith('API') ? 'OWASP API Security Top 10 (2023) category; see owasp.org/API-Security.' : '')}</li>`).join('')}</ul>
     <h3>Out of scope</h3>
     <ul class="tight"><li>Mobile app user interface and device testing.</li><li>Admin panel APIs, except as authorisation probes.</li><li>Data-changing tests other than the reversible flows listed; payment, upload and deal-stage transitions.</li><li>Sustained load, soak and penetration testing.</li></ul>
     <h3>Variances</h3>

@@ -33,6 +33,10 @@ const vectorIconRegistry = {
     Icon: Feather,
     name: 'trash-2' as FeatherIconName,
   },
+  trash: {
+    Icon: Feather,
+    name: 'trash-2' as FeatherIconName,
+  },
   biometric: {
     Icon: Feather,
     name: 'user-check' as FeatherIconName,

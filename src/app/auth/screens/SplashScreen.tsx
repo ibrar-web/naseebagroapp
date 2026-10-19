@@ -8,6 +8,7 @@ import { useAppDispatch } from '../../../store';
 import { loginSuccess, updateUser } from '../../../store/slices/authSlice';
 import type { User } from '../../../store/slices/authSlice';
 import api from '../../../utils/api';
+import { forceLogout } from '../utils/forceLogout';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
@@ -33,8 +34,14 @@ const SplashScreen = ({ navigation }: Props) => {
             // Refresh user data from server in background
             api.auth.getCurrentUser()
               .then((res: any) => {
-                const fresh: Partial<User> = res?.data ?? res ?? {};
-                if (fresh.id) dispatch(updateUser(fresh));
+                // auth/me responds with { user }.
+                const fresh: Partial<User> = res?.user ?? res?.data ?? res ?? {};
+                if (fresh.id) {
+                  dispatch(updateUser(fresh));
+                  return;
+                }
+                // No user behind this session any more.
+                forceLogout('Logged Out', 'Please log in again.');
               })
               .catch(() => {});
             return;

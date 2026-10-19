@@ -37,6 +37,9 @@ export const api = {
       update: (data: any) => Patch('profile/personal', data, protectedRequest),
       updateForm: (data: any) =>
         Patch('profile/personal', data, protectedRequest),
+      // axios sends a DELETE body through the `data` config field.
+      deleteAccount: (password: string) =>
+        Delete('profile/personal', { data: { password } }, protectedRequest),
     },
     business: {
       get: () => Get('profile/business', undefined, protectedRequest),

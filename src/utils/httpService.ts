@@ -6,6 +6,10 @@ import { ENV } from '../environment';
 import { resetAllReduxStates } from '../store/slices/authSlice';
 import { showAuthRequiredSheet } from '../app/auth/utils/authRequiredSheet';
 import { navigationRef } from '../navigation/AppNavigator';
+import {
+  ACCOUNT_GONE_MESSAGE,
+  forceLogout,
+} from '../app/auth/utils/forceLogout';
 
 type HttpServiceOptions = {
   authRequired?: boolean;
@@ -83,6 +87,14 @@ class HttpService {
           break;
 
         case 401: {
+          // Account deleted (e.g. from another device): sign this device out.
+          if (errorMessage === ACCOUNT_GONE_MESSAGE) {
+            forceLogout(
+              'Account Deleted',
+              'This account no longer exists. You have been logged out.',
+            );
+            break;
+          }
           const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
           if (currentRoute === 'Login') {
             break;

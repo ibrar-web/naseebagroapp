@@ -18,6 +18,7 @@ import type { TranslationKey } from '../../../localization';
 import { navigateToLogin } from '../../auth/utils/requireLogin';
 import MockStatusBar from '../../components/MockStatusBar';
 import LoginRequired from '../../components/alerts/LoginRequired';
+import { DeleteAccountButton } from '../components/DeleteAccountButton';
 import api from '../../../utils/api/index';
 
 type MenuItem = {
@@ -352,6 +353,7 @@ const ProfileScreen = ({ navigation }: any) => {
               {isAuthenticated ? t('profile.logout') : t('auth.login')}
             </Text>
           </TouchableOpacity>
+          {isAuthenticated && <DeleteAccountButton />}
         </View>
 
         <Text style={styles.version}>Naseeb Agri Market v1.0.0</Text>
